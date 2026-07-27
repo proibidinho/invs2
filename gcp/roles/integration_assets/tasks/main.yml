@@ -1,0 +1,251 @@
+# =============================================================================
+# Task Principal: Sincronização GCP → CMDB
+# =============================================================================
+---
+- name: Incluir variáveis de mapeamento GCP
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/mapeamento_gcp_cmdb.yml"
+
+- name: Inicializar logs de sincronização
+  ansible.builtin.set_fact:
+    sync_log_create: []
+    sync_log_skip: []
+    sync_log_deactivate: []
+    sync_log_errors: []
+
+# ---------------------------------------------------------------------------
+# FASE 1: Coletar instâncias do GCP
+# ---------------------------------------------------------------------------
+- name: "FASE 1 - Coletar instâncias do GCP"
+  ansible.builtin.debug:
+    msg: "════════════════════════════════════════════════════════════════"
+
+- name: Normalizar lista de projetos GCP
+  ansible.builtin.set_fact:
+    _gcp_projects_to_sync: "{{ gcp_projects if gcp_projects is iterable and gcp_projects is not string else [gcp_projects] }}"
+
+- name: Listar instâncias de cada projeto GCP
+  ansible.builtin.command: >
+    gcloud compute instances list --project={{ project_item }} --format=json
+  register: gcp_list_result
+  changed_when: false
+  loop: "{{ _gcp_projects_to_sync }}"
+  loop_control:
+    loop_var: project_item
+    label: "{{ project_item }}"
+
+- name: Consolidar instâncias (basic listing) de todos os projetos
+  ansible.builtin.set_fact:
+    gcp_instances_basic: >-
+      {{ gcp_list_result.results
+         | selectattr('stdout', 'defined')
+         | map(attribute='stdout')
+         | map('from_json')
+         | flatten(levels=1)
+         | list }}
+
+- name: Debug - Total de instâncias encontradas
+  ansible.builtin.debug:
+    msg: "Encontradas {{ gcp_instances_basic | length }} instâncias em {{ _gcp_projects_to_sync | length }} projeto(s)"
+
+- name: Obter detalhes de cada instância (describe)
+  ansible.builtin.command: >
+    gcloud compute instances describe {{ item.name }}
+    --zone={{ item.zone | basename }}
+    --project={{ item.selfLink | extract_project_from_url }}
+    --format=json
+  loop: "{{ gcp_instances_basic }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: gcp_details_result
+  changed_when: false
+  when: gcp_instances_basic | length > 0
+
+- name: Consolidar detalhes das instâncias
+  ansible.builtin.set_fact:
+    gcp_instances: >-
+      {{ gcp_details_result.results | default([])
+         | selectattr('stdout', 'defined')
+         | map(attribute='stdout')
+         | map('from_json')
+         | list }}
+
+- name: Coletar machine types únicos
+  ansible.builtin.set_fact:
+    unique_machine_types: >-
+      {{ gcp_instances_basic
+         | map(attribute='machineType')
+         | map('basename')
+         | unique
+         | list }}
+
+- name: Obter detalhes dos machine types
+  ansible.builtin.command: >
+    gcloud compute machine-types describe {{ item }}
+    --zone={{ (gcp_instances_basic | first).zone | basename }}
+    --project={{ (gcp_instances_basic | first).selfLink | extract_project_from_url }}
+    --format=json
+  loop: "{{ unique_machine_types }}"
+  register: machine_types_result
+  changed_when: false
+  failed_when: false
+  when: unique_machine_types | length > 0 and gcp_instances_basic | length > 0
+
+- name: Montar dicionário de machine types
+  ansible.builtin.set_fact:
+    machine_types_dict: >-
+      {{ dict(
+           machine_types_result.results
+           | selectattr('stdout', 'defined')
+           | map(attribute='stdout')
+           | map('from_json')
+           | map(attribute='name')
+           | zip(
+               machine_types_result.results
+               | selectattr('stdout', 'defined')
+               | map(attribute='stdout')
+               | map('from_json')
+             )
+         ) }}
+  when: machine_types_result is defined and machine_types_result.results is defined
+
+- name: Transformar instâncias GCP para formato cloud_data
+  ansible.builtin.set_fact:
+    cloud_data_list: "{{ gcp_instances | batch_transform_instances(machine_types_dict | default({}), owner_ids | default({})) }}"
+
+- name: Debug - Instâncias transformadas
+  ansible.builtin.debug:
+    msg: "{{ cloud_data_list | length }} instâncias transformadas"
+
+# ---------------------------------------------------------------------------
+# FASE 2: Coletar dados do CMDB
+# ---------------------------------------------------------------------------
+- name: "FASE 2 - Coletar servidores GCP do CMDB"
+  ansible.builtin.debug:
+    msg: "════════════════════════════════════════════════════════════════"
+
+- name: Buscar servidores GCP existentes no CMDB
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
+    method: POST
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    force_basic_auth: yes
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      qlQuery: 'objectTypeId = {{ object_type_id_servidor }} AND Datacenter = "Google Cloud"'
+    status_code: [200]
+  register: cmdb_servers_result
+  environment: "{{ proxy_env | default({}) }}"
+
+- name: Parsear servidores do CMDB
+  ansible.builtin.set_fact:
+    cmdb_servers: "{{ cmdb_servers_result.json['values'] | default([]) }}"
+
+- name: Extrair nomes do CMDB
+  ansible.builtin.set_fact:
+    cmdb_server_names: "{{ cmdb_servers | map(attribute='label') | list }}"
+
+- name: Debug - Servidores encontrados no CMDB
+  ansible.builtin.debug:
+    msg: "Encontrados {{ cmdb_servers | length }} servidores Google Cloud no CMDB"
+
+# ---------------------------------------------------------------------------
+# FASE 3: Comparar e determinar ações
+# ---------------------------------------------------------------------------
+- name: "FASE 3 - Comparar GCP vs CMDB"
+  ansible.builtin.debug:
+    msg: "════════════════════════════════════════════════════════════════"
+
+- name: Extrair nomes das instâncias GCP
+  ansible.builtin.set_fact:
+    gcp_instance_names: "{{ cloud_data_list | map(attribute='name_cloud') | list }}"
+
+- name: Determinar servidores a criar
+  ansible.builtin.set_fact:
+    servers_to_create: "{{ cloud_data_list | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+
+- name: Determinar servidores existentes (skip)
+  ansible.builtin.set_fact:
+    servers_to_skip: "{{ cloud_data_list | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+
+- name: Determinar servidores a desativar
+  ansible.builtin.set_fact:
+    servers_to_deactivate: "{{ cmdb_servers | rejectattr('label', 'in', gcp_instance_names) | list }}"
+
+- name: Resumo da comparação
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════════════════════════════"
+      - "                    RESUMO DA SINCRONIZAÇÃO"
+      - "════════════════════════════════════════════════════════════════"
+      - "Total instâncias GCP: {{ cloud_data_list | length }}"
+      - "Total servidores CMDB: {{ cmdb_servers | length }}"
+      - "────────────────────────────────────────────────────────────────"
+      - "A CRIAR: {{ servers_to_create | length }}"
+      - "EXISTENTES (skip): {{ servers_to_skip | length }} (preservando dados manuais)"
+      - "A DESATIVAR: {{ servers_to_deactivate | length if enable_deactivation else '(desativado)' }}"
+      - "════════════════════════════════════════════════════════════════"
+
+# ---------------------------------------------------------------------------
+# FASE 4: Executar sincronização
+# ---------------------------------------------------------------------------
+- name: "FASE 4 - Executar sincronização"
+  ansible.builtin.debug:
+    msg: "════════════════════════════════════════════════════════════════"
+
+- name: Criar novos servidores no CMDB
+  ansible.builtin.include_tasks: create.yml
+  vars:
+    current_cloud_data: "{{ server_item }}"
+  loop: "{{ servers_to_create }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+  when:
+    - servers_to_create | length > 0
+    - sync_mode == 'full' or sync_mode == 'create'
+
+- name: Registrar servidores existentes (skip)
+  ansible.builtin.set_fact:
+    sync_log_skip: "{{ sync_log_skip + [server_item.name_cloud] }}"
+  loop: "{{ servers_to_skip }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+  when: servers_to_skip | length > 0
+
+- name: Desativar servidores removidos do GCP
+  ansible.builtin.include_tasks: deactivate.yml
+  vars:
+    server_to_deactivate: "{{ server_item }}"
+  loop: "{{ servers_to_deactivate }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.label }}"
+  when:
+    - servers_to_deactivate | length > 0
+    - sync_mode == 'full' or sync_mode == 'deactivate'
+    - enable_deactivation | default(false) | bool
+
+# ---------------------------------------------------------------------------
+# FASE 5: Relatório final
+# ---------------------------------------------------------------------------
+- name: "FASE 5 - Relatório final"
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════════════════════════════"
+      - "                    SINCRONIZAÇÃO CONCLUÍDA"
+      - "════════════════════════════════════════════════════════════════"
+      - "Servidores criados: {{ sync_log_create | length }}"
+      - "{{ sync_log_create | join(', ') if sync_log_create else '(nenhum)' }}"
+      - "────────────────────────────────────────────────────────────────"
+      - "Servidores existentes (skip): {{ sync_log_skip | length }}"
+      - "{{ sync_log_skip | join(', ') if sync_log_skip else '(nenhum)' }}"
+      - "────────────────────────────────────────────────────────────────"
+      - "Servidores desativados: {{ sync_log_deactivate | length }}"
+      - "{{ sync_log_deactivate | join(', ') if sync_log_deactivate else '(nenhum)' }}"
+      - "════════════════════════════════════════════════════════════════"

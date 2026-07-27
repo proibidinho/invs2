@@ -1,0 +1,319 @@
+# =============================================================================
+# Playbook: Configurar Webhook GCP → AAP (OPCIONAL)
+# =============================================================================
+# Este playbook configura o Cloud Pub/Sub do GCP para notificar o AAP
+# quando VMs são criadas/deletadas/modificadas.
+#
+# Pré-requisitos:
+#   - Cloud Pub/Sub API habilitada no projeto GCP
+#   - Cloud Functions API habilitada (para o trigger)
+#   - Service account com permissões de Pub/Sub Admin
+#
+# Uso:
+#   ansible-playbook playbooks/setup_webhook.yml \
+#     -e "gcp_project=claro-infracloud" \
+#     -e "aap_webhook_url=https://aap.claro.com.br/api/v2/job_templates/XXX/launch/"
+# =============================================================================
+---
+- name: Configurar Webhook GCP → AAP (Sincronização em Tempo Real)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # GCP
+    gcp_project: "{{ gcp_project | default('') }}"
+    pubsub_topic_name: "cmdb-sync-events"
+    pubsub_subscription_name: "cmdb-sync-aap-trigger"
+    
+    # AAP (Ansible Automation Platform)
+    aap_host: "https://aap.claro.com.br"
+    aap_webhook_url: "{{ aap_webhook_url | default('') }}"
+    aap_token: ""  # PREENCHER COM SEU TOKEN
+    
+    # Cloud Function
+    function_name: "cmdb-sync-trigger"
+    function_region: "southamerica-east1"
+    
+    # Service Account
+    service_account_file: "{{ playbook_dir }}/../files/service_account.json"
+
+  tasks:
+    # =========================================================================
+    # VALIDAÇÕES
+    # =========================================================================
+    - name: Validar parâmetros obrigatórios
+      ansible.builtin.assert:
+        that:
+          - gcp_project | length > 0
+          - aap_token | length > 0
+        fail_msg: |
+          Parâmetros obrigatórios não definidos!
+          - gcp_project: {{ gcp_project }}
+          - aap_token: (deve ser preenchido no playbook)
+
+    - name: Aviso sobre token AAP
+      ansible.builtin.debug:
+        msg: |
+          ⚠️  ATENÇÃO: O token AAP deve ser preenchido manualmente no playbook!
+          Edite a variável 'aap_token' em playbooks/setup_webhook.yml
+      when: aap_token | length == 0
+
+    - name: Falhar se token não configurado
+      ansible.builtin.fail:
+        msg: "Token AAP não configurado. Edite a variável 'aap_token' no playbook."
+      when: aap_token | length == 0
+
+    # =========================================================================
+    # AUTENTICAÇÃO GCP
+    # =========================================================================
+    - name: Ativar service account GCP
+      ansible.builtin.command: >
+        gcloud auth activate-service-account 
+        --key-file={{ service_account_file }} 
+        --project={{ gcp_project }}
+      changed_when: false
+
+    - name: Configurar projeto
+      ansible.builtin.command: >
+        gcloud config set project {{ gcp_project }}
+      changed_when: false
+
+    # =========================================================================
+    # HABILITAR APIs NECESSÁRIAS
+    # =========================================================================
+    - name: Habilitar Cloud Pub/Sub API
+      ansible.builtin.command: >
+        gcloud services enable pubsub.googleapis.com --project={{ gcp_project }}
+      changed_when: false
+      failed_when: false
+
+    - name: Habilitar Cloud Functions API
+      ansible.builtin.command: >
+        gcloud services enable cloudfunctions.googleapis.com --project={{ gcp_project }}
+      changed_when: false
+      failed_when: false
+
+    - name: Habilitar Cloud Build API
+      ansible.builtin.command: >
+        gcloud services enable cloudbuild.googleapis.com --project={{ gcp_project }}
+      changed_when: false
+      failed_when: false
+
+    # =========================================================================
+    # CRIAR TÓPICO PUB/SUB
+    # =========================================================================
+    - name: Verificar se tópico existe
+      ansible.builtin.command: >
+        gcloud pubsub topics describe {{ pubsub_topic_name }} 
+        --project={{ gcp_project }}
+      register: topic_check
+      changed_when: false
+      failed_when: false
+
+    - name: Criar tópico Pub/Sub
+      ansible.builtin.command: >
+        gcloud pubsub topics create {{ pubsub_topic_name }}
+        --project={{ gcp_project }}
+      when: topic_check.rc != 0
+      register: topic_create
+
+    - name: Tópico criado/existente
+      ansible.builtin.debug:
+        msg: "Tópico: projects/{{ gcp_project }}/topics/{{ pubsub_topic_name }}"
+
+    # =========================================================================
+    # CONFIGURAR LOG SINK (Compute Engine → Pub/Sub)
+    # =========================================================================
+    - name: Verificar se log sink existe
+      ansible.builtin.command: >
+        gcloud logging sinks describe cmdb-compute-events 
+        --project={{ gcp_project }}
+      register: sink_check
+      changed_when: false
+      failed_when: false
+
+    - name: Criar Log Sink para eventos de Compute Engine
+      ansible.builtin.command: >
+        gcloud logging sinks create cmdb-compute-events
+        pubsub.googleapis.com/projects/{{ gcp_project }}/topics/{{ pubsub_topic_name }}
+        --log-filter='resource.type="gce_instance" AND 
+                      (protoPayload.methodName="v1.compute.instances.insert" OR
+                       protoPayload.methodName="v1.compute.instances.delete" OR
+                       protoPayload.methodName="v1.compute.instances.start" OR
+                       protoPayload.methodName="v1.compute.instances.stop")'
+        --project={{ gcp_project }}
+      when: sink_check.rc != 0
+      register: sink_create
+
+    - name: Obter service account do sink
+      ansible.builtin.command: >
+        gcloud logging sinks describe cmdb-compute-events 
+        --project={{ gcp_project }}
+        --format="value(writerIdentity)"
+      register: sink_identity
+      changed_when: false
+
+    - name: Conceder permissão de publicação ao sink
+      ansible.builtin.command: >
+        gcloud pubsub topics add-iam-policy-binding {{ pubsub_topic_name }}
+        --member="{{ sink_identity.stdout }}"
+        --role="roles/pubsub.publisher"
+        --project={{ gcp_project }}
+      when: sink_identity.stdout | length > 0
+      failed_when: false
+
+    # =========================================================================
+    # CRIAR CLOUD FUNCTION (Pub/Sub → AAP)
+    # =========================================================================
+    - name: Criar diretório temporário para Cloud Function
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: cmdb_webhook_
+      register: temp_dir
+
+    - name: Criar código da Cloud Function (main.py)
+      ansible.builtin.copy:
+        dest: "{{ temp_dir.path }}/main.py"
+        content: |
+          """
+          Cloud Function: Trigger AAP job quando eventos de VM ocorrem no GCP.
+          """
+          import base64
+          import json
+          import os
+          import requests
+          
+          AAP_HOST = os.environ.get('AAP_HOST', '{{ aap_host }}')
+          AAP_TOKEN = os.environ.get('AAP_TOKEN', '')
+          AAP_JOB_TEMPLATE_ID = os.environ.get('AAP_JOB_TEMPLATE_ID', '')
+          
+          def trigger_cmdb_sync(event, context):
+              """
+              Triggered by Pub/Sub message from Cloud Logging.
+              """
+              # Decodificar mensagem
+              if 'data' in event:
+                  message_data = base64.b64decode(event['data']).decode('utf-8')
+                  log_entry = json.loads(message_data)
+              else:
+                  print("Evento sem dados")
+                  return
+              
+              # Extrair informações do evento
+              payload = log_entry.get('protoPayload', {})
+              method_name = payload.get('methodName', '')
+              resource_name = payload.get('resourceName', '')
+              
+              # Determinar ação
+              if 'insert' in method_name:
+                  action = 'create'
+              elif 'delete' in method_name:
+                  action = 'delete'
+              elif 'start' in method_name:
+                  action = 'start'
+              elif 'stop' in method_name:
+                  action = 'stop'
+              else:
+                  action = 'unknown'
+              
+              # Extrair nome da instância e zona
+              # resourceName: projects/PROJECT/zones/ZONE/instances/INSTANCE
+              parts = resource_name.split('/')
+              instance_name = parts[-1] if len(parts) > 0 else ''
+              zone = parts[3] if len(parts) > 4 else ''
+              project = parts[1] if len(parts) > 2 else ''
+              
+              print(f"Evento detectado: {action} - {instance_name} ({zone})")
+              
+              # Não processar eventos desconhecidos
+              if action == 'unknown':
+                  return
+              
+              # Trigger AAP job
+              if not AAP_TOKEN or not AAP_JOB_TEMPLATE_ID:
+                  print("AAP não configurado")
+                  return
+              
+              url = f"{AAP_HOST}/api/v2/job_templates/{AAP_JOB_TEMPLATE_ID}/launch/"
+              headers = {
+                  'Authorization': f'Bearer {AAP_TOKEN}',
+                  'Content-Type': 'application/json'
+              }
+              
+              extra_vars = {
+                  'instance_name': instance_name,
+                  'zone': zone,
+                  'project': project,
+                  'action': action,
+                  'sync_mode': 'update' if action in ['start', 'stop'] else 'full'
+              }
+              
+              try:
+                  response = requests.post(
+                      url,
+                      headers=headers,
+                      json={'extra_vars': json.dumps(extra_vars)},
+                      verify=False,
+                      timeout=30
+                  )
+                  print(f"AAP response: {response.status_code}")
+                  return response.json()
+              except Exception as e:
+                  print(f"Erro ao chamar AAP: {e}")
+                  return None
+
+    - name: Criar requirements.txt
+      ansible.builtin.copy:
+        dest: "{{ temp_dir.path }}/requirements.txt"
+        content: |
+          requests>=2.28.0
+
+    - name: Deploy Cloud Function
+      ansible.builtin.command: >
+        gcloud functions deploy {{ function_name }}
+        --runtime=python311
+        --trigger-topic={{ pubsub_topic_name }}
+        --entry-point=trigger_cmdb_sync
+        --region={{ function_region }}
+        --set-env-vars="AAP_HOST={{ aap_host }},AAP_TOKEN={{ aap_token }},AAP_JOB_TEMPLATE_ID={{ aap_job_template_id | default('') }}"
+        --source={{ temp_dir.path }}
+        --project={{ gcp_project }}
+        --memory=256MB
+        --timeout=60s
+      register: function_deploy
+      when: aap_token | length > 0
+
+    - name: Limpar diretório temporário
+      ansible.builtin.file:
+        path: "{{ temp_dir.path }}"
+        state: absent
+
+    # =========================================================================
+    # RESUMO
+    # =========================================================================
+    - name: Resumo da configuração
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "              WEBHOOK GCP → AAP CONFIGURADO"
+          - "════════════════════════════════════════════════════════════════"
+          - "Projeto GCP: {{ gcp_project }}"
+          - "Tópico Pub/Sub: {{ pubsub_topic_name }}"
+          - "Cloud Function: {{ function_name }}"
+          - "Região: {{ function_region }}"
+          - "────────────────────────────────────────────────────────────────"
+          - "Eventos monitorados:"
+          - "  - compute.instances.insert (criar VM)"
+          - "  - compute.instances.delete (deletar VM)"
+          - "  - compute.instances.start (iniciar VM)"
+          - "  - compute.instances.stop (parar VM)"
+          - "────────────────────────────────────────────────────────────────"
+          - "Fluxo:"
+          - "  1. Evento no Compute Engine"
+          - "  2. Cloud Logging captura"
+          - "  3. Log Sink envia para Pub/Sub"
+          - "  4. Cloud Function é trigada"
+          - "  5. Job no AAP é lançado"
+          - "  6. CMDB é atualizado"
+          - "════════════════════════════════════════════════════════════════"

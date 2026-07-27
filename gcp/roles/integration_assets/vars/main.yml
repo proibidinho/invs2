@@ -1,0 +1,45 @@
+# =============================================================================
+# VARIAVEIS PRINCIPAIS - CONFIGURACAO GCP
+# =============================================================================
+---
+# Jira Assets
+workspace: "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+jira_url: "https://api.atlassian.com/jsm/insight/workspace/{{ workspace }}/v1"
+jira_user: "{{ lookup('env', 'JIRA_USER') }}"
+jira_password: "{{ lookup('env', 'JIRA_PASSWORD') }}"
+
+# Object Type IDs
+object_type_id_servidor: 121
+object_type_id_interface_rede: 230
+object_type_id_datacenter: 152
+object_type_id_sistema_operacional: 150
+
+# Attribute IDs para criação de objetos auxiliares
+nic_name_attribute_id: "1890"
+dc_name_attribute_id: "1339"
+
+# Modo de sincronizacao: full, create, update, deactivate
+sync_mode: "full"
+enable_deactivation: false
+
+# Proxy
+proxy_env:
+  http_proxy: "http://10.54.24.184:3128"
+  https_proxy: "http://10.54.24.184:3128"
+  no_proxy: ""
+
+# Projetos GCP a sincronizar (populado via extra-vars ou pelo playbook)
+gcp_projects: []
+
+# =============================================================================
+# OWNER - IDs dos usuarios no Object Type 91 (Users) do Jira Assets
+# =============================================================================
+# Regra aplicada pelo filter determine_owner(so, ambiente, owner_ids):
+#   - Producao + Linux    -> owner_ids.prod_linux    (Luccas Guarnier)
+#   - Producao + Windows  -> owner_ids.prod_windows  (Carlos Henrique Barboza)
+#   - Nao Producao        -> owner_ids.nao_producao  (Bernardo - TEMPORARIO)
+# Basta trocar o ID abaixo quando o objeto correto do Bernardo for criado.
+owner_ids:
+  prod_linux:   "149372"    # USR-149372  Luccas Guarnier
+  prod_windows: "146496"    # USR-146496  Carlos Henrique Barboza
+  nao_producao: "1497044"   # USR-1497044 Leonardo (TEMPORARIO - trocar p/ Bernardo)

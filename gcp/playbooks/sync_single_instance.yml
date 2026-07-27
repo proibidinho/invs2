@@ -1,0 +1,163 @@
+# =============================================================================
+# Playbook: Sincronizar uma única instância GCP
+# =============================================================================
+# Uso:
+#   ansible-playbook playbooks/sync_single_instance.yml \
+#     -e "instance_name=vm-bastion-linux" \
+#     -e "zone=southamerica-east1-c" \
+#     -e "project=claro-infracloud"
+#
+#   # Dry run (apenas mostra dados):
+#   ansible-playbook playbooks/sync_single_instance.yml \
+#     -e "instance_name=vm-bastion-linux" \
+#     -e "zone=southamerica-east1-c" \
+#     -e "project=claro-infracloud" \
+#     -e "dry_run=true"
+# =============================================================================
+---
+- name: Sincronizar única instância GCP → CMDB
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    service_account_file: "{{ playbook_dir }}/../roles/integration_assets/files/service_account.json"
+    dry_run: false
+
+  pre_tasks:
+    - name: Incluir variáveis do role
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../roles/integration_assets/vars/main.yml"
+        - "{{ playbook_dir }}/../roles/integration_assets/vars/mapeamento_gcp_cmdb.yml"
+
+  tasks:
+    - name: Validar parâmetros
+      ansible.builtin.assert:
+        that:
+          - instance_name is defined
+          - zone is defined
+          - project is defined
+        fail_msg: "Parâmetros obrigatórios: instance_name, zone, project"
+
+    - name: Exibir configuração
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "          SYNC SINGLE: GCP → JIRA ASSETS"
+          - "════════════════════════════════════════════════════════════════"
+          - "Instância: {{ instance_name }}"
+          - "Zone: {{ zone }}"
+          - "Project: {{ project }}"
+          - "Dry Run: {{ dry_run }}"
+          - "════════════════════════════════════════════════════════════════"
+
+    - name: Ativar service account GCP
+      ansible.builtin.command: >
+        gcloud auth activate-service-account
+        --key-file={{ service_account_file }}
+        --project={{ project }}
+      changed_when: false
+
+    - name: Obter detalhes da instância
+      ansible.builtin.command: >
+        gcloud compute instances describe {{ instance_name }}
+        --zone={{ zone }}
+        --project={{ project }}
+        --format=json
+      register: instance_result
+      changed_when: false
+
+    - name: Parsear dados da instância
+      ansible.builtin.set_fact:
+        instance_data: "{{ instance_result.stdout | from_json }}"
+
+    - name: Extrair machine type
+      ansible.builtin.set_fact:
+        machine_type_name: "{{ instance_data.machineType | basename }}"
+
+    - name: Obter detalhes do machine type
+      ansible.builtin.command: >
+        gcloud compute machine-types describe {{ machine_type_name }}
+        --zone={{ zone }}
+        --project={{ project }}
+        --format=json
+      register: machine_type_result
+      changed_when: false
+
+    - name: Parsear dados do machine type
+      ansible.builtin.set_fact:
+        machine_type_data: "{{ machine_type_result.stdout | from_json }}"
+
+    - name: Transformar para formato cloud_data
+      ansible.builtin.set_fact:
+        cloud_data: "{{ instance_data | transform_gcp_instance(machine_type_data) }}"
+
+    - name: Exibir cloud_data transformado
+      ansible.builtin.debug:
+        msg: "{{ cloud_data | to_nice_yaml }}"
+
+    - name: Parar se dry_run
+      ansible.builtin.meta: end_play
+      when: dry_run | bool
+
+    # =========================================================================
+    # EXECUÇÃO REAL
+    # =========================================================================
+    - name: Inicializar logs
+      ansible.builtin.set_fact:
+        sync_log_create: []
+        sync_log_skip: []
+        sync_log_errors: []
+
+    - name: Buscar servidor no CMDB
+      ansible.builtin.uri:
+        url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1"
+        method: POST
+        headers:
+          Accept: "application/json"
+          Content-Type: "application/json"
+        body_format: json
+        force_basic_auth: yes
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        body:
+          qlQuery: 'objectTypeId = {{ object_type_id_servidor }} AND Name = "{{ cloud_data.name_cloud }}"'
+        status_code: [200]
+      register: cmdb_result
+      environment: "{{ proxy_env | default({}) }}"
+
+    - name: Verificar se servidor existe no CMDB
+      ansible.builtin.set_fact:
+        servidor_existe: "{{ cmdb_result.json.total | int > 0 }}"
+
+    - name: Resumo da ação
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "Servidor: {{ cloud_data.name_cloud }}"
+          - "Status: {{ 'EXISTE (SKIP)' if servidor_existe else 'NÃO EXISTE (CREATE)' }}"
+          - "════════════════════════════════════════════════════════════════"
+
+    - name: Criar servidor no CMDB
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/integration_assets/tasks/create.yml"
+      vars:
+        current_cloud_data: "{{ cloud_data }}"
+      when: not servidor_existe
+
+    - name: Registrar servidor existente (skip)
+      ansible.builtin.set_fact:
+        sync_log_skip: "{{ sync_log_skip + [cloud_data.name_cloud] }}"
+      when: servidor_existe
+
+    - name: Resultado final
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "                    SYNC SINGLE CONCLUÍDO"
+          - "════════════════════════════════════════════════════════════════"
+          - "Criados: {{ sync_log_create | length }}"
+          - "Existentes (skip): {{ sync_log_skip | length }}"
+          - "Erros: {{ sync_log_errors | length }}"
+          - "════════════════════════════════════════════════════════════════"
