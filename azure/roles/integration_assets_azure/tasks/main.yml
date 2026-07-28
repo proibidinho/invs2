@@ -61,7 +61,12 @@
 
 - name: Transformar hosts Azure para formato cloud_data (batch - com skip AKS + ef_cmdb)
   ansible.builtin.set_fact:
-    cloud_data_list: "{{ all_host_vars | batch_transform_azure_hosts(modelo_servidor_map | default({})) }}"
+    cloud_data_list: >-
+      {{ all_host_vars | batch_transform_azure_hosts(
+           modelo_servidor_map | default({}),
+           azure_vm_specs      | default({}),
+           owner_ids           | default({})
+         ) }}
 
 - name: Debug - Hosts transformados
   ansible.builtin.debug:

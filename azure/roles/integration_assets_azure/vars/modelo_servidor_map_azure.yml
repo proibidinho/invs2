@@ -13,6 +13,21 @@
 # Quando o time CMDB criar um novo vm_size, basta acrescentar a entrada aqui.
 # NAO precisa mexer no filter Python nem no mapeamento_azure_cmdb.yml.
 # =============================================================================
+# =============================================================================
+# vars/modelo_servidor_map_azure.yml
+# =============================================================================
+# Mapa vm_size (Azure) -> objectKey (GDA-*) do Object Type 406 no CMDB.
+# Extraido do dump do CMDB (script acha_atributos.py --list-objects).
+#
+# Como usar no playbook Azure:
+#
+#   - name: Transformar hosts Azure
+#     ansible.builtin.set_fact:
+#       all_cloud_data: "{{ hosts | batch_transform_azure_hosts(modelo_servidor_map, azure_vm_specs, owner_ids) }}"
+#
+# Quando o time CMDB criar um novo vm_size, basta acrescentar a entrada aqui.
+# NAO precisa mexer no filter Python nem no mapeamento_azure_cmdb.yml.
+# =============================================================================
 ---
 modelo_servidor_map:
   # === Standard_B (burstable) ===
@@ -101,3 +116,18 @@ azure_vm_specs:
   Standard_F8s_v2:
     cpu: 8
     memory_gb: 16
+
+
+# =============================================================================
+# OWNERS - IDs dos usuarios no Object Type 91 (Users) do Jira Assets
+# =============================================================================
+# Regra aplicada em azure_cmdb_filters.py -> transform_azure_host:
+#   - Producao + Linux    -> owner_ids.prod_linux    (USR-149372  Luccas Guarnier)
+#   - Producao + Windows  -> owner_ids.prod_windows  (USR-146496  Carlos Henrique Barboza)
+#   - Nao Producao        -> owner_ids.nao_producao  (vazio, Owner nao enviado)
+# ef_owner NAO participa desta logica em nenhuma hipotese.
+# =============================================================================
+owner_ids:
+  prod_linux:   "149372"   # USR-149372  Luccas Guarnier
+  prod_windows: "146496"   # USR-146496  Carlos Henrique Barboza
+  nao_producao: ""         # Vazio -> Owner nao enviado

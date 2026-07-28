@@ -5,7 +5,7 @@
 # para o formato esperado pelo Jira Assets (CMDB).
 # =============================================================================
 
-from __future__ import absolute_import, division, print_function 
+from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 import json
 
@@ -161,7 +161,8 @@ def determine_ambiente_azure(variables):
 
     return None
 
-def transform_azure_host(host, modelo_servidor_map=None):
+
+def transform_azure_host(host, modelo_servidor_map=None, azure_vm_specs=None, owner_ids=None):
     """
     Transforma os dados de um host Azure (do AAP) para cloud_data.
     """
@@ -190,27 +191,6 @@ def transform_azure_host(host, modelo_servidor_map=None):
 
     vmid = variables.get("vmid", "")
 
-    # # Extrair FQDN
-    # fqdn = None
-    # public_dns_hostnames = variables.get("public_dns_hostnames", [])
-
-    # if public_dns_hostnames and len(public_dns_hostnames) > 0:
-    #     fqdn = public_dns_hostnames[0]
-    # elif variables.get("public_dns_name"):
-    #     fqdn = variables.get("public_dns_name")
-
-    # # Se não tem FQDN real, usar name-vmid para garantir unicidade
-    # if fqdn:
-    #     name_cloud = name
-    # else:
-    #     fqdn = name
-    #     if vmid:
-    #         name_cloud = f"{name}-{vmid}"
-    #     else:
-    #         name_cloud = name
-
-
-
     # Extrair FQDN
     fqdn = None
     public_dns_hostnames = variables.get("public_dns_hostnames", [])
@@ -225,7 +205,6 @@ def transform_azure_host(host, modelo_servidor_map=None):
         fqdn = f"{name}-{vmid}" if vmid else name
 
     name_cloud = name
-
 
     # Extrair IPs
     private_ips = variables.get("private_ipv4_addresses", [])
@@ -251,30 +230,60 @@ def transform_azure_host(host, modelo_servidor_map=None):
     # VM Size
     vm_size = variables.get("virtual_machine_size", "")
 
-    # Tags Azure
-    tag_owner = get_tag(variables, "ef_owner")
+    # ------------------------------------------------------------------
+    # CPU / Memoria via azure_vm_specs (reutiliza estrutura ja existente)
+    # ------------------------------------------------------------------
+    cpu_count = None
+    memoria_ram_mb = None
+    if vm_size and azure_vm_specs:
+        vm_spec = azure_vm_specs.get(vm_size) or {}
+        if vm_spec.get("cpu") is not None:
+            cpu_count = vm_spec.get("cpu")
+        if vm_spec.get("memory_gb") is not None:
+            memoria_ram_mb = int(vm_spec.get("memory_gb")) * 1024
+    # ------------------------------------------------------------------
+
+    # Tags Azure (ef_owner NAO eh mais usado para determinar Owner)
     tag_sistema = get_tag(variables, "ef_cmdb")
     tag_produto = get_tag(variables, "ef_produto")
     tag_dr = get_tag(variables, "ef_recuperacao_de_desastre", "ef_dr")
     tag_regiao = get_tag(variables, "ef_regiao", "ef_region")
     tag_iac = get_tag(variables, "ef_iac")
 
-    # Grupo Solucionador
+    # Sistema Operacional e Ambiente (funcoes ja existentes)
     so_detectado = extract_os_from_azure(variables)
+    ambiente_detectado = determine_ambiente_azure(variables)
 
     grupo_solucionador = (
         "CLBR-TI-INFRA-SUPORTE-WINDOWS"
         if so_detectado == "Windows"
         else "CLBR-TI-INFRA-CLOUD-PUBLIC"
     )
+
+    # ------------------------------------------------------------------
+    # OWNER: Ambiente + SO + owner_ids -> USR-<id>
+    # ef_owner IGNORADO nesta logica (unica fonte de verdade eh acima).
+    # ------------------------------------------------------------------
+    owner_usr = None
+    if ambiente_detectado == "Produção" and owner_ids:
+        if so_detectado == "Linux":
+            _oid = owner_ids.get("prod_linux")
+        elif so_detectado == "Windows":
+            _oid = owner_ids.get("prod_windows")
+        else:
+            _oid = None
+        if _oid:
+            owner_usr = "USR-{}".format(_oid)
+    # ------------------------------------------------------------------
+
     # Montar cloud_data
     cloud_data = {
         # Identificacao
         "name_cloud": name_cloud,
         "fqdn_cloud": fqdn,
-        
+
         # Sistema Operacional
-        "sistema_operacional_cloud": extract_os_from_azure(variables),
+        "sistema_operacional_cloud": so_detectado,
 
         # Modelo do Servidor (vm_size -> objectKey via modelo_servidor_map)
         "modelo_servidor_cloud": (
@@ -305,7 +314,7 @@ def transform_azure_host(host, modelo_servidor_map=None):
         "ipe_cloud": "false",
 
         # Ambiente (baseado em tags)
-        "ambiente_cloud": determine_ambiente_azure(variables),
+        "ambiente_cloud": ambiente_detectado,
 
         # Last User (sempre Ansible, pois esta integracao escreve no CMDB)
         "last_user_cloud": "Ansible",
@@ -313,13 +322,19 @@ def transform_azure_host(host, modelo_servidor_map=None):
         # Grupo Solucionador - Infra (fixo por SO)
         "grupo_solucionador_infra_cloud": grupo_solucionador,
 
-        # Tags Azure "ef_*"
-        "owner_cloud": tag_owner,
+        # Tags Azure "ef_*" (ef_owner REMOVIDO da logica de Owner)
         "sistema_cloud": tag_sistema,
         "produto_cloud": tag_produto,
         "vcenter_cloud": tag_regiao,
         "iac_cloud": tag_iac,
         "disaster_recovery_cloud": parse_bool_tag(tag_dr) if tag_dr is not None else None,
+
+        # CPU / Memoria (novos - via azure_vm_specs)
+        "cpu_count_cloud": cpu_count,
+        "memoria_ram_cloud": memoria_ram_mb,
+
+        # Owner (novo - via Ambiente + SO + owner_ids; USR-*)
+        "owner_cloud": owner_usr,
 
         # Metadados Azure
         "azure_vm_id": variables.get("vmid", ""),
@@ -333,6 +348,7 @@ def transform_azure_host(host, modelo_servidor_map=None):
     }
 
     # Remover valores None ou vazios
+    # (isso automaticamente descarta owner_cloud/cpu/memoria quando None)
     cloud_data = {
         k: v
         for k, v in cloud_data.items()
@@ -363,36 +379,36 @@ def update_asset(cloud_data, object_attribute_map):
         "attributes": [],
         "objectTypeId": 121
     }
-    
+
     for field, value in cloud_data.items():
         if value is None or value == "":
             continue
-        
+
         # Campos de metadados Azure nao sao enviados ao CMDB
         if field.startswith("azure_"):
             continue
-        
+
         # Buscar o atributo no mapeamento
         obj_attr_list = search_attribute(field, object_attribute_map)
-        
+
         if not obj_attr_list:
             continue
-        
+
         obj_attr = obj_attr_list[0]
         attr_type = obj_attr.get("tipo", "text")
         attr_id = str(obj_attr.get("id"))
-        
+
         attribute_entry = {
             "objectTypeAttributeId": attr_id,
             "objectAttributeValues": []
         }
-        
+
         # Processar conforme o tipo do atributo
         if attr_type == "objeto":
             valores = obj_attr.get("valores", [])
 
             # Sem lista de "valores" no YAML -> envia o value direto (Jira aceita
-            # objectKey/objectId em campos Reference).
+            # objectKey/objectId em campos Reference). Ex.: Owner "USR-149372".
             if not valores:
                 attribute_entry["objectAttributeValues"] = [{"value": str(value)}]
             else:
@@ -410,18 +426,18 @@ def update_asset(cloud_data, object_attribute_map):
                     ]
                 else:
                     continue
-        
+
         elif attr_type == "status":
             valores = obj_attr.get("valores", [])
             matched = next((v for v in valores if v.get("value") == value), None)
-            
+
             if matched:
                 attribute_entry["objectAttributeValues"] = [
                     {"value": str(matched.get("referencedType"))}
                 ]
             else:
                 continue
-        
+
         elif attr_type == "objeto_lista":
             if isinstance(value, list):
                 for item in value:
@@ -437,17 +453,17 @@ def update_asset(cloud_data, object_attribute_map):
                             )
             if not attribute_entry["objectAttributeValues"]:
                 continue
-        
+
         elif attr_type == "boolean":
             attribute_entry["objectAttributeValues"] = [
                 {"value": str(value).lower()}
             ]
-        
+
         elif attr_type == "integer":
             attribute_entry["objectAttributeValues"] = [
                 {"value": str(value)}
             ]
-        
+
         elif attr_type == "select":
             # Para Select, verificar se o valor existe nas opcoes (se definido no mapeamento)
             # Se nao tiver lista de valores validos, aceita qualquer valor
@@ -458,19 +474,17 @@ def update_asset(cloud_data, object_attribute_map):
             attribute_entry["objectAttributeValues"] = [
                 {"value": str(value)}
             ]
-        
+
         else:  # text e outros
             attribute_entry["objectAttributeValues"] = [
                 {"value": str(value)}
             ]
-        
+
         if attribute_entry["objectAttributeValues"]:
             data["attributes"].append(attribute_entry)
-    
+
     # Pos-processamento: garantir fallback para atributos com "valor_fallback"
     # ou "valor_fixo" que nao foram preenchidos (ex.: tag ausente no host Azure).
-    # Permite que qualquer campo declare seu default direto no YAML, sem mexer
-    # no transform (Python).
     ids_ja_enviados = {a["objectTypeAttributeId"] for a in data["attributes"]}
     for obj_attr in object_attribute_map:
         attr_id = str(obj_attr.get("id"))
@@ -485,7 +499,6 @@ def update_asset(cloud_data, object_attribute_map):
 
         tipo = obj_attr.get("tipo")
 
-        # Tipo objeto: traduzir o "value" para o "referencedType" via lista valores
         if tipo == "objeto":
             valores = obj_attr.get("valores", [])
             matched = next((v for v in valores if v.get("value") == valor_default), None)
@@ -494,13 +507,11 @@ def update_asset(cloud_data, object_attribute_map):
                     "objectTypeAttributeId": attr_id,
                     "objectAttributeValues": [{"value": str(matched.get("referencedType"))}]
                 })
-        # Tipo boolean: enviar "true"/"false"
         elif tipo == "boolean":
             data["attributes"].append({
                 "objectTypeAttributeId": attr_id,
                 "objectAttributeValues": [{"value": str(bool(valor_default)).lower()}]
             })
-        # Tipos text/select/integer: enviar o valor como string
         elif tipo in ("text", "select", "integer"):
             data["attributes"].append({
                 "objectTypeAttributeId": attr_id,
@@ -510,7 +521,7 @@ def update_asset(cloud_data, object_attribute_map):
     return data
 
 
-def batch_transform_hosts(hosts, modelo_servidor_map=None):
+def batch_transform_hosts(hosts, modelo_servidor_map=None, azure_vm_specs=None, owner_ids=None):
 
     results = []
 
@@ -546,6 +557,8 @@ def batch_transform_hosts(hosts, modelo_servidor_map=None):
         cloud_data = transform_azure_host(
             host,
             modelo_servidor_map=modelo_servidor_map,
+            azure_vm_specs=azure_vm_specs,
+            owner_ids=owner_ids,
         )
 
         if cloud_data.get("name_cloud"):
@@ -556,7 +569,7 @@ def batch_transform_hosts(hosts, modelo_servidor_map=None):
 
 class FilterModule(object):
     """Ansible filter plugin para transformacao Azure -> Jira Assets."""
-    
+
     def filters(self):
         return {
             'update_asset_azure': update_asset,
@@ -568,5 +581,3 @@ class FilterModule(object):
             'is_aks_node': is_aks_node,
             'search_attribute_azure': search_attribute,
         }
-
-
