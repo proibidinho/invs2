@@ -38,7 +38,12 @@
 
 - name: Transformar hosts AWS para formato cloud_data
   ansible.builtin.set_fact:
-    cloud_data_list: "{{ aap_hosts_result.json.results | batch_transform_aws_hosts(modelo_servidor_map | default({})) }}"
+    cloud_data_list: >-
+      {{ aap_hosts_result.json.results | batch_transform_aws_hosts(
+           modelo_servidor_map | default({}),
+           aws_vm_specs        | default({}),
+           owner_ids           | default({})
+         ) }}
 
 - name: Debug - Hosts transformados
   ansible.builtin.debug:

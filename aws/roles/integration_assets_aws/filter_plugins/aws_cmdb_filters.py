@@ -31,11 +31,11 @@ def extract_os_from_platform(platform: str) -> str:
     """Extrai o sistema operacional a partir do campo platform da AWS."""
     if not platform:
         return "Linux"
-    
+
     platform_lower = platform.lower()
     if "windows" in platform_lower:
         return "Windows"
-    
+
     return "Linux"
 
 
@@ -73,40 +73,41 @@ def determine_ambiente_aws(variables: Dict) -> Optional[str]:
     """
     tags = variables.get("tags", {})
     ambiente_tag = (
-        tags.get("ef_ambiente") or 
-        tags.get("environment") or 
+        tags.get("ef_ambiente") or
+        tags.get("environment") or
         tags.get("Environment") or
         variables.get("environment") or
         ""
     )
-    
+
     if not ambiente_tag or ambiente_tag == "undefined":
         return "Produção"
-    
+
     ambiente_lower = ambiente_tag.lower()
-    
+
     # Não produção - retorna None para não preencher
     if any(x in ambiente_lower for x in ["nonprod", "non-prod", "dev", "hml", "staging", "homolog", "qa", "test", "sandbox"]):
         return None
-    
+
     # Produção
     if any(x in ambiente_lower for x in ["prod", "prd", "production"]):
         return "Produção"
-    
+
     return "Produção"
 
 
-def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = None) -> Dict:
-
+def transform_aws_host(host_data: Dict,
+                       modelo_servidor_map: Optional[Dict] = None,
+                       aws_vm_specs: Optional[Dict] = None,
+                       owner_ids: Optional[Dict] = None) -> Dict:
     """
     Transforma os dados de um host AWS (do AAP) para o formato cloud_data.
 
     Args:
         host_data: dict com o host vindo do AAP (contem 'variables' string JSON).
-        modelo_servidor_map: opcional - mapa {instance_type: object_key}, ex.:
-                             {"t3.2xlarge": "GDA-3224029", ...}. Se fornecido,
-                             o instance_type eh convertido para o objectKey
-                             correspondente antes de popular modelo_servidor_cloud.
+        modelo_servidor_map: opcional - mapa {instance_type: object_key}.
+        aws_vm_specs: opcional - mapa {instance_type: {cpu, memory_gb}}.
+        owner_ids: opcional - dict com prod_linux / prod_windows / nao_producao.
     """
     # Parsear variables (pode ser string JSON ou dict)
     variables_str = host_data.get("variables", "{}")
@@ -114,52 +115,68 @@ def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = No
         variables = json.loads(variables_str) if isinstance(variables_str, str) else variables_str
     except json.JSONDecodeError:
         variables = {}
-    
+
     if not variables:
         return {}
-    
+
     tags = variables.get("tags", {})
-    
+
     # Instance ID (usado para garantir unicidade)
     instance_id = variables.get("instance_id", "")
-    
+
     # FQDN = private_dns_name (se existir)
     fqdn = variables.get("private_dns_name", "").strip()
-    
+
     # NAME - padronizado: usar sempre instance_id + regiao/dominio.
-    # Isso garante unicidade e formato consistente (evita casos onde
-    # private_dns_name esta ausente ou vm_name vazio).
     region = variables.get("region", "")
     if instance_id and region:
         name = f"{instance_id}.{region}.compute.internal"
     else:
         name = instance_id or fqdn or variables.get("vm_name", "").strip() or tags.get("Name", "").strip() or host_data.get("name", "").strip()
-    
+
     # Account ID (Conta Cloud)
     account_id = variables.get("account_id") or variables.get("owner_id", "")
-    
+
     # IPs - filtrar valores vazios e "N/A"
     private_ip = variables.get("private_ip") or variables.get("private_ip_address", "")
     public_ip = variables.get("public_ip") or variables.get("public_ip_address", "")
-    
+
     ips = []
     if private_ip and private_ip not in ("", "N/A", "n/a"):
         ips.append({"tipo": "privado", "ip": private_ip})
     if public_ip and public_ip not in ("", "N/A", "n/a"):
         ips.append({"tipo": "publico", "ip": public_ip})
-    
-    # CPU - calcular vCPUs
+
+    # CPU - calcular vCPUs a partir de cpu_options (fallback)
     cpu_options = variables.get("cpu_options", {})
     core_count = cpu_options.get("core_count", 0)
     threads_per_core = cpu_options.get("threads_per_core", 1)
     vcpus = core_count * threads_per_core if core_count else None
-    
+
     # Instance Type (Modelo do Servidor)
     instance_type = variables.get("instance_type", "")
-    
+
+    # ------------------------------------------------------------------
+    # CPU / Memoria via aws_vm_specs (reutiliza estrutura ja existente)
+    # aws_vm_specs eh a fonte de verdade preferencial. Se o instance_type
+    # nao estiver em aws_vm_specs, mantem-se o fallback:
+    #   - CPU: cpu_options (comportamento historico)
+    #   - Memoria: nao envia (mesmo padrao Azure)
+    # ------------------------------------------------------------------
+    cpu_count = vcpus
+    memoria_ram_mb = None
+    if instance_type and aws_vm_specs:
+        vm_spec = aws_vm_specs.get(instance_type) or {}
+        if vm_spec.get("cpu") is not None:
+            cpu_count = vm_spec.get("cpu")
+        if vm_spec.get("memory_gb") is not None:
+            # memory_gb pode ser float (ex.: 3.75, 0.5). Arredondar para int.
+            memoria_ram_mb = int(round(float(vm_spec.get("memory_gb")) * 1024))
+    # ------------------------------------------------------------------
+
     # Status
     state = variables.get("state", "running")
-    
+
     # Sistema Operacional
     platform = variables.get("platform") or variables.get("platform_details") or ""
     so_normalizado = extract_os_from_platform(platform)
@@ -170,52 +187,72 @@ def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = No
     # Ambiente
     ambiente = determine_ambiente_aws(variables)
 
+    # ------------------------------------------------------------------
+    # OWNER: Ambiente + SO + owner_ids -> USR-<id>
+    # ef_owner NAO participa desta logica (nem existe no filter AWS).
+    # ------------------------------------------------------------------
+    owner_usr = None
+    if ambiente == "Produção" and owner_ids:
+        if so_normalizado == "Linux":
+            _oid = owner_ids.get("prod_linux")
+        elif so_normalizado == "Windows":
+            _oid = owner_ids.get("prod_windows")
+        else:
+            _oid = None
+        if _oid:
+            owner_usr = "USR-{}".format(_oid)
+    # ------------------------------------------------------------------
+
     # Sistema (CMDB) - vem da tag ef_cmdb (ex.: "GDA-2730753").
-    # Jira Assets aceita objectKey diretamente no value de campo Reference.
     sistema_cmdb = tags.get("ef_cmdb", "").strip()
 
     # Região (para debug)
-    region = variables.get("region", "")
     availability_zone = variables.get("availability_zone", "")
-    
+
     # Montar cloud_data
     cloud_data = {
         # Conta Cloud (Account ID da AWS)
         "conta_cloud_cloud": account_id if account_id else None,
-        
+
         # Ambiente
         "ambiente_cloud": ambiente,
 
         # Sistema (Reference no CMDB - passa objectKey vindo da tag ef_cmdb)
         "sistema_cloud": sistema_cmdb if sistema_cmdb else None,
-        
+
         # Identificação
         "name_cloud": name,
         "fqdn_cloud": fqdn if fqdn else None,
-        
+
         # Sistema Operacional
         "sistema_operacional_cloud": so_normalizado,
-        
-        # Hardware
-        "cpu_count_cloud": str(vcpus) if vcpus else None,
-        
+
+        # Hardware (prioridade: aws_vm_specs; fallback: cpu_options)
+        "cpu_count_cloud": str(cpu_count) if cpu_count is not None else None,
+
+        # Memoria (aws_vm_specs[instance_type].memory_gb * 1024, em Mb)
+        "memoria_ram_cloud": memoria_ram_mb,
+
+        # Owner (Ambiente + SO + owner_ids; USR-*)
+        "owner_cloud": owner_usr,
+
         # Modelo do Servidor (instance_type -> objectKey via modelo_servidor_map)
         "modelo_servidor_cloud": (
             (modelo_servidor_map or {}).get(instance_type) or instance_type
         ) if instance_type else None,
-        
+
         # Rede
         "interface_rede_cloud": ips if ips else None,
-        
+
         # Status
         "status_cloud": map_aws_status_to_cmdb(state),
-        
+
         # Tipo de Servidor (select)
         "tipo_servidor_cloud": "Cloud Pública",
-        
+
         # Tipo de Infraestrutura (referência)
         "tipo_infraestrutura_cloud": "CLOUD PUBLICA",
-        
+
         # Datacenter
         "datacenter_cloud": "AWS",
 
@@ -227,7 +264,7 @@ def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = No
 
         # Last User (sempre Ansible)
         "last_user_cloud": "Ansible",
-        
+
         # Metadados AWS (prefixo _ = não enviados ao CMDB)
         "_aws_instance_id": instance_id,
         "_aws_instance_type": instance_type,
@@ -235,22 +272,21 @@ def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = No
         "_aws_availability_zone": availability_zone,
         "_aws_tags_name": tags.get("Name", ""),
     }
-    
+
     # Remover valores None
+    # (isso automaticamente descarta owner_cloud/memoria_ram_cloud quando None)
     cloud_data = {k: v for k, v in cloud_data.items() if v is not None}
-    
+
     return cloud_data
 
 
-def batch_transform_aws_hosts(hosts: List[Dict], modelo_servidor_map: Optional[Dict] = None) -> List[Dict]:
-    """Transforma uma lista de hosts AWS (do AAP) para o formato cloud_data.
-
-    Args:
-        hosts: lista de hosts vindos do AAP.
-        modelo_servidor_map: opcional - mapa {instance_type: object_key}.
-    """
+def batch_transform_aws_hosts(hosts: List[Dict],
+                              modelo_servidor_map: Optional[Dict] = None,
+                              aws_vm_specs: Optional[Dict] = None,
+                              owner_ids: Optional[Dict] = None) -> List[Dict]:
+    """Transforma uma lista de hosts AWS (do AAP) para o formato cloud_data."""
     results = []
-    
+
     for host in hosts:
         if not host.get("enabled", True):
             continue
@@ -271,11 +307,16 @@ def batch_transform_aws_hosts(hosts: List[Dict], modelo_servidor_map: Optional[D
         if not isinstance(tags, dict) or not str(tags.get("ef_cmdb", "")).strip():
             continue
 
-        cloud_data = transform_aws_host(host, modelo_servidor_map=modelo_servidor_map)
-        
+        cloud_data = transform_aws_host(
+            host,
+            modelo_servidor_map=modelo_servidor_map,
+            aws_vm_specs=aws_vm_specs,
+            owner_ids=owner_ids,
+        )
+
         if cloud_data.get("name_cloud"):
             results.append(cloud_data)
-    
+
     return results
 
 
@@ -311,7 +352,7 @@ def update_asset(cloud_data: Dict, object_attribute_map: List[Dict]) -> Dict:
         if attr_type == "objeto":
             valores = obj_attr.get("valores", [])
             # Sem lista de "valores" no YAML -> envia o value direto (Jira aceita
-            # objectKey/objectId em campos Reference).
+            # objectKey/objectId em campos Reference). Ex.: Owner "USR-149372".
             if not valores:
                 attribute_entry["objectAttributeValues"] = [{"value": str(value)}]
             else:
@@ -383,4 +424,3 @@ class FilterModule(object):
             'is_eks_node': is_eks_node,
             'search_attribute': search_attribute,
         }
-
