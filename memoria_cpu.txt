@@ -167,3 +167,18 @@
     cloud_data = {k: v for k, v in cloud_data.items() if v is not None}
 
     return cloud_data
+
+
+Owners
+# =============================================================================
+# OWNER - IDs dos usuarios no Object Type 91 (Users) do Jira Assets
+# =============================================================================
+# Regra aplicada pelo filter determine_owner(so, ambiente, owner_ids):
+#   - Producao + Linux    -> owner_ids.prod_linux    (operation_system_name Guarnier)
+#   - Producao + Windows  -> owner_ids.prod_windows  (Carlos Henrique Barboza)
+#   - Nao Producao        -> owner_ids.nao_producao  (Bernardo - TEMPORARIO)
+# Basta trocar o ID abaixo quando o objeto correto do Bernardo for criado.
+owner_ids:
+  prod_linux:   "149372"    # USR-149372  operation_system_name Guarnier
+  prod_windows: "146496"    # USR-146496  Carlos Henrique Barboza
+  nao_producao: ""   # Deixar em branco ate achar alguem
