@@ -127,18 +127,24 @@ def transform_aws_host(host_data: Dict,
     dr_tag = tags.get("ef_recuperacao_de_desastre") or tags.get("ef_dr") or ""
     dr_bool = str(dr_tag).strip().lower() in ("true", "sim", "yes", "1", "s", "y")
 
-    # Instance ID (usado para garantir unicidade)
+    # Instance ID (usado como fallback final para o Name)
     instance_id = variables.get("instance_id", "")
 
-    # FQDN = private_dns_name (se existir)
+    # FQDN = private_dns_name (ex.: i-0abc.sa-east-1.compute.internal).
+    # Continua sendo o nome DNS interno da AWS, no campo FQDN do CMDB.
     fqdn = variables.get("private_dns_name", "").strip()
 
-    # NAME - padronizado: usar sempre instance_id + regiao/dominio.
-    region = variables.get("region", "")
-    if instance_id and region:
-        name = f"{instance_id}.{region}.compute.internal"
-    else:
-        name = instance_id or fqdn or variables.get("vm_name", "").strip() or tags.get("Name", "").strip() or host_data.get("name", "").strip()
+    # ------------------------------------------------------------------
+    # NAME (shortname para o CMDB)
+    # Prioridade: tag Name -> vm_name -> host.name (AAP) -> instance_id.
+    # NAO usar private_dns_name aqui, senao Name fica igual ao FQDN.
+    # ------------------------------------------------------------------
+    name = (
+        tags.get("Name", "").strip()
+        or variables.get("vm_name", "").strip()
+        or host_data.get("name", "").strip()
+        or instance_id
+    )
 
     # Account ID (Conta Cloud)
     account_id = variables.get("account_id") or variables.get("owner_id", "")
@@ -212,7 +218,8 @@ def transform_aws_host(host_data: Dict,
     # Sistema (CMDB) - vem da tag ef_cmdb (ex.: "GDA-2730753").
     sistema_cmdb = tags.get("ef_cmdb", "").strip()
 
-    # Região (para debug)
+    # Região / AZ (para debug)
+    region = variables.get("region", "")
     availability_zone = variables.get("availability_zone", "")
 
     # Montar cloud_data
@@ -227,8 +234,8 @@ def transform_aws_host(host_data: Dict,
         "sistema_cloud": sistema_cmdb if sistema_cmdb else None,
 
         # Identificação
-        "name_cloud": name,
-        "fqdn_cloud": fqdn if fqdn else None,
+        "name_cloud": name,                        # shortname (tag Name / vm_name / instance_id)
+        "fqdn_cloud": fqdn if fqdn else None,      # DNS interno da AWS (private_dns_name)
 
         # Sistema Operacional
         "sistema_operacional_cloud": so_normalizado,
