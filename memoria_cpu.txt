@@ -1,0 +1,169 @@
+{
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:6840",
+            "id": "6840",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:6840",
+                "id": "6840",
+                "defaultType": {
+                    "id": 1,
+                    "name": "Integer"
+                },
+                "description": "Quantidade de Memória RAM em Megabyte",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Memória RAM",
+                "options": "",
+                "pendingCreation": false,
+                "position": 5,
+                "qlQuery": "",
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "Mb",
+                "summable": true,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "6840",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "16097680",
+                    "searchValue": "16097680",
+                    "referencedType": false,
+                    "value": "16097680"
+                }
+            ],
+            "objectId": "2413691"
+        },
+
+{
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3359",
+            "id": "3359",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3359",
+                "id": "3359",
+                "defaultType": {
+                    "id": 0,
+                    "name": "Text"
+                },
+                "description": "Quantidade de CPU´s alocados",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "CPU Count",
+                "options": "",
+                "pendingCreation": false,
+                "position": 7,
+                "removable": true,
+                "sortable": true,
+                "summable": false,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "3359",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "4",
+                    "searchValue": "4",
+                    "referencedType": false,
+                    "value": "4"
+                }
+            ],
+            "objectId": "2413691"
+        },
+
+#Exemplo de adicao no vars/mapeamento
+- id: 6840
+  name_assets: "Memória RAM"
+  chave_cloud: "memoria_ram_cloud"
+  chave_gcp: "machineType.memoryMb"
+  tipo: integer
+  sufixo: "Mb"
+  obrigatorio: false
+
+- id: 3359
+  name_assets: "CPU Count"
+  chave_cloud: "cpu_count_cloud"
+  chave_gcp: "machineType.guestCpus"
+  tipo: text
+  obrigatorio: false
+
+#Trecho do python (é um python usado no inventario gcp, use somente como exemplo) que cita cpu e memoria
+    # Montar cloud_data
+    cloud_data = {
+        # Conta Cloud (nome do projeto GCP)
+        "conta_cloud_cloud": project if project else None,
+        
+        # CPU Platform (para buscar/criar objeto CPU)
+        "cpu_platform_cloud": cpu_platform if cpu_platform else None,
+        
+        # Ambiente
+        "ambiente_cloud": ambiente,
+        
+        # Identificação
+        "name_cloud": name,
+        "fqdn_cloud": f"{name}.{zone}.c.{project}.internal" if name and zone and project else name,
+
+        # Sistema Operacional
+        "sistema_operacional_cloud": extract_os_from_license(license_url),
+
+        # Hardware
+        "memoria_ram_cloud": str(memory_mb) if memory_mb else None,
+        "cpu_count_cloud": str(guest_cpus) if guest_cpus else None,
+        "capacidade_disco_cloud": str(disk_size) if disk_size else None,
+
+        # Rede
+        "interface_rede_cloud": ips,
+
+        # Status
+        "status_cloud": map_gcp_status_to_cmdb(instance_data.get("status", "RUNNING")),
+
+        # Tipo/Modelo
+        "tipo_servidor_cloud": "Cloud Pública",
+        #"modelo_servidor_cloud": "VMware Virtual Platform",
+        "tipo_infraestrutura_cloud": "MAQUINA VIRTUAL",
+
+        # Localização
+        "datacenter_cloud": "Google Cloud",
+        "projeto_gcp": project,
+        "zona_gcp": zone,
+
+        # Discovery
+        "status_discovery_cloud": "Running",
+
+        # Booleanos fixos
+        "sox_cloud": "false",
+        "ipe_cloud": "false",
+
+        # Metadados GCP
+        "gcp_instance_id": instance_data.get("id", ""),
+        "gcp_self_link": instance_data.get("selfLink", ""),
+        "gcp_creation_timestamp": instance_data.get("creationTimestamp", ""),
+        "gcp_labels": labels,
+
+        # Labels mapeáveis (se existirem)
+        "sistema_cloud": labels.get("system") or labels.get("app"),
+        "unidade_negocio_cloud": labels.get("business_unit") or labels.get("bu"),
+    }
+
+    # Remover valores None
+    cloud_data = {k: v for k, v in cloud_data.items() if v is not None}
+
+    return cloud_data
