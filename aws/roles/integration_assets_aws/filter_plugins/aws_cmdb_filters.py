@@ -97,6 +97,7 @@ def determine_ambiente_aws(variables: Dict) -> Optional[str]:
 
 
 def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = None) -> Dict:
+
     """
     Transforma os dados de um host AWS (do AAP) para o formato cloud_data.
 

@@ -34,21 +34,24 @@
           - jira_password is defined and jira_password | length > 0
         fail_msg: "Defina JIRA_USER e JIRA_PASSWORD"
 
-    - name: Verificar parâmetros
+    - name: Verificar parametros
       ansible.builtin.assert:
         that:
           - test_servers | length > 0 or test_limit | int > 0
-        fail_msg: "Defina test_servers (lista) ou test_limit (número)"
+        fail_msg: "Defina test_servers (lista) ou test_limit (numero)"
+
 
     - name: Exibir configuração
       ansible.builtin.debug:
         msg:
           - "════════════════════════════════════════════════════════════════"
-          - "          TESTE: SINCRONIZAÇÃO AWS → JIRA ASSETS"
+          - "          TESTE: SINCRONIZAÇÃO Azure → JIRA ASSETS"
           - "════════════════════════════════════════════════════════════════"
           - "Servidores: {{ test_servers if test_servers | length > 0 else 'primeiros ' ~ test_limit }}"
           - "Dry Run: {{ dry_run }}"
           - "Modelos mapeados: {{ modelo_servidor_map | length }}"
+          - "VM Specs mapeados: {{ azure_vm_specs | length }}"
+          - "Owner IDs: prod_linux={{ owner_ids.prod_linux | default('') }} | prod_windows={{ owner_ids.prod_windows | default('') }}"
           - "════════════════════════════════════════════════════════════════"
 
   tasks:
@@ -62,9 +65,15 @@
         return_content: yes
       register: aap_hosts
 
-    - name: Transformar todos os hosts (batch - com skip EKS + ef_cmdb + Modelo do Servidor)
+    - name: Transformar todos os hosts (batch - com skip AKS + ef_cmdb + Modelo do Servidor)
       ansible.builtin.set_fact:
-        all_cloud_data: "{{ aap_hosts.json.results | batch_transform_aws_hosts(modelo_servidor_map) }}"
+        all_cloud_data: >-
+          {{ aap_hosts.json.results | batch_transform_azure_hosts(
+               modelo_servidor_map | default({}),
+               azure_vm_specs      | default({}),
+               owner_ids           | default({})
+             ) }}
+
 
     - name: "Log - hosts ignorados (EKS + sem ef_cmdb + desabilitados + invalidos)"
       ansible.builtin.debug:

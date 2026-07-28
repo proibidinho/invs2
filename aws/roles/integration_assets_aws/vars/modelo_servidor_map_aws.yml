@@ -115,3 +115,293 @@ modelo_servidor_map:
 
   # === generico ===
   Generic:       GDA-3223981
+
+
+aws_vm_specs:
+  # === C Family - Compute Optimized ===
+  c4.large:
+    cpu: 2
+    memory_gb: 3.75
+  c4.xlarge:
+    cpu: 4
+    memory_gb: 7.5
+  c4.2xlarge:
+    cpu: 8
+    memory_gb: 15
+  c5.large:
+    cpu: 2
+    memory_gb: 4
+  c5.xlarge:
+    cpu: 4
+    memory_gb: 8
+  c5.2xlarge:
+    cpu: 8
+    memory_gb: 16
+  c5.4xlarge:
+    cpu: 16
+    memory_gb: 32
+  c5a.large:
+    cpu: 2
+    memory_gb: 4
+  c5a.xlarge:
+    cpu: 4
+    memory_gb: 8
+  c5a.2xlarge:
+    cpu: 8
+    memory_gb: 16
+  c5n.large:
+    cpu: 2
+    memory_gb: 5.25
+  c6a.xlarge:
+    cpu: 4
+    memory_gb: 8
+  c6a.2xlarge:
+    cpu: 8
+    memory_gb: 16
+  c6a.4xlarge:
+    cpu: 16
+    memory_gb: 32
+  c6g.2xlarge:
+    cpu: 8
+    memory_gb: 16
+  c6i.xlarge:
+    cpu: 4
+    memory_gb: 8
+  c6i.2xlarge:
+    cpu: 8
+    memory_gb: 16
+  c6i.4xlarge:
+    cpu: 16
+    memory_gb: 32
+  c6id.8xlarge:
+    cpu: 32
+    memory_gb: 64
+  c7g.large:
+    cpu: 2
+    memory_gb: 4
+
+  # === M Family - General Purpose ===
+  m4.large:
+    cpu: 2
+    memory_gb: 8
+  m4.4xlarge:
+    cpu: 16
+    memory_gb: 64
+  m4.10xlarge:
+    cpu: 40
+    memory_gb: 160
+  m5.large:
+    cpu: 2
+    memory_gb: 8
+  m5.xlarge:
+    cpu: 4
+    memory_gb: 16
+  m5.2xlarge:
+    cpu: 8
+    memory_gb: 32
+  m5.4xlarge:
+    cpu: 16
+    memory_gb: 64
+  m5.8xlarge:
+    cpu: 32
+    memory_gb: 128
+  m5a.xlarge:
+    cpu: 4
+    memory_gb: 16
+  m5ad.xlarge:
+    cpu: 4
+    memory_gb: 16
+  m5d.large:
+    cpu: 2
+    memory_gb: 8
+  m6a.large:
+    cpu: 2
+    memory_gb: 8
+  m6a.xlarge:
+    cpu: 4
+    memory_gb: 16
+  m6a.2xlarge:
+    cpu: 8
+    memory_gb: 32
+  m6a.4xlarge:
+    cpu: 16
+    memory_gb: 64
+  m6g.large:
+    cpu: 2
+    memory_gb: 8
+  m6i.large:
+    cpu: 2
+    memory_gb: 8
+  m6i.xlarge:
+    cpu: 4
+    memory_gb: 16
+  m6i.2xlarge:
+    cpu: 8
+    memory_gb: 32
+  m6i.4xlarge:
+    cpu: 16
+    memory_gb: 64
+  m6i.24xlarge:
+    cpu: 96
+    memory_gb: 384
+  m6id.large:
+    cpu: 2
+    memory_gb: 8
+  m7a.large:
+    cpu: 2
+    memory_gb: 8
+  m7g.large:
+    cpu: 2
+    memory_gb: 8
+  m7i.large:
+    cpu: 2
+    memory_gb: 8
+  m7i.xlarge:
+    cpu: 4
+    memory_gb: 16
+  m7i.8xlarge:
+    cpu: 32
+    memory_gb: 128
+  m7i-flex.large:
+    cpu: 2
+    memory_gb: 8
+  m7i-flex.xlarge:
+    cpu: 4
+    memory_gb: 16
+  m7i-flex.2xlarge:
+    cpu: 8
+    memory_gb: 32
+
+  # === R Family - Memory Optimized ===
+  r5.xlarge:
+    cpu: 4
+    memory_gb: 32
+  r5.2xlarge:
+    cpu: 8
+    memory_gb: 64
+  r5a.large:
+    cpu: 2
+    memory_gb: 16
+  r5a.xlarge:
+    cpu: 4
+    memory_gb: 32
+  r5a.2xlarge:
+    cpu: 8
+    memory_gb: 64
+  r5n.large:
+    cpu: 2
+    memory_gb: 16
+  r6a.large:
+    cpu: 2
+    memory_gb: 16
+  r6g.xlarge:
+    cpu: 4
+    memory_gb: 32
+  r6g.2xlarge:
+    cpu: 8
+    memory_gb: 64
+  r6g.4xlarge:
+    cpu: 16
+    memory_gb: 128
+  r6i.large:
+    cpu: 2
+    memory_gb: 16
+  r6i.2xlarge:
+    cpu: 8
+    memory_gb: 64
+  r6i.4xlarge:
+    cpu: 16
+    memory_gb: 128
+  r7a.xlarge:
+    cpu: 4
+    memory_gb: 32
+
+  # === T Family - Burstable ===
+  t2.nano:
+    cpu: 1
+    memory_gb: 0.5
+  t2.micro:
+    cpu: 1
+    memory_gb: 1
+  t2.small:
+    cpu: 1
+    memory_gb: 2
+  t2.medium:
+    cpu: 2
+    memory_gb: 4
+  t2.large:
+    cpu: 2
+    memory_gb: 8
+  t2.xlarge:
+    cpu: 4
+    memory_gb: 16
+  t2.2xlarge:
+    cpu: 8
+    memory_gb: 32
+  t3.nano:
+    cpu: 2
+    memory_gb: 0.5
+  t3.micro:
+    cpu: 2
+    memory_gb: 1
+  t3.small:
+    cpu: 2
+    memory_gb: 2
+  t3.medium:
+    cpu: 2
+    memory_gb: 4
+  t3.large:
+    cpu: 2
+    memory_gb: 8
+  t3.xlarge:
+    cpu: 4
+    memory_gb: 16
+  t3.2xlarge:
+    cpu: 8
+    memory_gb: 32
+  t3a.micro:
+    cpu: 2
+    memory_gb: 1
+  t3a.small:
+    cpu: 2
+    memory_gb: 2
+  t3a.medium:
+    cpu: 2
+    memory_gb: 4
+  t3a.large:
+    cpu: 2
+    memory_gb: 8
+  t3a.xlarge:
+    cpu: 4
+    memory_gb: 16
+  t3a.2xlarge:
+    cpu: 8
+    memory_gb: 32
+  t4g.small:
+    cpu: 2
+    memory_gb: 2
+  t4g.medium:
+    cpu: 2
+    memory_gb: 4
+
+  # === I Family - Storage Optimized ===
+  i4g.xlarge:
+    cpu: 4
+    memory_gb: 32
+  i4i.large:
+    cpu: 2
+    memory_gb: 16
+
+# =============================================================================
+# OWNERS - IDs dos usuarios no Object Type 91 (Users) do Jira Assets
+# =============================================================================
+# Regra aplicada em azure_cmdb_filters.py -> transform_azure_host:
+#   - Producao + Linux    -> owner_ids.prod_linux    (USR-149372  Luccas Guarnier)
+#   - Producao + Windows  -> owner_ids.prod_windows  (USR-146496  Carlos Henrique Barboza)
+#   - Nao Producao        -> owner_ids.nao_producao  (vazio, Owner nao enviado)
+# ef_owner NAO participa desta logica em nenhuma hipotese.
+# =============================================================================
+owner_ids:
+  prod_linux:   "149372"   # USR-149372  Luccas Guarnier
+  prod_windows: "146496"   # USR-146496  Carlos Henrique Barboza
+  nao_producao: ""         # Vazio -> Owner nao enviado

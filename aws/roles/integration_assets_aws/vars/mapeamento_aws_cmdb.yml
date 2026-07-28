@@ -23,11 +23,34 @@ object_attribute_map:
   tipo: text
   obrigatorio: true
 
-# CPU COUNT
+# =============================================================================
+# CPU / MEMORIA / OWNER
+# CPU e Memoria vem de azure_vm_specs[virtual_machine_size] (populados pelo filter).
+# Owner vem de Ambiente + SO + owner_ids (populado pelo filter como USR-*).
+# =============================================================================
+
+# CPU COUNT (azure_vm_specs[vm_size].cpu)
 - id: 3359
   name_assets: "CPU Count"
   chave_cloud: "cpu_count_cloud"
-  tipo: text
+  tipo: integer
+  obrigatorio: false
+
+# MEMORIA RAM (azure_vm_specs[vm_size].memory_gb * 1024, em Mb)
+- id: 6840
+  name_assets: "Memória RAM"
+  chave_cloud: "memoria_ram_cloud"
+  tipo: integer
+  sufixo: "Mb"
+  obrigatorio: false
+
+# OWNER (Object Type 91 Users) - objectKey USR-* passado direto pelo filter.
+# Fonte unica: Ambiente + Sistema Operacional + owner_ids. ef_owner IGNORADO.
+- id: 3381
+  name_assets: "Owner"
+  chave_cloud: "owner_cloud"
+  tipo: objeto
+  referencia_object_type_id: 91
 
 # MODELO DO SERVIDOR (instance_type -> objectKey do CMDB)
 # tipo: objeto sem "valores" -> o filter passa o value direto (objectKey).
