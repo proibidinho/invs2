@@ -177,3 +177,35 @@ object_attribute_map:
   name_assets: "Grupo Solucionador - Infra"
   chave_cloud: "grupo_solucionador_infra_cloud"
   tipo: text
+
+# STATUS DISCOVERY
+- id: 3053
+  name_assets: "Status Discovery"
+  chave_cloud: "status_discovery_cloud"
+  tipo: status
+  valor_fixo: "Running"
+  valores:
+  - value: "Running"
+    displayValue: "Running"
+    searchValue: "Running"
+    referencedType: 24
+
+# BOOLEANOS
+- id: 9647
+  name_assets: "SOX"
+  chave_cloud: "sox_cloud"
+  tipo: boolean
+  valor_fixo: false
+
+- id: 9648
+  name_assets: "IPE"
+  chave_cloud: "ipe_cloud"
+  tipo: boolean
+  valor_fixo: false
+
+# DISASTER RECOVERY (tag ef_recuperacao_de_desastre / ef_dr; fallback false)
+- id: 10677
+  name_assets: "Disaster Recovery"
+  chave_cloud: "disaster_recovery_cloud"
+  tipo: boolean
+  valor_fallback: false

@@ -121,6 +121,12 @@ def transform_aws_host(host_data: Dict,
 
     tags = variables.get("tags", {})
 
+    # ------------------------------------------------------------------
+    # Disaster Recovery (tag ef_recuperacao_de_desastre / ef_dr; fallback false)
+    # ------------------------------------------------------------------
+    dr_tag = tags.get("ef_recuperacao_de_desastre") or tags.get("ef_dr") or ""
+    dr_bool = str(dr_tag).strip().lower() in ("true", "sim", "yes", "1", "s", "y")
+
     # Instance ID (usado para garantir unicidade)
     instance_id = variables.get("instance_id", "")
 
@@ -157,7 +163,7 @@ def transform_aws_host(host_data: Dict,
     instance_type = variables.get("instance_type", "")
 
     # ------------------------------------------------------------------
-    # CPU / Memoria via aws_vm_specs (reutiliza estrutura ja existente)
+    # CPU / Memoria via aws_vm_specs (reutiliza estrutura ja existente).
     # aws_vm_specs eh a fonte de verdade preferencial. Se o instance_type
     # nao estiver em aws_vm_specs, mantem-se o fallback:
     #   - CPU: cpu_options (comportamento historico)
@@ -246,6 +252,16 @@ def transform_aws_host(host_data: Dict,
 
         # Status
         "status_cloud": map_aws_status_to_cmdb(state),
+
+        # Discovery (fixo)
+        "status_discovery_cloud": "Running",
+
+        # Booleanos fixos
+        "sox_cloud": "false",
+        "ipe_cloud": "false",
+
+        # Disaster Recovery (tag; fallback false)
+        "disaster_recovery_cloud": dr_bool,
 
         # Tipo de Servidor (select)
         "tipo_servidor_cloud": "Cloud Pública",
