@@ -1,0 +1,105 @@
+# =============================================================================
+# Playbook: Sincronização GCP → Jira Assets (CMDB)
+# =============================================================================
+# Uso:
+#   ansible-playbook playbooks/sync_gcp_cmdb.yml \
+#     -e "gcp_projects=projeto1,projeto2" \
+#     -e "sync_mode=full"
+#
+# Variáveis de ambiente necessárias:
+#   - JIRA_USER: Email do usuário Jira
+#   - JIRA_PASSWORD: API Token do Jira
+# =============================================================================
+---
+- name: Sincronização GCP → Jira Assets CMDB
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    service_account_file: "{{ playbook_dir }}/../roles/integration_assets/files/service_account.json"
+    quota_project: "claro-infracloud"
+
+  pre_tasks:
+    - name: Incluir variáveis do role
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../roles/integration_assets/vars/main.yml"
+
+    - name: Verificar credenciais Jira
+      ansible.builtin.assert:
+        that:
+          - jira_user is defined
+          - jira_password is defined
+          - jira_user | length > 0
+          - jira_password | length > 0
+        fail_msg: "Defina JIRA_USER e JIRA_PASSWORD"
+
+    - name: Verificar se projetos foram informados
+      ansible.builtin.assert:
+        that:
+          - gcp_projects is defined
+          - gcp_projects | length > 0
+        fail_msg: "Nenhum projeto GCP informado! Use -e gcp_projects=proj1,proj2"
+
+    - name: Converter string para lista (se necessário)
+      ansible.builtin.set_fact:
+        gcp_projects_list: "{{ gcp_projects.split(',') | map('trim') | list }}"
+      when: gcp_projects is string
+
+    - name: Manter lista original (se já for lista)
+      ansible.builtin.set_fact:
+        gcp_projects_list: "{{ gcp_projects }}"
+      when: gcp_projects is not string
+
+    - name: Definir modo de sincronização
+      ansible.builtin.set_fact:
+        _sync_mode: "{{ sync_mode | default('full') }}"
+        _enable_deactivation: "{{ enable_deactivation | default(false) }}"
+
+    - name: Verificar service account GCP
+      ansible.builtin.stat:
+        path: "{{ service_account_file }}"
+      register: sa_file
+
+    - name: Falhar se service account não existe
+      ansible.builtin.fail:
+        msg: "Service account não encontrado: {{ service_account_file }}"
+      when: not sa_file.stat.exists
+
+    - name: Ativar service account GCP
+      ansible.builtin.command: >
+        gcloud auth activate-service-account
+        --key-file={{ service_account_file }}
+        --project={{ quota_project }}
+      changed_when: false
+
+    - name: Exibir configuração
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "          SINCRONIZAÇÃO GCP → JIRA ASSETS (CMDB)"
+          - "════════════════════════════════════════════════════════════════"
+          - "Modo: {{ _sync_mode }}"
+          - "Desativação automática: {{ _enable_deactivation }}"
+          - "Projetos: {{ gcp_projects_list | length }}"
+          - "{{ gcp_projects_list | join(', ') }}"
+          - "════════════════════════════════════════════════════════════════"
+
+  roles:
+    - role: integration_assets
+      vars:
+        gcp_projects: "{{ gcp_projects_list }}"
+        sync_mode: "{{ _sync_mode }}"
+        enable_deactivation: "{{ _enable_deactivation }}"
+
+  post_tasks:
+    - name: Resumo final
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "                    SINCRONIZAÇÃO FINALIZADA"
+          - "════════════════════════════════════════════════════════════════"
+          - "Timestamp: {{ ansible_date_time.iso8601 }}"
+          - "════════════════════════════════════════════════════════════════"

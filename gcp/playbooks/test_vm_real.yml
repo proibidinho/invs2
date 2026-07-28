@@ -1,0 +1,381 @@
+# =============================================================================
+# Playbook: Teste Completo com VM Real (Passo a Passo)
+# =============================================================================
+# USO SIMPLES:
+#   ansible-playbook playbooks/test_vm_real.yml \
+#     -e "vm_name=vm-bastion-linux" \
+#     -e "vm_zone=southamerica-east1-c" \
+#     -e "vm_project=claro-infracloud"
+#
+# Com execução real (criar no CMDB):
+#   ansible-playbook playbooks/test_vm_real.yml \
+#     -e "vm_name=sua-vm" \
+#     -e "vm_zone=sua-zona" \
+#     -e "vm_project=seu-projeto" \
+#     -e "executar=true"
+# =============================================================================
+---
+- name: "TESTE: Sincronizar VM Real do GCP → CMDB"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # Dados da VM (obrigatórios)
+    vm_name: "{{ vm_name | default('') }}"
+    vm_zone: "{{ vm_zone | default('') }}"
+    vm_project: "{{ vm_project | default('') }}"
+
+    # Executar de verdade? (default: não, apenas mostrar)
+    executar: "{{ executar | default(false) | bool }}"
+
+    # Credenciais
+    jira_user: "{{ lookup('env', 'JIRA_USER') }}"
+    jira_password: "{{ lookup('env', 'JIRA_PASSWORD') }}"
+    workspace: "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+    jira_assets_base_url: "https://api.atlassian.com/jsm/insight/workspace/{{ workspace }}/v1"
+
+    # Service account
+    service_account_file: "{{ playbook_dir }}/../files/service_account.json"
+
+    # Proxy (ajuste conforme necessário)
+    proxy_env:
+      http_proxy: "http://10.54.24.184:3128"
+      https_proxy: "http://10.54.24.184:3128"
+      no_proxy: ""
+
+  tasks:
+    # =========================================================================
+    # VALIDAÇÕES INICIAIS
+    # =========================================================================
+    - name: "╔══════════════════════════════════════════════════════════════╗"
+      ansible.builtin.debug:
+        msg: "║          TESTE DE SINCRONIZAÇÃO GCP → CMDB                  ║"
+
+    - name: "╚══════════════════════════════════════════════════════════════╝"
+      ansible.builtin.debug:
+        msg: ""
+
+    - name: Validar parâmetros obrigatórios
+      ansible.builtin.assert:
+        that:
+          - vm_name | length > 0
+          - vm_zone | length > 0
+          - vm_project | length > 0
+        fail_msg: |
+
+          ❌ ERRO: Parâmetros obrigatórios não informados!
+
+          Uso correto:
+            ansible-playbook playbooks/test_vm_real.yml \
+              -e "vm_name=sua-vm" \
+              -e "vm_zone=sua-zona" \
+              -e "vm_project=seu-projeto"
+
+    - name: Validar credenciais Jira
+      ansible.builtin.assert:
+        that:
+          - jira_user | length > 0
+          - jira_password | length > 0
+        fail_msg: |
+
+          ❌ ERRO: Credenciais Jira não configuradas!
+
+          Execute:
+            export JIRA_USER='seu-email@empresa.com'
+            export JIRA_PASSWORD='seu-api-token'
+
+    - name: "✓ Parâmetros validados"
+      ansible.builtin.debug:
+        msg:
+          - "VM: {{ vm_name }}"
+          - "Zona: {{ vm_zone }}"
+          - "Projeto: {{ vm_project }}"
+          - "Modo: {{ 'EXECUÇÃO REAL' if executar else 'APENAS VISUALIZAÇÃO (dry-run)' }}"
+
+    # =========================================================================
+    # PASSO 1: AUTENTICAR NO GCP
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 1: Autenticando no GCP..."
+
+    - name: Verificar service account
+      ansible.builtin.stat:
+        path: "{{ service_account_file }}"
+      register: sa_file
+
+    - name: Ativar service account (se existir)
+      ansible.builtin.command: >
+        gcloud auth activate-service-account
+        --key-file={{ service_account_file }}
+        --project={{ vm_project }}
+      changed_when: false
+      when: sa_file.stat.exists
+
+    - name: "✓ Autenticação GCP OK"
+      ansible.builtin.debug:
+        msg: "{{ 'Usando service account' if sa_file.stat.exists else 'Usando credenciais padrão do gcloud' }}"
+
+    # =========================================================================
+    # PASSO 2: BUSCAR DADOS DA VM NO GCP
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 2: Buscando dados da VM no GCP..."
+
+    - name: Obter detalhes da instância
+      ansible.builtin.command: >
+        gcloud compute instances describe {{ vm_name }}
+        --zone={{ vm_zone }}
+        --project={{ vm_project }}
+        --format=json
+      register: instance_result
+      changed_when: false
+
+    - name: Parsear dados da instância
+      ansible.builtin.set_fact:
+        instance_data: "{{ instance_result.stdout | from_json }}"
+
+    - name: "✓ VM encontrada no GCP"
+      ansible.builtin.debug:
+        msg:
+          - "Nome: {{ instance_data.name }}"
+          - "Status: {{ instance_data.status }}"
+          - "Machine Type: {{ instance_data.machineType | basename }}"
+          - "IP Privado: {{ instance_data.networkInterfaces[0].networkIP | default('N/A') }}"
+          - "IP Público: {{ instance_data.networkInterfaces[0].accessConfigs[0].natIP | default('N/A') }}"
+
+    - name: Extrair machine type
+      ansible.builtin.set_fact:
+        machine_type_name: "{{ instance_data.machineType | basename }}"
+
+    - name: Obter detalhes do machine type
+      ansible.builtin.command: >
+        gcloud compute machine-types describe {{ machine_type_name }}
+        --zone={{ vm_zone }}
+        --project={{ vm_project }}
+        --format=json
+      register: machine_type_result
+      changed_when: false
+
+    - name: Parsear dados do machine type
+      ansible.builtin.set_fact:
+        machine_type_data: "{{ machine_type_result.stdout | from_json }}"
+
+    - name: "✓ Machine type obtido"
+      ansible.builtin.debug:
+        msg:
+          - "Tipo: {{ machine_type_data.name }}"
+          - "vCPUs: {{ machine_type_data.guestCpus }}"
+          - "Memória: {{ machine_type_data.memoryMb }} MB"
+
+    # =========================================================================
+    # PASSO 3: TRANSFORMAR DADOS PARA FORMATO CMDB
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 3: Transformando dados GCP → cloud_data..."
+
+    - name: Transformar para cloud_data
+      ansible.builtin.set_fact:
+        cloud_data: "{{ instance_data | transform_gcp_instance(machine_type_data) }}"
+
+    - name: "✓ Dados transformados (cloud_data)"
+      ansible.builtin.debug:
+        msg: |
+
+          ┌─────────────────────────────────────────────────────────────────┐
+          │ DADOS TRANSFORMADOS (cloud_data)                                │
+          ├─────────────────────────────────────────────────────────────────┤
+          │ Name: {{ cloud_data.name_cloud }}
+          │ FQDN: {{ cloud_data.fqdn_cloud }}
+          │ Sistema Operacional: {{ cloud_data.sistema_operacional_cloud }}
+          │ Memória RAM: {{ cloud_data.memoria_ram_cloud }} MB
+          │ CPU Count: {{ cloud_data.cpu_count_cloud }}
+          │ Disco: {{ cloud_data.capacidade_disco_cloud }} GB
+          │ Status: {{ cloud_data.status_cloud }}
+          │ Tipo Servidor: {{ cloud_data.tipo_servidor_cloud }}
+          │ Datacenter: {{ cloud_data.datacenter_cloud }}
+          │ IPs: {{ cloud_data.interface_rede_cloud | map(attribute='ip') | join(', ') }}
+          └─────────────────────────────────────────────────────────────────┘
+
+    # =========================================================================
+    # PASSO 4: VERIFICAR SE EXISTE NO CMDB
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 4: Verificando se existe no CMDB..."
+
+    - name: Buscar servidor no CMDB
+      ansible.builtin.uri:
+        url: "{{ jira_assets_base_url }}/object/aql?startAt=0&maxResults=1"
+        method: POST
+        headers:
+          Accept: "application/json"
+          Content-Type: "application/json"
+        body_format: json
+        force_basic_auth: yes
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        body:
+          qlQuery: 'objectTypeId = 121 AND Name = "{{ cloud_data.name_cloud }}"'
+        status_code: [200]
+      register: cmdb_check
+      environment: "{{ proxy_env }}"
+
+    - name: Analisar resultado
+      ansible.builtin.set_fact:
+        servidor_existe: "{{ cmdb_check.json.total | int > 0 }}"
+        servidor_id: >-
+          {{ (cmdb_check.json.values | dict2items | first).value[0].id
+             if cmdb_check.json.total | int > 0
+             else '' }}
+
+    - name: "Resultado da verificação CMDB"
+      ansible.builtin.debug:
+        msg: |
+
+          {% if servidor_existe %}
+          ⚠️  SERVIDOR JÁ EXISTE NO CMDB
+          ID: {{ servidor_id }}
+          Ação: ATUALIZAR (se executar=true)
+          {% else %}
+          ✓ SERVIDOR NÃO EXISTE NO CMDB
+          Ação: CRIAR (se executar=true)
+          {% endif %}
+
+    # =========================================================================
+    # PASSO 5: GERAR PAYLOAD PARA JIRA ASSETS
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 5: Gerando payload para Jira Assets API..."
+
+    - name: Incluir mapeamento
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../roles/integration_assets/vars/mapeamento_gcp_cmdb.yml"
+
+    - name: Gerar payload
+      ansible.builtin.set_fact:
+        jira_payload: "{{ cloud_data | update_asset(object_attribute_map) }}"
+
+    - name: "✓ Payload gerado"
+      ansible.builtin.debug:
+        msg: |
+
+          ┌─────────────────────────────────────────────────────────────────┐
+          │ PAYLOAD PARA JIRA ASSETS API                                    │
+          ├─────────────────────────────────────────────────────────────────┤
+          {{ jira_payload | to_nice_json }}
+          └─────────────────────────────────────────────────────────────────┘
+
+    - name: Resumo dos atributos
+      ansible.builtin.debug:
+        msg: "Total de atributos no payload: {{ jira_payload.attributes | length }}"
+
+    # =========================================================================
+    # PASSO 6: EXECUTAR (se solicitado)
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 6: {{ 'Executando sincronização...' if executar else 'Modo dry-run - não executando' }}"
+
+    - name: Criar servidor no CMDB
+      ansible.builtin.uri:
+        url: "{{ jira_assets_base_url }}/object/create"
+        method: POST
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+          Accept: "application/json"
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        body: "{{ jira_payload | to_json }}"
+        body_format: json
+        return_content: yes
+        status_code: [200, 201]
+      register: resultado_create
+      environment: "{{ proxy_env }}"
+      when:
+        - executar | bool
+        - not servidor_existe
+
+    - name: Atualizar servidor no CMDB
+      ansible.builtin.uri:
+        url: "{{ jira_assets_base_url }}/object/{{ servidor_id }}"
+        method: PUT
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+          Accept: "application/json"
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        body: "{{ jira_payload | to_json }}"
+        body_format: json
+        return_content: yes
+        status_code: [200]
+      register: resultado_update
+      environment: "{{ proxy_env }}"
+      when:
+        - executar | bool
+        - servidor_existe
+
+    # =========================================================================
+    # RESULTADO FINAL
+    # =========================================================================
+    - name: "╔══════════════════════════════════════════════════════════════╗"
+      ansible.builtin.debug:
+        msg: "║                    RESULTADO FINAL                          ║"
+
+    - name: "╚══════════════════════════════════════════════════════════════╝"
+      ansible.builtin.debug:
+        msg: ""
+
+    - name: Resultado - Criação
+      ansible.builtin.debug:
+        msg: |
+
+          ✅ SERVIDOR CRIADO COM SUCESSO!
+
+          ID: {{ resultado_create.json.id }}
+          Key: {{ resultado_create.json.objectKey }}
+
+          Link: https://clarobrasil.atlassian.net/jira/servicedesk/assets/object/{{ resultado_create.json.id }}
+      when:
+        - executar | bool
+        - not servidor_existe
+        - resultado_create is defined
+
+    - name: Resultado - Atualização
+      ansible.builtin.debug:
+        msg: |
+
+          ✅ SERVIDOR ATUALIZADO COM SUCESSO!
+
+          ID: {{ servidor_id }}
+
+          Link: https://clarobrasil.atlassian.net/jira/servicedesk/assets/object/{{ servidor_id }}
+      when:
+        - executar | bool
+        - servidor_existe
+        - resultado_update is defined
+
+    - name: Resultado - Dry Run
+      ansible.builtin.debug:
+        msg: |
+
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+          🔍 MODO DRY-RUN - Nenhuma alteração foi feita no CMDB
+
+          Para executar de verdade, rode novamente com -e "executar=true":
+
+            ansible-playbook playbooks/test_vm_real.yml \
+              -e "vm_name={{ vm_name }}" \
+              -e "vm_zone={{ vm_zone }}" \
+              -e "vm_project={{ vm_project }}" \
+              -e "executar=true"
+
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      when: not executar | bool

@@ -1,0 +1,32 @@
+# =============================================================================
+# VARIAVEIS PRINCIPAIS - CONFIGURACAO GCP
+# =============================================================================
+---
+# Jira Assets
+workspace: "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+jira_url: "https://api.atlassian.com/jsm/insight/workspace/{{ workspace }}/v1"
+jira_user: "{{ lookup('env', 'JIRA_USER') }}"
+jira_password: "{{ lookup('env', 'JIRA_PASSWORD') }}"
+
+# Object Type IDs
+object_type_id_servidor: 121
+object_type_id_interface_rede: 230
+object_type_id_datacenter: 152
+object_type_id_sistema_operacional: 150
+
+# Attribute IDs para criação de objetos auxiliares
+nic_name_attribute_id: "1890"
+dc_name_attribute_id: "1339"
+
+# Modo de sincronizacao: full, create, update, deactivate
+sync_mode: "full"
+enable_deactivation: false
+
+# Proxy Lapa
+proxy_env:
+  http_proxy: "http://10.29.177.37:8080" #Lapa
+  https_proxy: "http://10.29.177.37:8080" #Lapa
+  no_proxy: ""
+
+# Projetos GCP a sincronizar (populado via extra-vars ou pelo playbook)
+gcp_projects: []
