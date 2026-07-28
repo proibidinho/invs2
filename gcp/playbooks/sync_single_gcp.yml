@@ -1,0 +1,166 @@
+# =============================================================================
+# Playbook: Testar sincronizacao GCP com servidores selecionados
+# =============================================================================
+# COMO USAR:
+#   1. Por LISTA:
+#      ansible-playbook playbooks/sync_single_gcp.yml \
+#        -e 'test_servers=["apigee-mig-prod-us-east-4-h29c"]'
+#
+#   2. Por LIMITE:
+#      ansible-playbook playbooks/sync_single_gcp.yml -e "test_limit=3"
+#
+#   3. DRY RUN:
+#      ansible-playbook playbooks/sync_single_gcp.yml -e "test_limit=5" -e "dry_run=true"
+# =============================================================================
+---
+- name: Testar sincronizacao GCP com servidores selecionados
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    test_servers: []
+    test_limit: 0
+    dry_run: false
+
+  pre_tasks:
+    - name: Incluir variaveis do role
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../roles/integration_assets_gcp/vars/main.yml"
+        - "{{ playbook_dir }}/../roles/integration_assets_gcp/vars/mapeamento_gcp_cmdb.yml"
+        - "{{ playbook_dir }}/../roles/integration_assets_gcp/vars/modelo_servidor_map_gcp.yml"
+
+    - name: Verificar credenciais Jira
+      ansible.builtin.assert:
+        that:
+          - jira_user is defined and jira_user | length > 0
+          - jira_password is defined and jira_password | length > 0
+        fail_msg: "Defina JIRA_USER e JIRA_PASSWORD"
+
+    - name: Verificar parametros
+      ansible.builtin.assert:
+        that:
+          - test_servers | length > 0 or test_limit | int > 0
+        fail_msg: "Defina test_servers (lista) ou test_limit (numero)"
+
+    - name: Exibir configuracao
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "          TESTE: SINCRONIZACAO GCP → JIRA ASSETS"
+          - "════════════════════════════════════════════════════════════════"
+          - "Servidores: {{ test_servers if test_servers | length > 0 else 'primeiros ' ~ test_limit }}"
+          - "Dry Run: {{ dry_run }}"
+          - "Modelos: {{ modelo_servidor_map | length }} | Specs: {{ gcp_machine_specs | length }}"
+          - "════════════════════════════════════════════════════════════════"
+
+  tasks:
+    - name: Buscar hosts do AAP
+      ansible.builtin.uri:
+        url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=500"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ aap_token }}"
+        validate_certs: "{{ aap_verify_ssl | default(false) }}"
+        return_content: yes
+      register: aap_hosts
+      environment: "{{ proxy_env | default({}) }}"
+
+    - name: Buscar variables de cada host
+      ansible.builtin.uri:
+        url: "{{ aap_host }}/api/controller/v2/hosts/{{ item.id }}/variable_data/"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ aap_token }}"
+        validate_certs: "{{ aap_verify_ssl | default(false) }}"
+      register: host_vars_results
+      loop: "{{ aap_hosts.json.results }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Consolidar variables
+      ansible.builtin.set_fact:
+        all_host_vars: "{{ host_vars_results.results | map(attribute='json') | list }}"
+
+    - name: Transformar todos os hosts (batch)
+      ansible.builtin.set_fact:
+        all_cloud_data: >-
+          {{ all_host_vars | batch_transform_gcp_hosts(
+               modelo_servidor_map | default({}),
+               gcp_machine_specs   | default({}),
+               owner_ids           | default({}),
+               cpu_platform_map    | default({})
+             ) }}
+
+    - name: "Log - hosts ignorados (GKE + sem ef_cmdb)"
+      ansible.builtin.debug:
+        msg: "Hosts AAP: {{ all_host_vars | length }} | Elegiveis: {{ all_cloud_data | length }} | Ignorados: {{ all_host_vars | length - all_cloud_data | length }}"
+
+    - name: Selecionar por lista de nomes
+      ansible.builtin.set_fact:
+        selected_servers: "{{ all_cloud_data | selectattr('name_cloud', 'in', test_servers) | list }}"
+      when: test_servers | length > 0
+
+    - name: Selecionar por limite
+      ansible.builtin.set_fact:
+        selected_servers: "{{ all_cloud_data[:test_limit | int] }}"
+      when: test_limit | int > 0 and test_servers | length == 0
+
+    - name: Exibir cloud_data de cada servidor
+      ansible.builtin.debug:
+        msg: "{{ item | to_nice_yaml }}"
+      loop: "{{ selected_servers }}"
+      loop_control:
+        label: "{{ item.name_cloud }}"
+
+    - name: Parar se dry_run
+      ansible.builtin.meta: end_play
+      when: dry_run | bool
+
+    # --- EXECUCAO REAL ---
+    - name: Inicializar logs
+      ansible.builtin.set_fact:
+        sync_log_create: []
+        sync_log_skip: []
+
+    - name: Buscar servidores existentes no CMDB
+      ansible.builtin.uri:
+        url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
+        method: POST
+        headers:
+          Accept: "application/json"
+          Content-Type: "application/json"
+        force_basic_auth: yes
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        body:
+          qlQuery: 'objectTypeId = 121 AND Datacenter = "Google Cloud"'
+        body_format: json
+      register: cmdb_result
+      environment: "{{ proxy_env | default({}) }}"
+
+    - name: Separar servidores a criar e existentes
+      ansible.builtin.set_fact:
+        cmdb_server_names: "{{ cmdb_result.json['values'] | default([]) | map(attribute='label') | list }}"
+
+    - name: Determinar acoes
+      ansible.builtin.set_fact:
+        servers_to_create: "{{ selected_servers | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+        servers_to_skip:   "{{ selected_servers | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+
+    - name: Criar servidores
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/integration_assets_gcp/tasks/create.yml"
+      vars:
+        current_cloud_data: "{{ item }}"
+      loop: "{{ servers_to_create }}"
+      loop_control:
+        label: "{{ item.name_cloud }}"
+      when: servers_to_create | length > 0
+
+    - name: Resultado final
+      ansible.builtin.debug:
+        msg:
+          - "Criados: {{ sync_log_create | length }}"
+          - "Existentes (skip): {{ servers_to_skip | length }}"

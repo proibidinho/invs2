@@ -1,0 +1,3152 @@
+
+================================================================
+ARQUIVO: ./exemplo_servidor.yml
+================================================================
+{"ansible_host": "10.80.224.45", "cpuPlatform": "Intel Broadwell", "creationTimestamp": "2026-04-07T05:40:23.031-07:00", "deletionProtection": false, "disks": [{"architecture": "X86_64", "autoDelete": true, "boot": true, "deviceName": "persistent-disk-0", "diskSizeGb": "20", "guestOsFeatures": [{"type": "UEFI_COMPATIBLE"}, {"type": "VIRTIO_SCSI_MULTIQUEUE"}, {"type": "GVNIC"}, {"type": "SEV_CAPABLE"}, {"type": "SEV_LIVE_MIGRATABLE_V2"}], "index": 0, "interface": "SCSI", "kind": "compute#attachedDisk", "licenses": ["https://www.googleapis.com/compute/v1/projects/debian-cloud/global/licenses/debian-12-bookworm"], "mode": "READ_WRITE", "source": "https://www.googleapis.com/compute/v1/projects/clarobrasilx/zones/us-east4-b/disks/apigee-mig-prod-us-east-4-h29c", "type": "PERSISTENT"}], "fingerprint": "a30JKddq0_E=", "gcp_labels": {"ef_ambiente": "prd", "ef_cmdb": "gda-2097586", "ef_owner": "michael-cardoso-claro-com-br", "ef_projeto": "apigee-x", "goog-terraform-provisioned": "true"}, "gcp_project": "clarobrasilx", "id": "5022046683232028121", "image": null, "kind": "compute#instance", "labelFingerprint": "ZCDWOkp8rnQ=", "labels": {"ef_ambiente": "prd", "ef_cmdb": "gda-2097586", "ef_owner": "michael-cardoso-claro-com-br", "ef_projeto": "apigee-x", "goog-terraform-provisioned": "true"}, "lastStartTimestamp": "2026-04-07T05:40:33.275-07:00", "machineType": "e2-medium", "machineType_selflink": "https://www.googleapis.com/compute/v1/projects/clarobrasilx/zones/us-east4-b/machineTypes/e2-medium", "machine_type": "e2-medium", "metadata": {"created-by": "projects/842850968424/regions/us-east4/instanceGroupManagers/apigee-gcp-multi-region-interno-prod01-mig-us-east4", "instance-template": "projects/842850968424/global/instanceTemplates/apigee-x-mig-proxy-multi-region-prod01-us260406002", "startup-script": "#!/bin/sh\n# This scripts sets up peering to the Apigee tenant project where Apigee SaaS GKE cluster runs.\nendpoint=10.60.220.2\n\nif [ -x /bin/firewall-cmd ]\nthen\n   sysctl -w net.ipv4.ip_forward=1\n   firewall-cmd --permanent --add-masquerade\n   firewall-cmd --permanent --add-forward-port=port=443:proto=tcp:toaddr=\"$endpoint\"\n   firewall-cmd --add-masquerade\n   firewall-cmd --add-forward-port=port=443:proto=tcp:toaddr=\"$endpoint\"\nelse\n   sysctl -w net.ipv4.ip_forward=1\n   iptables -t nat -A POSTROUTING ! -o lo -j MASQUERADE\n   iptables -t nat -A PREROUTING -p tcp --dport 443 -j DNAT --to-destination \"$endpoint\"\nfi\n\nsysctl -ew net.netfilter.nf_conntrack_buckets=1048576\nsysctl -ew net.netfilter.nf_conntrack_max=8388608\n\nexit 0"}, "name": "apigee-mig-prod-us-east-4-h29c", "networkInterfaces": [{"fingerprint": "T6guM4JtgXA=", "kind": "compute#networkInterface", "name": "nic0", "network": {"name": "vpc-connectivity-prod", "region": "global", "selfLink": "https://www.googleapis.com/compute/v1/projects/claro-connectivity-prod/global/networks/vpc-connectivity-prod"}, "networkIP": "10.80.224.45", "stackType": "IPV4_ONLY", "subnetwork": {"name": "snet-gcp-br-apigee-in-prod-us-east-4", "region": "us-east4", "selfLink": "https://www.googleapis.com/compute/v1/projects/claro-connectivity-prod/regions/us-east4/subnetworks/snet-gcp-br-apigee-in-prod-us-east-4"}}], "private_ip": "10.80.224.45", "project": "clarobrasilx", "public_ip": "N/A", "resourceStatus": {"effectiveInstanceMetadata": {"enableOsloginMetadataValue": true, "vmDnsSettingMetadataValue": "ZonalOnly"}}, "satisfiesPzi": true, "scheduling": {"automaticRestart": true, "onHostMaintenance": "MIGRATE", "preemptible": false, "provisioningModel": "STANDARD"}, "selfLink": "https://www.googleapis.com/compute/v1/projects/clarobrasilx/zones/us-east4-b/instances/apigee-mig-prod-us-east-4-h29c", "serviceAccounts": [{"email": "842850968424-compute@developer.gserviceaccount.com", "scopes": ["https://www.googleapis.com/auth/cloud-platform"]}], "shieldedInstanceConfig": {"enableIntegrityMonitoring": true, "enableSecureBoot": false, "enableVtpm": true}, "shieldedInstanceIntegrityPolicy": {"updateAutoLearnPolicy": true}, "startRestricted": false, "status": "RUNNING", "tags": {"fingerprint": "D6ao9p3-gEQ=", "items": ["apigee-mig-proxy", "gke-apigee-proxy", "https-server"]}, "zone": "us-east4-b", "zone_selflink": "https://www.googleapis.com/compute/v1/projects/clarobrasilx/zones/us-east4-b"}
+
+================================================================
+ARQUIVO: ./modelos_cmdb.txt
+================================================================
+Buscando objetos do tipo ID: 406...
+  startAt=0: +281 objetos (acumulado: 281/0)
+
+ID           Key                       Label
+--------------------------------------------------------------------------------
+3223756      GDA-3223756               2288H V5
+3223758      GDA-3223758               7026_M80
+3223762      GDA-3223762               8233_E8B
+3223764      GDA-3223764               8284_22A
+3223767      GDA-3223767               8408_44E
+3223769      GDA-3223769               9000/800/rp4440
+3223773      GDA-3223773               9080_MHE
+3223775      GDA-3223775               9119_FHB
+3223777      GDA-3223777               9133_55A
+3223779      GDA-3223779               9179_MHB
+3223781      GDA-3223781               BL860c
+3223783      GDA-3223783               BL860c i2
+3223785      GDA-3223785               BL860c i4
+3223787      GDA-3223787               BL860c i6
+3223789      GDA-3223789               BL870c i2
+3223791      GDA-3223791               BL870c i4
+3223793      GDA-3223793               BL870c i6
+3223795      GDA-3223795               BL890c i2
+3223797      GDA-3223797               c2-standard-4
+3223799      GDA-3223799               c4.2xlarge
+3223801      GDA-3223801               c4.large
+3223803      GDA-3223803               c4.xlarge
+3223804      GDA-3223804               c5.2xlarge
+3223806      GDA-3223806               c5.4xlarge
+3223808      GDA-3223808               c5.large
+3223810      GDA-3223810               c5.xlarge
+3223812      GDA-3223812               c5a.2xlarge
+3223813      GDA-3223813               c5a.large
+3223815      GDA-3223815               c5a.xlarge
+3223817      GDA-3223817               c5n.large
+3223819      GDA-3223819               c6a.2xlarge
+3223821      GDA-3223821               c6a.4xlarge
+3223823      GDA-3223823               c6a.xlarge
+3223825      GDA-3223825               c6g.2xlarge
+3223827      GDA-3223827               c6i.2xlarge
+3223828      GDA-3223828               c6i.4xlarge
+3223830      GDA-3223830               c6i.xlarge
+3223832      GDA-3223832               c6id.8xlarge
+3223834      GDA-3223834               c7g.large
+3223839      GDA-3223839               CISCO ISE-3395
+3223843      GDA-3223843               CISCO MCS7845
+3223878      GDA-3223878               custom-16-65536-ext
+3223879      GDA-3223879               custom-2-12288
+3223881      GDA-3223881               custom-2-24576-ext
+3223883      GDA-3223883               custom-22-94208-ext
+3223886      GDA-3223886               custom-30-129024-ext
+3223888      GDA-3223888               custom-4-16384-ext
+3223890      GDA-3223890               custom-4-32768-ext
+3223892      GDA-3223892               custom-4-8192-ext
+3223907      GDA-3223907               Dell Inc.
+3223911      GDA-3223911               Dell Inc. PowerEdge MX750c
+3223914      GDA-3223914               Dell Inc. PowerEdge R610
+3223922      GDA-3223922               Dell Inc. VxRail E560F
+3223924      GDA-3223924               Dell Inc. VxRail P570F
+3223926      GDA-3223926               e2-custom-14-79872
+3223928      GDA-3223928               e2-custom-16-32768
+3223929      GDA-3223929               e2-custom-22-126976
+3223931      GDA-3223931               e2-custom-24-65536
+3223933      GDA-3223933               e2-medium
+3223935      GDA-3223935               e2-small
+3223938      GDA-3223938               e2-standard-16
+3223940      GDA-3223940               e2-standard-2
+3223941      GDA-3223941               e2-standard-4
+3223943      GDA-3223943               e2-standard-8
+3223947      GDA-3223947               Exadata X4-2
+3223949      GDA-3223949               Exadata X4-2 Upgrade
+3223952      GDA-3223952               Exadata X5-2
+3223954      GDA-3223954               Exadata X5-2 Upgrade
+3223956      GDA-3223956               Exadata X6-2
+3223958      GDA-3223958               Exadata X7-2
+3223960      GDA-3223960               Exalogic X3-2
+3223962      GDA-3223962               Exalogic X5-2
+3223964      GDA-3223964               f1-micro
+3223966      GDA-3223966               FIRE X4170 M2
+3223968      GDA-3223968               FIRE X4270 M2
+3223970      GDA-3223970               FIRE X4270 M3
+3223972      GDA-3223972               FIRE X4470 M2
+3223974      GDA-3223974               FUJITSU
+3223976      GDA-3223976               FUJITSU PRIMEQUEST 3800E2
+3223978      GDA-3223978               g1-small
+3223981      GDA-3223981               Generic
+3223989      GDA-3223989               HP
+3223992      GDA-3223992               HP BladeSystem c7000 Enclosure G2
+3223995      GDA-3223995               HP Generico
+3223998      GDA-3223998               HP ProLiant BL460c G7
+3224000      GDA-3224000               HP ProLiant BL460c Gen8
+3224003      GDA-3224003               HP ProLiant BL460c Gen9
+3224021      GDA-3224021               HP ProLiant DL380 Gen9
+3224024      GDA-3224024               HP PROLIANT DL580 G7
+3224041      GDA-3224041               HP_ProLiant BL460c G7
+3224045      GDA-3224045               HP_ProLiant BL620c G7
+3224027      GDA-3224027               HPE
+3224031      GDA-3224031               HPE ProLiant BL460c Gen10
+3224033      GDA-3224033               HPE Synergy 480 Gen10
+3224035      GDA-3224035               HPE Synergy 480 Gen10 Plus
+3224037      GDA-3224037               HPE Synergy 660 Gen10
+3224048      GDA-3224048               HVM domU
+3224050      GDA-3224050               i4g.xlarge
+3224053      GDA-3224053               i4i.large
+3224055      GDA-3224055               ia64 hp Integrity BL860c i2
+3224057      GDA-3224057               ia64 hp Integrity BL870c i2
+3224059      GDA-3224059               ia64 hp Integrity BL870c i4
+3224062      GDA-3224062               ia64 VM
+3224063      GDA-3224063               IBM
+3224069      GDA-3224069               KVM
+3224071      GDA-3224071               m4.10xlarge
+3223740      GDA-3223740               m4.4xlarge
+3223741      GDA-3223741               m4.large
+3223742      GDA-3223742               m5.2xlarge
+3223743      GDA-3223743               m5.4xlarge
+3223744      GDA-3223744               m5.8xlarge
+3223746      GDA-3223746               m5.large
+3223747      GDA-3223747               m5.xlarge
+3223748      GDA-3223748               m5a.xlarge
+3223749      GDA-3223749               m5ad.xlarge
+3223750      GDA-3223750               m5d.large
+3223751      GDA-3223751               m6a.2xlarge
+3223752      GDA-3223752               m6a.4xlarge
+3223753      GDA-3223753               m6a.large
+3223754      GDA-3223754               m6a.xlarge
+3223755      GDA-3223755               m6g.large
+3223757      GDA-3223757               m6i.24xlarge
+3223759      GDA-3223759               m6i.2xlarge
+3223761      GDA-3223761               m6i.4xlarge
+3223763      GDA-3223763               m6i.large
+3223765      GDA-3223765               m6i.xlarge
+3223766      GDA-3223766               m6id.large
+3223768      GDA-3223768               m7a.large
+3223770      GDA-3223770               m7g.large
+3223772      GDA-3223772               m7i-flex.2xlarge
+3223774      GDA-3223774               m7i-flex.large
+3223776      GDA-3223776               m7i-flex.xlarge
+3223778      GDA-3223778               m7i.8xlarge
+3223780      GDA-3223780               m7i.large
+3223782      GDA-3223782               m7i.xlarge
+3223788      GDA-3223788               MX750C
+3223790      GDA-3223790               n1-standard-1
+3223792      GDA-3223792               n1-standard-2
+3223794      GDA-3223794               n1-standard-8
+3223796      GDA-3223796               n2-custom-2-9984
+3223798      GDA-3223798               n2-custom-32-200704
+3223800      GDA-3223800               n2-standard-2
+3223802      GDA-3223802               N4000-36
+3223809      GDA-3223809               Oracle Corporation
+3223811      GDA-3223811               Oracle Corporation ORACLE SERVER E4-2c
+3223814      GDA-3223814               Oracle Corporation ORACLE SERVER X7-2L
+3223816      GDA-3223816               Oracle Corporation sun4v SPARC M5-32
+3223818      GDA-3223818               Oracle Corporation sun4v SPARC M6-32
+3223820      GDA-3223820               Oracle Corporation sun4v SPARC S7-2
+3223822      GDA-3223822               Oracle Corporation sun4v SPARC T3-2
+3223824      GDA-3223824               Oracle Corporation sun4v SPARC T4-4
+3223826      GDA-3223826               Oracle Sparc T8
+3223829      GDA-3223829               PowerEdge 1950
+3223831      GDA-3223831               PowerEdge 2950
+3223833      GDA-3223833               PowerEdge R410
+3223837      GDA-3223837               PowerEdge R710
+3223840      GDA-3223840               PowerEdge R740xd
+3223842      GDA-3223842               PowerEdge R805
+3223844      GDA-3223844               PRIMEQUEST 2800E
+3223846      GDA-3223846               ProLiant BL460c G7
+3223848      GDA-3223848               ProLiant BL460c Gen10
+3223850      GDA-3223850               ProLiant BL460c Gen8
+3223852      GDA-3223852               ProLiant BL460c Gen9
+3223854      GDA-3223854               ProLiant BL465c G7
+3223856      GDA-3223856               ProLiant BL465c Gen8
+3223858      GDA-3223858               ProLiant BL620c G7
+3223860      GDA-3223860               ProLiant BL660c Gen8
+3223862      GDA-3223862               ProLiant BL660c Gen9
+3223864      GDA-3223864               ProLiant BL680c G7
+3223866      GDA-3223866               ProLiant BL685c G6
+3223868      GDA-3223868               ProLiant BL685c G7
+3223870      GDA-3223870               ProLiant DL360 G5
+3223876      GDA-3223876               ProLiant DL380 G7
+3223877      GDA-3223877               ProLiant DL380 Gen10
+3223880      GDA-3223880               ProLiant DL380 Gen10 Plus
+3223884      GDA-3223884               ProLiant DL385 G6
+3223885      GDA-3223885               ProLiant DL980 G7
+3223887      GDA-3223887               QEMU
+3223889      GDA-3223889               r5.2xlarge
+3223891      GDA-3223891               r5.xlarge
+3223893      GDA-3223893               r5a.2xlarge
+3223895      GDA-3223895               r5a.large
+3223896      GDA-3223896               r5a.xlarge
+3223898      GDA-3223898               r5n.large
+3223900      GDA-3223900               r6a.large
+3223902      GDA-3223902               r6g.2xlarge
+3223904      GDA-3223904               r6g.4xlarge
+3223906      GDA-3223906               r6g.xlarge
+3223908      GDA-3223908               r6i.2xlarge
+3223910      GDA-3223910               r6i.4xlarge
+3223912      GDA-3223912               r6i.large
+3223913      GDA-3223913               r7a.xlarge
+3223915      GDA-3223915               rp3440
+3223917      GDA-3223917               rp4440
+3223919      GDA-3223919               rx2660
+3223921      GDA-3223921               rx3600
+3223923      GDA-3223923               rx4640
+3223925      GDA-3223925               rx6600
+3223930      GDA-3223930               SD64A
+3223932      GDA-3223932               SD64B
+3223934      GDA-3223934               Server 5
+3223936      GDA-3223936               Server 7
+3223937      GDA-3223937               Server 8
+3223939      GDA-3223939               shape
+3223942      GDA-3223942               SL3000
+3223946      GDA-3223946               SPARC-Enterprise
+3223950      GDA-3223950               Standard_B1s
+3223951      GDA-3223951               Standard_B2as_v2
+3223953      GDA-3223953               Standard_B2ms
+3223955      GDA-3223955               Standard_B2s
+3223957      GDA-3223957               Standard_B4as_v2
+3223959      GDA-3223959               Standard_B4ms
+3223961      GDA-3223961               Standard_D2s_v3
+3223963      GDA-3223963               Standard_D32as_v4
+3223967      GDA-3223967               Standard_D4_v2
+3223965      GDA-3223965               Standard_D4s_v3
+3223969      GDA-3223969               Standard_D8s_v3
+3223971      GDA-3223971               Standard_DS3_v2
+3223973      GDA-3223973               Standard_E2as_v4
+3223975      GDA-3223975               Standard_F16s_v2
+3223977      GDA-3223977               Standard_F2s_v2
+3223979      GDA-3223979               Standard_F4s
+3223980      GDA-3223980               Standard_F4s_v2
+3223982      GDA-3223982               Standard_F8s_v2
+3223984      GDA-3223984               Sun Fire X4800 M2
+3223986      GDA-3223986               SUN MICROSYSTEMS SUN BLADE X6270 SERVER MODULE
+3223988      GDA-3223988               Sun-Fire-T200
+3223990      GDA-3223990               Sun-Fire-V440
+3223994      GDA-3223994               Sun-Fire-V890
+3224001      GDA-3224001               Superdome2
+3224004      GDA-3224004               Superdome2 16s x86
+3224007      GDA-3224007               System x3650 M3 -[7945AC1]-
+3224009      GDA-3224009               t2.2xlarge
+3224012      GDA-3224012               t2.large
+3224015      GDA-3224015               t2.medium
+3224018      GDA-3224018               t2.micro
+3224020      GDA-3224020               t2.nano
+3224023      GDA-3224023               t2.small
+3224026      GDA-3224026               t2.xlarge
+3224029      GDA-3224029               t3.2xlarge
+3223983      GDA-3223983               t3.large
+3224002      GDA-3224002               t3.medium
+3224005      GDA-3224005               t3.micro
+3224008      GDA-3224008               t3.nano
+3224011      GDA-3224011               t3.small
+3224014      GDA-3224014               t3.xlarge
+3224017      GDA-3224017               t3a.2xlarge
+3224019      GDA-3224019               t3a.large
+3224022      GDA-3224022               t3a.medium
+3224025      GDA-3224025               t3a.micro
+3224028      GDA-3224028               t3a.small
+3224030      GDA-3224030               t3a.xlarge
+3224032      GDA-3224032               t4g.medium
+3224034      GDA-3224034               t4g.small
+3224036      GDA-3224036               T5240
+3224040      GDA-3224040               UCSC-C240-M4L
+3224042      GDA-3224042               UCSC-C240-M4SX
+3224044      GDA-3224044               Ultra-4
+3224046      GDA-3224046               Versão 19
+3224049      GDA-3224049               Versão 6
+3224052      GDA-3224052               Versão 8
+3224054      GDA-3224054               Versão 9
+3224058      GDA-3224058               Virtual Partition
+3224061      GDA-3224061               VM.Standard.E3.Flex
+3224064      GDA-3224064               VM.Standard.E4.Flex
+3224065      GDA-3224065               VM.Standard.E5.Flex
+3230997      GDA-3230997               VMWare
+3224070      GDA-3224070               vmx-07
+3224072      GDA-3224072               vmx-08
+3224073      GDA-3224073               vmx-09
+3224074      GDA-3224074               vmx-10
+3224075      GDA-3224075               vmx-11
+3224076      GDA-3224076               vmx-13
+3224077      GDA-3224077               vmx-14
+3224078      GDA-3224078               vmx-15
+3224079      GDA-3224079               vmx-17
+3224080      GDA-3224080               vmx-19
+3224081      GDA-3224081               VWare Virtual Platform
+3224082      GDA-3224082               X4-2L
+3224083      GDA-3224083               X8000
+3224084      GDA-3224084               Xen
+
+Total: 0 objetos
+
+================================================================
+ARQUIVO: ./playbooks/setup_webhook.yml
+================================================================
+# =============================================================================
+# Playbook: Configurar Webhook GCP → AAP (OPCIONAL)
+# =============================================================================
+# Este playbook configura o Cloud Pub/Sub do GCP para notificar o AAP
+# quando VMs são criadas/deletadas/modificadas.
+#
+# Pré-requisitos:
+#   - Cloud Pub/Sub API habilitada no projeto GCP
+#   - Cloud Functions API habilitada (para o trigger)
+#   - Service account com permissões de Pub/Sub Admin
+#
+# Uso:
+#   ansible-playbook playbooks/setup_webhook.yml \
+#     -e "gcp_project=claro-infracloud" \
+#     -e "aap_webhook_url=https://aap.claro.com.br/api/v2/job_templates/XXX/launch/"
+# =============================================================================
+---
+- name: Configurar Webhook GCP → AAP (Sincronização em Tempo Real)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # GCP
+    gcp_project: "{{ gcp_project | default('') }}"
+    pubsub_topic_name: "cmdb-sync-events"
+    pubsub_subscription_name: "cmdb-sync-aap-trigger"
+    
+    # AAP (Ansible Automation Platform)
+    aap_host: "https://aap.claro.com.br"
+    aap_webhook_url: "{{ aap_webhook_url | default('') }}"
+    aap_token: ""  # PREENCHER COM SEU TOKEN
+    
+    # Cloud Function
+    function_name: "cmdb-sync-trigger"
+    function_region: "southamerica-east1"
+    
+    # Service Account
+    service_account_file: "{{ playbook_dir }}/../files/service_account.json"
+
+  tasks:
+    # =========================================================================
+    # VALIDAÇÕES
+    # =========================================================================
+    - name: Validar parâmetros obrigatórios
+      ansible.builtin.assert:
+        that:
+          - gcp_project | length > 0
+          - aap_token | length > 0
+        fail_msg: |
+          Parâmetros obrigatórios não definidos!
+          - gcp_project: {{ gcp_project }}
+          - aap_token: (deve ser preenchido no playbook)
+
+    - name: Aviso sobre token AAP
+      ansible.builtin.debug:
+        msg: |
+          ⚠️  ATENÇÃO: O token AAP deve ser preenchido manualmente no playbook!
+          Edite a variável 'aap_token' em playbooks/setup_webhook.yml
+      when: aap_token | length == 0
+
+    - name: Falhar se token não configurado
+      ansible.builtin.fail:
+        msg: "Token AAP não configurado. Edite a variável 'aap_token' no playbook."
+      when: aap_token | length == 0
+
+    # =========================================================================
+    # AUTENTICAÇÃO GCP
+    # =========================================================================
+    - name: Ativar service account GCP
+      ansible.builtin.command: >
+        gcloud auth activate-service-account 
+        --key-file={{ service_account_file }} 
+        --project={{ gcp_project }}
+      changed_when: false
+
+    - name: Configurar projeto
+      ansible.builtin.command: >
+        gcloud config set project {{ gcp_project }}
+      changed_when: false
+
+    # =========================================================================
+    # HABILITAR APIs NECESSÁRIAS
+    # =========================================================================
+    - name: Habilitar Cloud Pub/Sub API
+      ansible.builtin.command: >
+        gcloud services enable pubsub.googleapis.com --project={{ gcp_project }}
+      changed_when: false
+      failed_when: false
+
+    - name: Habilitar Cloud Functions API
+      ansible.builtin.command: >
+        gcloud services enable cloudfunctions.googleapis.com --project={{ gcp_project }}
+      changed_when: false
+      failed_when: false
+
+    - name: Habilitar Cloud Build API
+      ansible.builtin.command: >
+        gcloud services enable cloudbuild.googleapis.com --project={{ gcp_project }}
+      changed_when: false
+      failed_when: false
+
+    # =========================================================================
+    # CRIAR TÓPICO PUB/SUB
+    # =========================================================================
+    - name: Verificar se tópico existe
+      ansible.builtin.command: >
+        gcloud pubsub topics describe {{ pubsub_topic_name }} 
+        --project={{ gcp_project }}
+      register: topic_check
+      changed_when: false
+      failed_when: false
+
+    - name: Criar tópico Pub/Sub
+      ansible.builtin.command: >
+        gcloud pubsub topics create {{ pubsub_topic_name }}
+        --project={{ gcp_project }}
+      when: topic_check.rc != 0
+      register: topic_create
+
+    - name: Tópico criado/existente
+      ansible.builtin.debug:
+        msg: "Tópico: projects/{{ gcp_project }}/topics/{{ pubsub_topic_name }}"
+
+    # =========================================================================
+    # CONFIGURAR LOG SINK (Compute Engine → Pub/Sub)
+    # =========================================================================
+    - name: Verificar se log sink existe
+      ansible.builtin.command: >
+        gcloud logging sinks describe cmdb-compute-events 
+        --project={{ gcp_project }}
+      register: sink_check
+      changed_when: false
+      failed_when: false
+
+    - name: Criar Log Sink para eventos de Compute Engine
+      ansible.builtin.command: >
+        gcloud logging sinks create cmdb-compute-events
+        pubsub.googleapis.com/projects/{{ gcp_project }}/topics/{{ pubsub_topic_name }}
+        --log-filter='resource.type="gce_instance" AND 
+                      (protoPayload.methodName="v1.compute.instances.insert" OR
+                       protoPayload.methodName="v1.compute.instances.delete" OR
+                       protoPayload.methodName="v1.compute.instances.start" OR
+                       protoPayload.methodName="v1.compute.instances.stop")'
+        --project={{ gcp_project }}
+      when: sink_check.rc != 0
+      register: sink_create
+
+    - name: Obter service account do sink
+      ansible.builtin.command: >
+        gcloud logging sinks describe cmdb-compute-events 
+        --project={{ gcp_project }}
+        --format="value(writerIdentity)"
+      register: sink_identity
+      changed_when: false
+
+    - name: Conceder permissão de publicação ao sink
+      ansible.builtin.command: >
+        gcloud pubsub topics add-iam-policy-binding {{ pubsub_topic_name }}
+        --member="{{ sink_identity.stdout }}"
+        --role="roles/pubsub.publisher"
+        --project={{ gcp_project }}
+      when: sink_identity.stdout | length > 0
+      failed_when: false
+
+    # =========================================================================
+    # CRIAR CLOUD FUNCTION (Pub/Sub → AAP)
+    # =========================================================================
+    - name: Criar diretório temporário para Cloud Function
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: cmdb_webhook_
+      register: temp_dir
+
+    - name: Criar código da Cloud Function (main.py)
+      ansible.builtin.copy:
+        dest: "{{ temp_dir.path }}/main.py"
+        content: |
+          """
+          Cloud Function: Trigger AAP job quando eventos de VM ocorrem no GCP.
+          """
+          import base64
+          import json
+          import os
+          import requests
+          
+          AAP_HOST = os.environ.get('AAP_HOST', '{{ aap_host }}')
+          AAP_TOKEN = os.environ.get('AAP_TOKEN', '')
+          AAP_JOB_TEMPLATE_ID = os.environ.get('AAP_JOB_TEMPLATE_ID', '')
+          
+          def trigger_cmdb_sync(event, context):
+              """
+              Triggered by Pub/Sub message from Cloud Logging.
+              """
+              # Decodificar mensagem
+              if 'data' in event:
+                  message_data = base64.b64decode(event['data']).decode('utf-8')
+                  log_entry = json.loads(message_data)
+              else:
+                  print("Evento sem dados")
+                  return
+              
+              # Extrair informações do evento
+              payload = log_entry.get('protoPayload', {})
+              method_name = payload.get('methodName', '')
+              resource_name = payload.get('resourceName', '')
+              
+              # Determinar ação
+              if 'insert' in method_name:
+                  action = 'create'
+              elif 'delete' in method_name:
+                  action = 'delete'
+              elif 'start' in method_name:
+                  action = 'start'
+              elif 'stop' in method_name:
+                  action = 'stop'
+              else:
+                  action = 'unknown'
+              
+              # Extrair nome da instância e zona
+              # resourceName: projects/PROJECT/zones/ZONE/instances/INSTANCE
+              parts = resource_name.split('/')
+              instance_name = parts[-1] if len(parts) > 0 else ''
+              zone = parts[3] if len(parts) > 4 else ''
+              project = parts[1] if len(parts) > 2 else ''
+              
+              print(f"Evento detectado: {action} - {instance_name} ({zone})")
+              
+              # Não processar eventos desconhecidos
+              if action == 'unknown':
+                  return
+              
+              # Trigger AAP job
+              if not AAP_TOKEN or not AAP_JOB_TEMPLATE_ID:
+                  print("AAP não configurado")
+                  return
+              
+              url = f"{AAP_HOST}/api/v2/job_templates/{AAP_JOB_TEMPLATE_ID}/launch/"
+              headers = {
+                  'Authorization': f'Bearer {AAP_TOKEN}',
+                  'Content-Type': 'application/json'
+              }
+              
+              extra_vars = {
+                  'instance_name': instance_name,
+                  'zone': zone,
+                  'project': project,
+                  'action': action,
+                  'sync_mode': 'update' if action in ['start', 'stop'] else 'full'
+              }
+              
+              try:
+                  response = requests.post(
+                      url,
+                      headers=headers,
+                      json={'extra_vars': json.dumps(extra_vars)},
+                      verify=False,
+                      timeout=30
+                  )
+                  print(f"AAP response: {response.status_code}")
+                  return response.json()
+              except Exception as e:
+                  print(f"Erro ao chamar AAP: {e}")
+                  return None
+
+    - name: Criar requirements.txt
+      ansible.builtin.copy:
+        dest: "{{ temp_dir.path }}/requirements.txt"
+        content: |
+          requests>=2.28.0
+
+    - name: Deploy Cloud Function
+      ansible.builtin.command: >
+        gcloud functions deploy {{ function_name }}
+        --runtime=python311
+        --trigger-topic={{ pubsub_topic_name }}
+        --entry-point=trigger_cmdb_sync
+        --region={{ function_region }}
+        --set-env-vars="AAP_HOST={{ aap_host }},AAP_TOKEN={{ aap_token }},AAP_JOB_TEMPLATE_ID={{ aap_job_template_id | default('') }}"
+        --source={{ temp_dir.path }}
+        --project={{ gcp_project }}
+        --memory=256MB
+        --timeout=60s
+      register: function_deploy
+      when: aap_token | length > 0
+
+    - name: Limpar diretório temporário
+      ansible.builtin.file:
+        path: "{{ temp_dir.path }}"
+        state: absent
+
+    # =========================================================================
+    # RESUMO
+    # =========================================================================
+    - name: Resumo da configuração
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "              WEBHOOK GCP → AAP CONFIGURADO"
+          - "════════════════════════════════════════════════════════════════"
+          - "Projeto GCP: {{ gcp_project }}"
+          - "Tópico Pub/Sub: {{ pubsub_topic_name }}"
+          - "Cloud Function: {{ function_name }}"
+          - "Região: {{ function_region }}"
+          - "────────────────────────────────────────────────────────────────"
+          - "Eventos monitorados:"
+          - "  - compute.instances.insert (criar VM)"
+          - "  - compute.instances.delete (deletar VM)"
+          - "  - compute.instances.start (iniciar VM)"
+          - "  - compute.instances.stop (parar VM)"
+          - "────────────────────────────────────────────────────────────────"
+          - "Fluxo:"
+          - "  1. Evento no Compute Engine"
+          - "  2. Cloud Logging captura"
+          - "  3. Log Sink envia para Pub/Sub"
+          - "  4. Cloud Function é trigada"
+          - "  5. Job no AAP é lançado"
+          - "  6. CMDB é atualizado"
+          - "════════════════════════════════════════════════════════════════"
+
+================================================================
+ARQUIVO: ./playbooks/sync_gcp_cmdb.yml
+================================================================
+# =============================================================================
+# Playbook: Sincronização GCP → Jira Assets (CMDB)
+# =============================================================================
+# Uso:
+#   ansible-playbook playbooks/sync_gcp_cmdb.yml \
+#     -e "gcp_projects=projeto1,projeto2" \
+#     -e "sync_mode=full"
+#
+# Variáveis de ambiente necessárias:
+#   - JIRA_USER: Email do usuário Jira
+#   - JIRA_PASSWORD: API Token do Jira
+# =============================================================================
+---
+- name: Sincronização GCP → Jira Assets CMDB
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  vars:
+    service_account_file: "{{ playbook_dir }}/../roles/integration_assets/files/service_account.json"
+    quota_project: "claro-infracloud"
+
+  pre_tasks:
+    - name: Incluir variáveis do role
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../roles/integration_assets/vars/main.yml"
+
+    - name: Verificar credenciais Jira
+      ansible.builtin.assert:
+        that:
+          - jira_user is defined
+          - jira_password is defined
+          - jira_user | length > 0
+          - jira_password | length > 0
+        fail_msg: "Defina JIRA_USER e JIRA_PASSWORD"
+
+    - name: Verificar se projetos foram informados
+      ansible.builtin.assert:
+        that:
+          - gcp_projects is defined
+          - gcp_projects | length > 0
+        fail_msg: "Nenhum projeto GCP informado! Use -e gcp_projects=proj1,proj2"
+
+    - name: Converter string para lista (se necessário)
+      ansible.builtin.set_fact:
+        gcp_projects_list: "{{ gcp_projects.split(',') | map('trim') | list }}"
+      when: gcp_projects is string
+
+    - name: Manter lista original (se já for lista)
+      ansible.builtin.set_fact:
+        gcp_projects_list: "{{ gcp_projects }}"
+      when: gcp_projects is not string
+
+    - name: Definir modo de sincronização
+      ansible.builtin.set_fact:
+        _sync_mode: "{{ sync_mode | default('full') }}"
+        _enable_deactivation: "{{ enable_deactivation | default(false) }}"
+
+    - name: Verificar service account GCP
+      ansible.builtin.stat:
+        path: "{{ service_account_file }}"
+      register: sa_file
+
+    - name: Falhar se service account não existe
+      ansible.builtin.fail:
+        msg: "Service account não encontrado: {{ service_account_file }}"
+      when: not sa_file.stat.exists
+
+    - name: Ativar service account GCP
+      ansible.builtin.command: >
+        gcloud auth activate-service-account
+        --key-file={{ service_account_file }}
+        --project={{ quota_project }}
+      changed_when: false
+
+    - name: Exibir configuração
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "          SINCRONIZAÇÃO GCP → JIRA ASSETS (CMDB)"
+          - "════════════════════════════════════════════════════════════════"
+          - "Modo: {{ _sync_mode }}"
+          - "Desativação automática: {{ _enable_deactivation }}"
+          - "Projetos: {{ gcp_projects_list | length }}"
+          - "{{ gcp_projects_list | join(', ') }}"
+          - "════════════════════════════════════════════════════════════════"
+
+  roles:
+    - role: integration_assets
+      vars:
+        gcp_projects: "{{ gcp_projects_list }}"
+        sync_mode: "{{ _sync_mode }}"
+        enable_deactivation: "{{ _enable_deactivation }}"
+
+  post_tasks:
+    - name: Resumo final
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "                    SINCRONIZAÇÃO FINALIZADA"
+          - "════════════════════════════════════════════════════════════════"
+          - "Timestamp: {{ ansible_date_time.iso8601 }}"
+          - "════════════════════════════════════════════════════════════════"
+
+================================================================
+ARQUIVO: ./playbooks/sync_single_instance.yml
+================================================================
+# =============================================================================
+# Playbook: Sincronizar uma única instância GCP
+# =============================================================================
+# Uso:
+#   ansible-playbook playbooks/sync_single_instance.yml \
+#     -e "instance_name=vm-bastion-linux" \
+#     -e "zone=southamerica-east1-c" \
+#     -e "project=claro-infracloud"
+#
+#   # Dry run (apenas mostra dados):
+#   ansible-playbook playbooks/sync_single_instance.yml \
+#     -e "instance_name=vm-bastion-linux" \
+#     -e "zone=southamerica-east1-c" \
+#     -e "project=claro-infracloud" \
+#     -e "dry_run=true"
+# =============================================================================
+---
+- name: Sincronizar única instância GCP → CMDB
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    service_account_file: "{{ playbook_dir }}/../roles/integration_assets/files/service_account.json"
+    dry_run: false
+
+  pre_tasks:
+    - name: Incluir variáveis do role
+      ansible.builtin.include_vars:
+        file: "{{ item }}"
+      loop:
+        - "{{ playbook_dir }}/../roles/integration_assets/vars/main.yml"
+        - "{{ playbook_dir }}/../roles/integration_assets/vars/mapeamento_gcp_cmdb.yml"
+
+  tasks:
+    - name: Validar parâmetros
+      ansible.builtin.assert:
+        that:
+          - instance_name is defined
+          - zone is defined
+          - project is defined
+        fail_msg: "Parâmetros obrigatórios: instance_name, zone, project"
+
+    - name: Exibir configuração
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "          SYNC SINGLE: GCP → JIRA ASSETS"
+          - "════════════════════════════════════════════════════════════════"
+          - "Instância: {{ instance_name }}"
+          - "Zone: {{ zone }}"
+          - "Project: {{ project }}"
+          - "Dry Run: {{ dry_run }}"
+          - "════════════════════════════════════════════════════════════════"
+
+    - name: Ativar service account GCP
+      ansible.builtin.command: >
+        gcloud auth activate-service-account
+        --key-file={{ service_account_file }}
+        --project={{ project }}
+      changed_when: false
+      environment:
+        http_proxy: "http://10.29.177.37:8080"
+        https_proxy: "http://10.29.177.37:8080"
+        no_proxy: ""
+
+    - name: Obter detalhes da instância
+      ansible.builtin.command: >
+        gcloud compute instances describe {{ instance_name }}
+        --zone={{ zone }}
+        --project={{ project }}
+        --format=json
+      register: instance_result
+      changed_when: false
+      environment:
+        http_proxy: "http://10.29.177.37:8080"
+        https_proxy: "http://10.29.177.37:8080"
+        no_proxy: ""
+
+    - name: Parsear dados da instância
+      ansible.builtin.set_fact:
+        instance_data: "{{ instance_result.stdout | from_json }}"
+
+    - name: Extrair machine type
+      ansible.builtin.set_fact:
+        machine_type_name: "{{ instance_data.machineType | basename }}"
+
+    - name: Obter detalhes do machine type
+      ansible.builtin.command: >
+        gcloud compute machine-types describe {{ machine_type_name }}
+        --zone={{ zone }}
+        --project={{ project }}
+        --format=json
+      register: machine_type_result
+      changed_when: false
+      environment:
+        http_proxy: "http://10.29.177.37:8080"
+        https_proxy: "http://10.29.177.37:8080"
+        no_proxy: ""
+
+    - name: Parsear dados do machine type
+      ansible.builtin.set_fact:
+        machine_type_data: "{{ machine_type_result.stdout | from_json }}"
+
+    - name: Transformar para formato cloud_data
+      ansible.builtin.set_fact:
+        cloud_data: "{{ instance_data | transform_gcp_instance(machine_type_data) }}"
+
+    - name: Exibir cloud_data transformado
+      ansible.builtin.debug:
+        msg: "{{ cloud_data | to_nice_yaml }}"
+
+    - name: Parar se dry_run
+      ansible.builtin.meta: end_play
+      when: dry_run | bool
+
+    # =========================================================================
+    # EXECUÇÃO REAL
+    # =========================================================================
+    - name: Inicializar logs
+      ansible.builtin.set_fact:
+        sync_log_create: []
+        sync_log_skip: []
+        sync_log_errors: []
+
+    - name: Buscar servidor no CMDB
+      ansible.builtin.uri:
+        url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1"
+        method: POST
+        headers:
+          Accept: "application/json"
+          Content-Type: "application/json"
+        body_format: json
+        force_basic_auth: yes
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        body:
+          qlQuery: 'objectTypeId = {{ object_type_id_servidor }} AND Name = "{{ cloud_data.name_cloud }}"'
+        status_code: [200]
+      register: cmdb_result
+      environment: "{{ proxy_env | default({}) }}"
+
+    - name: Verificar se servidor existe no CMDB
+      ansible.builtin.set_fact:
+        servidor_existe: "{{ cmdb_result.json.total | int > 0 }}"
+
+    - name: Resumo da ação
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "Servidor: {{ cloud_data.name_cloud }}"
+          - "Status: {{ 'EXISTE (SKIP)' if servidor_existe else 'NÃO EXISTE (CREATE)' }}"
+          - "════════════════════════════════════════════════════════════════"
+
+    - name: Criar servidor no CMDB
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/integration_assets/tasks/create.yml"
+      vars:
+        current_cloud_data: "{{ cloud_data }}"
+      when: not servidor_existe
+
+    - name: Registrar servidor existente (skip)
+      ansible.builtin.set_fact:
+        sync_log_skip: "{{ sync_log_skip + [cloud_data.name_cloud] }}"
+      when: servidor_existe
+
+    - name: Resultado final
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "                    SYNC SINGLE CONCLUÍDO"
+          - "════════════════════════════════════════════════════════════════"
+          - "Criados: {{ sync_log_create | length }}"
+          - "Existentes (skip): {{ sync_log_skip | length }}"
+          - "Erros: {{ sync_log_errors | length }}"
+          - "════════════════════════════════════════════════════════════════"
+
+================================================================
+ARQUIVO: ./playbooks/test_transform.yml
+================================================================
+# =============================================================================
+# Playbook: Testar transformação GCP → cloud_data (dry-run)
+# =============================================================================
+# Uso:
+#   ansible-playbook playbooks/test_transform.yml \
+#     -e "@files/sample_gcp_instance.json" \
+#     -e "@files/sample_machine_type.json"
+#
+# Ou com dados inline:
+#   ansible-playbook playbooks/test_transform.yml -e "instance_json='{}'"
+# =============================================================================
+---
+- name: Testar transformação GCP → CMDB (dry-run)
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # Dados de exemplo da VM (do problem statement)
+    sample_instance:
+      canIpForward: false
+      cpuPlatform: "Intel Broadwell"
+      creationTimestamp: "2025-06-18T11:25:12.495-07:00"
+      deletionProtection: false
+      disks:
+        - architecture: "X86_64"
+          autoDelete: true
+          boot: true
+          deviceName: "vm-bastion-linux"
+          diskSizeGb: "10"
+          guestOsFeatures:
+            - type: "UEFI_COMPATIBLE"
+          index: 0
+          licenses:
+            - "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/licenses/debian-12-bookworm"
+          mode: "READ_WRITE"
+          type: "PERSISTENT"
+      id: "4281307396103387753"
+      labels:
+        goog-ops-agent-policy: "v2-x86-template-1-4-0"
+      machineType: "https://www.googleapis.com/compute/v1/projects/claro-infracloud/zones/southamerica-east1-c/machineTypes/e2-medium"
+      name: "vm-bastion-linux"
+      networkInterfaces:
+        - accessConfigs:
+            - kind: "compute#accessConfig"
+              name: "External NAT"
+              natIP: "34.39.133.95"
+              networkTier: "PREMIUM"
+              type: "ONE_TO_ONE_NAT"
+          networkIP: "10.80.2.11"
+          stackType: "IPV4_ONLY"
+      selfLink: "https://www.googleapis.com/compute/v1/projects/claro-infracloud/zones/southamerica-east1-c/instances/vm-bastion-linux"
+      status: "RUNNING"
+      tags:
+        items:
+          - "bastion-linux"
+          - "jumpserver-infracloud"
+      zone: "https://www.googleapis.com/compute/v1/projects/claro-infracloud/zones/southamerica-east1-c"
+
+    sample_machine_type:
+      creationTimestamp: "1969-12-31T16:00:00.000-08:00"
+      description: "Efficient Instance, 2 vCPU (1/2 shared physical core) and 4 GB RAM"
+      guestCpus: 2
+      id: "334004"
+      isSharedCpu: true
+      kind: "compute#machineType"
+      maximumPersistentDisks: 128
+      maximumPersistentDisksSizeGb: "263168"
+      memoryMb: 4096
+      name: "e2-medium"
+      zone: "southamerica-east1-c"
+
+  tasks:
+    - name: "════════════════════════════════════════════════════════════════"
+      ansible.builtin.debug:
+        msg: "TESTE DE TRANSFORMAÇÃO GCP → CMDB"
+
+    - name: Exibir dados de entrada (instância GCP)
+      ansible.builtin.debug:
+        msg: "{{ sample_instance | to_nice_yaml }}"
+        verbosity: 1
+
+    - name: Transformar instância GCP para cloud_data
+      ansible.builtin.set_fact:
+        cloud_data: "{{ sample_instance | transform_gcp_instance(sample_machine_type) }}"
+
+    - name: Exibir cloud_data transformado
+      ansible.builtin.debug:
+        msg: |
+          ════════════════════════════════════════════════════════════════
+          RESULTADO DA TRANSFORMAÇÃO (cloud_data)
+          ════════════════════════════════════════════════════════════════
+          {{ cloud_data | to_nice_yaml }}
+
+    - name: Incluir variáveis de mapeamento
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../roles/integration_assets/vars/mapeamento_gcp_cmdb.yml"
+
+    - name: Gerar payload para Jira Assets
+      ansible.builtin.set_fact:
+        jira_payload: "{{ cloud_data | update_asset(object_attribute_map) }}"
+
+    - name: Exibir payload final para Jira Assets
+      ansible.builtin.debug:
+        msg: |
+          ════════════════════════════════════════════════════════════════
+          PAYLOAD PARA JIRA ASSETS API
+          ════════════════════════════════════════════════════════════════
+          {{ jira_payload | to_nice_json }}
+
+    - name: Validar payload
+      ansible.builtin.assert:
+        that:
+          - jira_payload.objectTypeId == 121
+          - jira_payload.attributes | length > 0
+        success_msg: "✅ Payload válido com {{ jira_payload.attributes | length }} atributos"
+        fail_msg: "❌ Payload inválido"
+
+    - name: Resumo dos atributos mapeados
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "                    RESUMO DO MAPEAMENTO"
+          - "════════════════════════════════════════════════════════════════"
+          - "Name: {{ cloud_data.name_cloud }}"
+          - "FQDN: {{ cloud_data.fqdn_cloud }}"
+          - "Sistema Operacional: {{ cloud_data.sistema_operacional_cloud }}"
+          - "Memória RAM: {{ cloud_data.memoria_ram_cloud }} MB"
+          - "CPU Count: {{ cloud_data.cpu_count_cloud }}"
+          - "Disco: {{ cloud_data.capacidade_disco_cloud }} GB"
+          - "Status: {{ cloud_data.status_cloud }}"
+          - "Tipo Servidor: {{ cloud_data.tipo_servidor_cloud }}"
+          - "Datacenter: {{ cloud_data.datacenter_cloud }}"
+          - "IPs: {{ cloud_data.interface_rede_cloud | map(attribute='ip') | list | join(', ') }}"
+          - "════════════════════════════════════════════════════════════════"
+
+================================================================
+ARQUIVO: ./playbooks/test_vm_real.yml
+================================================================
+# =============================================================================
+# Playbook: Teste Completo com VM Real (Passo a Passo)
+# =============================================================================
+# USO SIMPLES:
+#   ansible-playbook playbooks/test_vm_real.yml \
+#     -e "vm_name=vm-bastion-linux" \
+#     -e "vm_zone=southamerica-east1-c" \
+#     -e "vm_project=claro-infracloud"
+#
+# Com execução real (criar no CMDB):
+#   ansible-playbook playbooks/test_vm_real.yml \
+#     -e "vm_name=sua-vm" \
+#     -e "vm_zone=sua-zona" \
+#     -e "vm_project=seu-projeto" \
+#     -e "executar=true"
+# =============================================================================
+---
+- name: "TESTE: Sincronizar VM Real do GCP → CMDB"
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # Dados da VM (obrigatórios)
+    vm_name: "{{ vm_name | default('') }}"
+    vm_zone: "{{ vm_zone | default('') }}"
+    vm_project: "{{ vm_project | default('') }}"
+
+    # Executar de verdade? (default: não, apenas mostrar)
+    executar: "{{ executar | default(false) | bool }}"
+
+    # Credenciais
+    jira_user: "{{ lookup('env', 'JIRA_USER') }}"
+    jira_password: "{{ lookup('env', 'JIRA_PASSWORD') }}"
+    workspace: "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+    jira_assets_base_url: "https://api.atlassian.com/jsm/insight/workspace/{{ workspace }}/v1"
+
+    # Service account
+    service_account_file: "{{ playbook_dir }}/../files/service_account.json"
+
+    # Proxy (ajuste conforme necessário)
+    proxy_env:
+      http_proxy: "http://10.54.24.184:3128"
+      https_proxy: "http://10.54.24.184:3128"
+      no_proxy: ""
+
+  tasks:
+    # =========================================================================
+    # VALIDAÇÕES INICIAIS
+    # =========================================================================
+    - name: "╔══════════════════════════════════════════════════════════════╗"
+      ansible.builtin.debug:
+        msg: "║          TESTE DE SINCRONIZAÇÃO GCP → CMDB                  ║"
+
+    - name: "╚══════════════════════════════════════════════════════════════╝"
+      ansible.builtin.debug:
+        msg: ""
+
+    - name: Validar parâmetros obrigatórios
+      ansible.builtin.assert:
+        that:
+          - vm_name | length > 0
+          - vm_zone | length > 0
+          - vm_project | length > 0
+        fail_msg: |
+
+          ❌ ERRO: Parâmetros obrigatórios não informados!
+
+          Uso correto:
+            ansible-playbook playbooks/test_vm_real.yml \
+              -e "vm_name=sua-vm" \
+              -e "vm_zone=sua-zona" \
+              -e "vm_project=seu-projeto"
+
+    - name: Validar credenciais Jira
+      ansible.builtin.assert:
+        that:
+          - jira_user | length > 0
+          - jira_password | length > 0
+        fail_msg: |
+
+          ❌ ERRO: Credenciais Jira não configuradas!
+
+          Execute:
+            export JIRA_USER='seu-email@empresa.com'
+            export JIRA_PASSWORD='seu-api-token'
+
+    - name: "✓ Parâmetros validados"
+      ansible.builtin.debug:
+        msg:
+          - "VM: {{ vm_name }}"
+          - "Zona: {{ vm_zone }}"
+          - "Projeto: {{ vm_project }}"
+          - "Modo: {{ 'EXECUÇÃO REAL' if executar else 'APENAS VISUALIZAÇÃO (dry-run)' }}"
+
+    # =========================================================================
+    # PASSO 1: AUTENTICAR NO GCP
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 1: Autenticando no GCP..."
+
+    - name: Verificar service account
+      ansible.builtin.stat:
+        path: "{{ service_account_file }}"
+      register: sa_file
+
+    - name: Ativar service account (se existir)
+      ansible.builtin.command: >
+        gcloud auth activate-service-account
+        --key-file={{ service_account_file }}
+        --project={{ vm_project }}
+      changed_when: false
+      when: sa_file.stat.exists
+
+    - name: "✓ Autenticação GCP OK"
+      ansible.builtin.debug:
+        msg: "{{ 'Usando service account' if sa_file.stat.exists else 'Usando credenciais padrão do gcloud' }}"
+
+    # =========================================================================
+    # PASSO 2: BUSCAR DADOS DA VM NO GCP
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 2: Buscando dados da VM no GCP..."
+
+    - name: Obter detalhes da instância
+      ansible.builtin.command: >
+        gcloud compute instances describe {{ vm_name }}
+        --zone={{ vm_zone }}
+        --project={{ vm_project }}
+        --format=json
+      register: instance_result
+      changed_when: false
+
+    - name: Parsear dados da instância
+      ansible.builtin.set_fact:
+        instance_data: "{{ instance_result.stdout | from_json }}"
+
+    - name: "✓ VM encontrada no GCP"
+      ansible.builtin.debug:
+        msg:
+          - "Nome: {{ instance_data.name }}"
+          - "Status: {{ instance_data.status }}"
+          - "Machine Type: {{ instance_data.machineType | basename }}"
+          - "IP Privado: {{ instance_data.networkInterfaces[0].networkIP | default('N/A') }}"
+          - "IP Público: {{ instance_data.networkInterfaces[0].accessConfigs[0].natIP | default('N/A') }}"
+
+    - name: Extrair machine type
+      ansible.builtin.set_fact:
+        machine_type_name: "{{ instance_data.machineType | basename }}"
+
+    - name: Obter detalhes do machine type
+      ansible.builtin.command: >
+        gcloud compute machine-types describe {{ machine_type_name }}
+        --zone={{ vm_zone }}
+        --project={{ vm_project }}
+        --format=json
+      register: machine_type_result
+      changed_when: false
+
+    - name: Parsear dados do machine type
+      ansible.builtin.set_fact:
+        machine_type_data: "{{ machine_type_result.stdout | from_json }}"
+
+    - name: "✓ Machine type obtido"
+      ansible.builtin.debug:
+        msg:
+          - "Tipo: {{ machine_type_data.name }}"
+          - "vCPUs: {{ machine_type_data.guestCpus }}"
+          - "Memória: {{ machine_type_data.memoryMb }} MB"
+
+    # =========================================================================
+    # PASSO 3: TRANSFORMAR DADOS PARA FORMATO CMDB
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 3: Transformando dados GCP → cloud_data..."
+
+    - name: Transformar para cloud_data
+      ansible.builtin.set_fact:
+        cloud_data: "{{ instance_data | transform_gcp_instance(machine_type_data) }}"
+
+    - name: "✓ Dados transformados (cloud_data)"
+      ansible.builtin.debug:
+        msg: |
+
+          ┌─────────────────────────────────────────────────────────────────┐
+          │ DADOS TRANSFORMADOS (cloud_data)                                │
+          ├─────────────────────────────────────────────────────────────────┤
+          │ Name: {{ cloud_data.name_cloud }}
+          │ FQDN: {{ cloud_data.fqdn_cloud }}
+          │ Sistema Operacional: {{ cloud_data.sistema_operacional_cloud }}
+          │ Memória RAM: {{ cloud_data.memoria_ram_cloud }} MB
+          │ CPU Count: {{ cloud_data.cpu_count_cloud }}
+          │ Disco: {{ cloud_data.capacidade_disco_cloud }} GB
+          │ Status: {{ cloud_data.status_cloud }}
+          │ Tipo Servidor: {{ cloud_data.tipo_servidor_cloud }}
+          │ Datacenter: {{ cloud_data.datacenter_cloud }}
+          │ IPs: {{ cloud_data.interface_rede_cloud | map(attribute='ip') | join(', ') }}
+          └─────────────────────────────────────────────────────────────────┘
+
+    # =========================================================================
+    # PASSO 4: VERIFICAR SE EXISTE NO CMDB
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 4: Verificando se existe no CMDB..."
+
+    - name: Buscar servidor no CMDB
+      ansible.builtin.uri:
+        url: "{{ jira_assets_base_url }}/object/aql?startAt=0&maxResults=1"
+        method: POST
+        headers:
+          Accept: "application/json"
+          Content-Type: "application/json"
+        body_format: json
+        force_basic_auth: yes
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        body:
+          qlQuery: 'objectTypeId = 121 AND Name = "{{ cloud_data.name_cloud }}"'
+        status_code: [200]
+      register: cmdb_check
+      environment: "{{ proxy_env }}"
+
+    - name: Analisar resultado
+      ansible.builtin.set_fact:
+        servidor_existe: "{{ cmdb_check.json.total | int > 0 }}"
+        servidor_id: >-
+          {{ (cmdb_check.json.values | dict2items | first).value[0].id
+             if cmdb_check.json.total | int > 0
+             else '' }}
+
+    - name: "Resultado da verificação CMDB"
+      ansible.builtin.debug:
+        msg: |
+
+          {% if servidor_existe %}
+          ⚠️  SERVIDOR JÁ EXISTE NO CMDB
+          ID: {{ servidor_id }}
+          Ação: ATUALIZAR (se executar=true)
+          {% else %}
+          ✓ SERVIDOR NÃO EXISTE NO CMDB
+          Ação: CRIAR (se executar=true)
+          {% endif %}
+
+    # =========================================================================
+    # PASSO 5: GERAR PAYLOAD PARA JIRA ASSETS
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 5: Gerando payload para Jira Assets API..."
+
+    - name: Incluir mapeamento
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../roles/integration_assets/vars/mapeamento_gcp_cmdb.yml"
+
+    - name: Gerar payload
+      ansible.builtin.set_fact:
+        jira_payload: "{{ cloud_data | update_asset(object_attribute_map) }}"
+
+    - name: "✓ Payload gerado"
+      ansible.builtin.debug:
+        msg: |
+
+          ┌─────────────────────────────────────────────────────────────────┐
+          │ PAYLOAD PARA JIRA ASSETS API                                    │
+          ├─────────────────────────────────────────────────────────────────┤
+          {{ jira_payload | to_nice_json }}
+          └─────────────────────────────────────────────────────────────────┘
+
+    - name: Resumo dos atributos
+      ansible.builtin.debug:
+        msg: "Total de atributos no payload: {{ jira_payload.attributes | length }}"
+
+    # =========================================================================
+    # PASSO 6: EXECUTAR (se solicitado)
+    # =========================================================================
+    - name: "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      ansible.builtin.debug:
+        msg: "PASSO 6: {{ 'Executando sincronização...' if executar else 'Modo dry-run - não executando' }}"
+
+    - name: Criar servidor no CMDB
+      ansible.builtin.uri:
+        url: "{{ jira_assets_base_url }}/object/create"
+        method: POST
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+          Accept: "application/json"
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        body: "{{ jira_payload | to_json }}"
+        body_format: json
+        return_content: yes
+        status_code: [200, 201]
+      register: resultado_create
+      environment: "{{ proxy_env }}"
+      when:
+        - executar | bool
+        - not servidor_existe
+
+    - name: Atualizar servidor no CMDB
+      ansible.builtin.uri:
+        url: "{{ jira_assets_base_url }}/object/{{ servidor_id }}"
+        method: PUT
+        force_basic_auth: yes
+        headers:
+          Content-Type: "application/json"
+          Accept: "application/json"
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        body: "{{ jira_payload | to_json }}"
+        body_format: json
+        return_content: yes
+        status_code: [200]
+      register: resultado_update
+      environment: "{{ proxy_env }}"
+      when:
+        - executar | bool
+        - servidor_existe
+
+    # =========================================================================
+    # RESULTADO FINAL
+    # =========================================================================
+    - name: "╔══════════════════════════════════════════════════════════════╗"
+      ansible.builtin.debug:
+        msg: "║                    RESULTADO FINAL                          ║"
+
+    - name: "╚══════════════════════════════════════════════════════════════╝"
+      ansible.builtin.debug:
+        msg: ""
+
+    - name: Resultado - Criação
+      ansible.builtin.debug:
+        msg: |
+
+          ✅ SERVIDOR CRIADO COM SUCESSO!
+
+          ID: {{ resultado_create.json.id }}
+          Key: {{ resultado_create.json.objectKey }}
+
+          Link: https://clarobrasil.atlassian.net/jira/servicedesk/assets/object/{{ resultado_create.json.id }}
+      when:
+        - executar | bool
+        - not servidor_existe
+        - resultado_create is defined
+
+    - name: Resultado - Atualização
+      ansible.builtin.debug:
+        msg: |
+
+          ✅ SERVIDOR ATUALIZADO COM SUCESSO!
+
+          ID: {{ servidor_id }}
+
+          Link: https://clarobrasil.atlassian.net/jira/servicedesk/assets/object/{{ servidor_id }}
+      when:
+        - executar | bool
+        - servidor_existe
+        - resultado_update is defined
+
+    - name: Resultado - Dry Run
+      ansible.builtin.debug:
+        msg: |
+
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+          🔍 MODO DRY-RUN - Nenhuma alteração foi feita no CMDB
+
+          Para executar de verdade, rode novamente com -e "executar=true":
+
+            ansible-playbook playbooks/test_vm_real.yml \
+              -e "vm_name={{ vm_name }}" \
+              -e "vm_zone={{ vm_zone }}" \
+              -e "vm_project={{ vm_project }}" \
+              -e "executar=true"
+
+          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      when: not executar | bool
+
+================================================================
+ARQUIVO: ./projeto_completo_gcp.txt
+================================================================
+
+================================================================
+ARQUIVO: ./roles/integration_assets/filter_plugins/gcp_cmdb_filters.py
+================================================================
+# =============================================================================
+# Filter Plugin: Transformação GCP → Jira Assets
+# =============================================================================
+# Funções para transformar dados do Google Cloud Platform para o formato
+# esperado pelo Jira Assets (CMDB)
+# =============================================================================
+
+from __future__ import absolute_import, division, print_function
+__metaclass__ = type
+
+import json
+import re
+from typing import Dict, List, Any, Optional
+
+
+def search_attribute(value: str, object_attribute_map: List[Dict]) -> List[Dict]:
+    """
+    Busca um atributo no mapeamento pela chave_cloud.
+
+    Args:
+        value: Valor da chave_cloud a buscar
+        object_attribute_map: Lista de mapeamentos de atributos
+
+    Returns:
+        Lista de atributos encontrados
+    """
+    return list(filter(lambda x: x.get("chave_cloud") == value, object_attribute_map))
+
+
+def extract_os_from_license(license_url: str) -> str:
+    """
+    Extrai o sistema operacional a partir da URL de licença do GCP.
+
+    Args:
+        license_url: URL da licença (ex: .../debian-cloud/global/licenses/debian-12-bookworm)
+
+    Returns:
+        Nome do SO normalizado (Linux, Windows, Unix)
+    """
+    if not license_url:
+        return "Linux"  # Default
+
+    license_lower = license_url.lower()
+
+    # Windows
+    if "windows" in license_lower:
+        return "Windows"
+
+    # Linux variants
+    linux_patterns = [
+        "debian", "ubuntu", "centos", "rhel", "red-hat", "suse",
+        "rocky", "alma", "fedora", "cos", "container-optimized"
+    ]
+    for pattern in linux_patterns:
+        if pattern in license_lower:
+            return "Linux"
+
+    # Unix
+    if "freebsd" in license_lower:
+        return "Unix"
+
+    return "Linux"  # Default
+
+
+def extract_zone_from_url(zone_url: str) -> str:
+    """
+    Extrai o nome da zona a partir da URL completa.
+
+    Args:
+        zone_url: URL completa (ex: .../zones/southamerica-east1-c)
+
+    Returns:
+        Nome da zona (ex: southamerica-east1-c)
+    """
+    if not zone_url:
+        return ""
+
+    # Extrai a última parte da URL
+    parts = zone_url.rstrip('/').split('/')
+    return parts[-1] if parts else ""
+
+
+def extract_project_from_url(url: str) -> str:
+    """
+    Extrai o project ID de uma URL do GCP.
+
+    Args:
+        url: URL do GCP (ex: .../projects/claro-infracloud/...)
+
+    Returns:
+        Project ID
+    """
+    if not url:
+        return ""
+
+    match = re.search(r'/projects/([^/]+)/', url)
+    return match.group(1) if match else ""
+
+
+def extract_machine_type_name(machine_type_url: str) -> str:
+    """
+    Extrai o nome do machine type da URL.
+
+    Args:
+        machine_type_url: URL completa do machine type
+
+    Returns:
+        Nome do machine type (ex: e2-medium)
+    """
+    if not machine_type_url:
+        return ""
+
+    parts = machine_type_url.rstrip('/').split('/')
+    return parts[-1] if parts else ""
+
+
+def map_gcp_status_to_cmdb(gcp_status: str) -> str:
+    """
+    Mapeia o status do GCP para o status do CMDB.
+
+    Args:
+        gcp_status: Status da instância GCP
+
+    Returns:
+        Status correspondente no CMDB
+    """
+    status_map = {
+        "RUNNING": "Em uso",
+        "STAGING": "Reservado",
+        "PROVISIONING": "Reservado",
+        "PENDING": "Em preparação",
+        "TERMINATED": "Desativado",
+        "STOPPED": "Desativado",
+        "SUSPENDED": "Desativado",
+        "STOPPING": "Desativado",
+        "SUSPENDING": "Desativado",
+    }
+    return status_map.get(gcp_status, "Em uso")
+
+
+def determine_ambiente(project_name: str) -> Optional[str]:
+    """
+    Determina o Ambiente com base no nome do projeto GCP.
+    - Se contém "nonprod" ou "non-prod" → None (não preencher)
+    - Qualquer outro caso → "Produção"
+    """
+    if not project_name:
+        return "Produção"
+    
+    project_lower = project_name.lower()
+    
+    if "nonprod" in project_lower or "non-prod" in project_lower:
+        return None
+    
+    return "Produção"
+
+
+def transform_gcp_instance(instance_data: Dict, machine_type_data: Dict = None) -> Dict:
+    """
+    Transforma os dados de uma instância GCP para o formato cloud_data.
+
+    Args:
+        instance_data: JSON da instância GCP (gcloud compute instances describe)
+        machine_type_data: JSON do machine type (gcloud compute machine-types describe)
+
+    Returns:
+        Dicionário no formato cloud_data para o playbook
+    """
+    # Extrair informações básicas
+    name = instance_data.get("name", "")
+    zone = extract_zone_from_url(instance_data.get("zone", ""))
+    project = extract_project_from_url(instance_data.get("selfLink", ""))
+
+    # Extrair informações de disco
+    disks = instance_data.get("disks", [])
+    boot_disk = disks[0] if disks else {}
+    licenses = boot_disk.get("licenses", [])
+    license_url = licenses[0] if licenses else ""
+    disk_size = boot_disk.get("diskSizeGb", "0")
+
+    # Extrair informações de rede
+    network_interfaces = instance_data.get("networkInterfaces", [])
+    ips = []
+    for nic in network_interfaces:
+        private_ip = nic.get("networkIP")
+        if private_ip:
+            ips.append({"tipo": "privado", "ip": private_ip})
+
+        access_configs = nic.get("accessConfigs", [])
+        for ac in access_configs:
+            public_ip = ac.get("natIP")
+            if public_ip:
+                ips.append({"tipo": "publico", "ip": public_ip})
+
+    # Extrair informações do machine type
+    memory_mb = 0
+    guest_cpus = 0
+    machine_type_name = extract_machine_type_name(instance_data.get("machineType", ""))
+
+    if machine_type_data:
+        memory_mb = machine_type_data.get("memoryMb", 0)
+        guest_cpus = machine_type_data.get("guestCpus", 0)
+
+    # Extrair labels
+    labels = instance_data.get("labels", {})
+
+    # Extrair cpuPlatform
+    cpu_platform = instance_data.get("cpuPlatform", "")
+    
+    # Determinar Ambiente
+    ambiente = determine_ambiente(project)
+    
+    # Montar cloud_data
+    cloud_data = {
+        # Conta Cloud (nome do projeto GCP)
+        "conta_cloud_cloud": project if project else None,
+        
+        # CPU Platform (para buscar/criar objeto CPU)
+        "cpu_platform_cloud": cpu_platform if cpu_platform else None,
+        
+        # Ambiente
+        "ambiente_cloud": ambiente,
+        
+        # Identificação
+        "name_cloud": name,
+        "fqdn_cloud": f"{name}.{zone}.c.{project}.internal" if name and zone and project else name,
+
+        # Sistema Operacional
+        "sistema_operacional_cloud": extract_os_from_license(license_url),
+
+        # Hardware
+        "memoria_ram_cloud": str(memory_mb) if memory_mb else None,
+        "cpu_count_cloud": str(guest_cpus) if guest_cpus else None,
+        "capacidade_disco_cloud": str(disk_size) if disk_size else None,
+
+        # Rede
+        "interface_rede_cloud": ips,
+
+        # Status
+        "status_cloud": map_gcp_status_to_cmdb(instance_data.get("status", "RUNNING")),
+
+        # Tipo/Modelo
+        "tipo_servidor_cloud": "Cloud Pública",
+        #"modelo_servidor_cloud": "VMware Virtual Platform",
+        "tipo_infraestrutura_cloud": "MAQUINA VIRTUAL",
+
+        # Localização
+        "datacenter_cloud": "Google Cloud",
+        "projeto_gcp": project,
+        "zona_gcp": zone,
+
+        # Discovery
+        "status_discovery_cloud": "Running",
+
+        # Booleanos fixos
+        "sox_cloud": "false",
+        "ipe_cloud": "false",
+
+        # Metadados GCP
+        "gcp_instance_id": instance_data.get("id", ""),
+        "gcp_self_link": instance_data.get("selfLink", ""),
+        "gcp_creation_timestamp": instance_data.get("creationTimestamp", ""),
+        "gcp_labels": labels,
+
+        # Labels mapeáveis (se existirem)
+        "sistema_cloud": labels.get("system") or labels.get("app"),
+        "unidade_negocio_cloud": labels.get("business_unit") or labels.get("bu"),
+    }
+
+    # Remover valores None
+    cloud_data = {k: v for k, v in cloud_data.items() if v is not None}
+
+    return cloud_data
+
+
+def update_asset(cloud_data: Dict, object_attribute_map: List[Dict]) -> Dict:
+    """
+    Transforma cloud_data no formato de payload para criar/atualizar no Jira Assets.
+
+    Args:
+        cloud_data: Dados transformados da cloud
+        object_attribute_map: Mapeamento de atributos
+
+    Returns:
+        Payload para a API do Jira Assets
+    """
+    data = {
+        "attributes": [],
+        "objectTypeId": 121
+    }
+
+    for field, value in cloud_data.items():
+        if value is None or value == "":
+            continue
+
+        # Buscar o atributo no mapeamento
+        obj_attr_list = search_attribute(field, object_attribute_map)
+
+        if not obj_attr_list:
+            continue
+
+        obj_attr = obj_attr_list[0]
+        attr_type = obj_attr.get("tipo", "text")
+        attr_id = str(obj_attr.get("id"))
+
+        attribute_entry = {
+            "objectTypeAttributeId": attr_id,
+            "objectAttributeValues": []
+        }
+
+        # Processar conforme o tipo do atributo
+        if attr_type == "objeto":
+            # Buscar o valor referenciado
+            valores = obj_attr.get("valores", [])
+            matched = next((v for v in valores if v.get("value") == value), None)
+
+            if matched:
+                attribute_entry["objectAttributeValues"] = [
+                    {"value": str(matched.get("referencedType"))}
+                ]
+            else:
+                continue  # Pular se não encontrar valor válido
+
+        elif attr_type == "status":
+            valores = obj_attr.get("valores", [])
+            matched = next((v for v in valores if v.get("value") == value), None)
+
+            if matched:
+                attribute_entry["objectAttributeValues"] = [
+                    {"value": str(matched.get("referencedType"))}
+                ]
+            else:
+                continue
+
+        elif attr_type == "objeto_lista":
+            # Para listas de objetos (ex: Interface de Rede)
+            # value pode ser: ['2877663', '2877664'] ou [{'id': '123'}, ...]
+            if isinstance(value, list) and value:
+                for item in value:
+                    item_str = None
+                    if isinstance(item, str):
+                        item_str = item.strip()
+                    elif isinstance(item, (int, float)):
+                        item_str = str(int(item))
+                    elif isinstance(item, dict):
+                        item_str = str(item.get("id") or item.get("referencedType") or "")
+
+                    if item_str:
+                        attribute_entry["objectAttributeValues"].append(
+                            {"value": item_str}
+                        )
+
+            if not attribute_entry["objectAttributeValues"]:
+                continue
+
+        elif attr_type == "boolean":
+            attribute_entry["objectAttributeValues"] = [
+                {"value": str(value).lower()}
+            ]
+
+        elif attr_type == "integer":
+            attribute_entry["objectAttributeValues"] = [
+                {"value": str(value)}
+            ]
+
+        elif attr_type == "select":
+            # Para campos select, verificar se o valor é uma opção válida
+            opcoes = obj_attr.get("opcoes", [])
+            if opcoes and value not in opcoes:
+                valor_default = obj_attr.get("valor_default")
+                if valor_default:
+                    value = valor_default
+                else:
+                    continue
+
+            attribute_entry["objectAttributeValues"] = [
+                {"value": str(value)}
+            ]
+
+        else:  # text e outros
+            attribute_entry["objectAttributeValues"] = [
+                {"value": str(value)}
+            ]
+
+        # Adicionar apenas se tiver valores
+        if attribute_entry["objectAttributeValues"]:
+            data["attributes"].append(attribute_entry)
+
+    return data
+
+
+def prepare_network_interface_payload(ip: str, tipo: str = "privado") -> Dict:
+    """
+    Prepara o payload para criar uma Interface de Rede no Jira Assets.
+
+    Args:
+        ip: Endereço IP
+        tipo: Tipo do IP (privado/publico)
+
+    Returns:
+        Payload para criar objeto Interface de Rede
+    """
+    # Object Type ID 230 = Interface de Rede
+    return {
+        "objectTypeId": 230,
+        "attributes": [
+            {
+                "objectTypeAttributeId": "XXXX",  # ID do atributo Name
+                "objectAttributeValues": [{"value": ip}]
+            }
+        ]
+    }
+
+
+def prepare_datacenter_payload(name: str) -> Dict:
+    """
+    Prepara o payload para criar um Datacenter no Jira Assets.
+
+    Args:
+        name: Nome do datacenter (ex: GCP-southamerica-east1-c)
+
+    Returns:
+        Payload para criar objeto Datacenter
+    """
+    # Object Type ID 152 = Datacenter
+    return {
+        "objectTypeId": 152,
+        "attributes": [
+            {
+                "objectTypeAttributeId": "XXXX",  # ID do atributo Name
+                "objectAttributeValues": [{"value": name}]
+            }
+        ]
+    }
+
+
+def compare_instances(gcp_instances: List[Dict], cmdb_instances: List[Dict]) -> Dict:
+    """
+    Compara instâncias do GCP com registros do CMDB para determinar ações.
+
+    Args:
+        gcp_instances: Lista de instâncias do GCP
+        cmdb_instances: Lista de servidores do CMDB
+
+    Returns:
+        Dicionário com listas de ações: criar, atualizar, desativar
+    """
+    gcp_names = {inst.get("name") for inst in gcp_instances}
+    cmdb_names = {inst.get("name") for inst in cmdb_instances}
+
+    # Determinar ações
+    to_create = gcp_names - cmdb_names
+    to_update = gcp_names & cmdb_names
+    to_deactivate = cmdb_names - gcp_names
+
+    # Mapear instâncias
+    gcp_by_name = {inst.get("name"): inst for inst in gcp_instances}
+    cmdb_by_name = {inst.get("name"): inst for inst in cmdb_instances}
+
+    return {
+        "criar": [gcp_by_name[name] for name in to_create],
+        "atualizar": [
+            {"gcp": gcp_by_name[name], "cmdb": cmdb_by_name[name]}
+            for name in to_update
+        ],
+        "desativar": [cmdb_by_name[name] for name in to_deactivate],
+        "resumo": {
+            "total_gcp": len(gcp_instances),
+            "total_cmdb": len(cmdb_instances),
+            "a_criar": len(to_create),
+            "a_atualizar": len(to_update),
+            "a_desativar": len(to_deactivate)
+        }
+    }
+
+
+def batch_transform_instances(instances: List[Dict], machine_types: Dict = None) -> List[Dict]:
+    """
+    Transforma uma lista de instâncias GCP para o formato cloud_data.
+
+    Args:
+        instances: Lista de instâncias do GCP
+        machine_types: Dicionário de machine types por nome
+
+    Returns:
+        Lista de cloud_data transformados
+    """
+    results = []
+    machine_types = machine_types or {}
+
+    for instance in instances:
+        mt_name = extract_machine_type_name(instance.get("machineType", ""))
+        mt_data = machine_types.get(mt_name, {})
+
+        cloud_data = transform_gcp_instance(instance, mt_data)
+        results.append(cloud_data)
+
+    return results
+
+
+class FilterModule(object):
+    """Ansible filter plugin para transformação GCP → Jira Assets."""
+
+    def filters(self):
+        return {
+            'update_asset': update_asset,
+            'transform_gcp_instance': transform_gcp_instance,
+            'batch_transform_instances': batch_transform_instances,
+            'extract_os_from_license': extract_os_from_license,
+            'extract_zone_from_url': extract_zone_from_url,
+            'extract_project_from_url': extract_project_from_url,
+            'extract_machine_type_name': extract_machine_type_name,
+            'map_gcp_status_to_cmdb': map_gcp_status_to_cmdb,
+            'compare_instances': compare_instances,
+            'search_attribute': search_attribute,
+        }
+================================================================
+ARQUIVO: ./roles/integration_assets/tasks/create.yml
+================================================================
+# =============================================================================
+# Task: Criar objeto no Jira Assets
+# =============================================================================
+---
+- name: Inicializar lista de IDs de interface de rede
+  ansible.builtin.set_fact:
+    interface_rede_ids: []
+
+- name: Verificar/Criar Interface de Rede (se necessário)
+  ansible.builtin.include_tasks: manage_network_interface.yml
+  loop: "{{ current_cloud_data.interface_rede_cloud | default([]) }}"
+  loop_control:
+    loop_var: ip_info
+  when:
+  - current_cloud_data.interface_rede_cloud is defined
+  - current_cloud_data.interface_rede_cloud | length > 0
+
+# ---------------------------------------------------------------------------
+# CPU: Buscar ou Criar objeto CPU no Jira Assets (ANTES do payload)
+# ---------------------------------------------------------------------------
+- name: Inicializar cpu_object_id
+  ansible.builtin.set_fact:
+    cpu_object_id: null
+
+- name: Buscar CPU existente pelo nome
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/aql"
+    method: POST
+    force_basic_auth: yes
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      qlQuery: "objectTypeId = {{ objectTypeId_cpu }} AND Name = \"{{ current_cloud_data.cpu_platform_cloud }}\""
+      resultPerPage: 1
+    body_format: json
+    return_content: yes
+    status_code: [ 200 ]
+  register: cpu_search_result
+  environment: "{{ proxy_env | default({}) }}"
+  when:
+  - current_cloud_data.cpu_platform_cloud is defined
+  - current_cloud_data.cpu_platform_cloud | length > 0
+
+- name: Verificar se CPU foi encontrada
+  ansible.builtin.set_fact:
+    cpu_found: "{{ (cpu_search_result.json['values'] | default([])) | length > 0 }}"
+  when: cpu_search_result is defined and cpu_search_result.json is defined
+
+- name: Extrair ID da CPU (se existir)
+  ansible.builtin.set_fact:
+    cpu_object_id: "{{ cpu_search_result.json['values'][0]['id'] }}"
+  when:
+  - cpu_found is defined and cpu_found
+
+- name: Criar novo objeto CPU
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/create"
+    method: POST
+    force_basic_auth: yes
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      objectTypeId: "{{ objectTypeId_cpu }}"
+      attributes:
+      - objectTypeAttributeId: "{{ cpu_name_attribute_id }}"
+        objectAttributeValues:
+        - value: "{{ current_cloud_data.cpu_platform_cloud }}"
+    body_format: json
+    return_content: yes
+    status_code: [ 200, 201 ]
+  register: cpu_create_result
+  environment: "{{ proxy_env | default({}) }}"
+  when:
+  - cpu_found is defined
+  - not cpu_found
+  - current_cloud_data.cpu_platform_cloud is defined
+  - current_cloud_data.cpu_platform_cloud | length > 0
+
+- name: Definir ID da CPU criada
+  ansible.builtin.set_fact:
+    cpu_object_id: "{{ cpu_create_result.json.id }}"
+  when:
+  - cpu_found is defined
+  - not cpu_found
+  - cpu_create_result is defined
+  - cpu_create_result.json is defined
+
+- name: Debug - CPU
+  ansible.builtin.debug:
+    msg: "CPU '{{ current_cloud_data.cpu_platform_cloud }}': {{ 'Existente' if cpu_found else 'Criada' }} (ID: {{ cpu_object_id }})"
+  when:
+  - cpu_found is defined
+  - current_cloud_data.cpu_platform_cloud is defined
+  - current_cloud_data.cpu_platform_cloud | length > 0
+
+# ---------------------------------------------------------------------------
+# Payload
+# ---------------------------------------------------------------------------
+- name: Gerar payload base para criação
+  ansible.builtin.set_fact:
+    data_create: "{{ current_cloud_data | update_asset(object_attribute_map) }}"
+
+- name: Adicionar Interface de Rede ao payload
+  ansible.builtin.set_fact:
+    data_create: >-
+      {{ data_create | combine({
+           'attributes': data_create.attributes + [{
+             'objectTypeAttributeId': '3528',
+             'objectAttributeValues': interface_rede_ids | map('regex_replace', '^(.*)$', '{"value": "\1"}') | map('from_json') | list
+           }]
+         })
+      }}
+  when: interface_rede_ids | length > 0
+
+- name: Adicionar CPU ao payload
+  ansible.builtin.set_fact:
+    data_create: >-
+      {{ data_create | combine({
+           'attributes': data_create.attributes + [{
+             'objectTypeAttributeId': '3527',
+             'objectAttributeValues': [{'value': cpu_object_id | string}]
+           }]
+         })
+      }}
+  when: cpu_object_id is defined and cpu_object_id
+
+- name: DEBUG - Payload final de criação
+  ansible.builtin.debug:
+    msg: "{{ data_create | to_json }}"
+
+- name: Criar objeto no Assets
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/create"
+    method: POST
+    force_basic_auth: yes
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body: "{{ data_create | to_json }}"
+    body_format: json
+    return_content: yes
+    status_code: [ 200, 201 ]
+  register: resultado_create
+  environment: "{{ proxy_env | default({}) }}"
+
+- name: Debug - Resultado da criação
+  ansible.builtin.debug:
+    msg: "Servidor '{{ current_cloud_data.name_cloud }}' criado com sucesso. ID: {{ resultado_create.json.id | default('N/A') }}"
+
+- name: Registrar criação no log
+  ansible.builtin.set_fact:
+    sync_log_create: "{{ sync_log_create | default([]) + [current_cloud_data.name_cloud] }}"
+
+================================================================
+ARQUIVO: ./roles/integration_assets/tasks/deactivate.yml
+================================================================
+# =============================================================================
+# Task: Desativar servidor no CMDB (VM não existe mais no GCP)
+# =============================================================================
+---
+- name: Preparar payload para desativação
+  ansible.builtin.set_fact:
+    data_deactivate:
+      objectTypeId: "{{ object_type_id_servidor }}"
+      attributes:
+      - objectTypeAttributeId: "2957" # Status
+        objectAttributeValues:
+        - value: "19" # Desativado
+
+- name: Desativar servidor no Assets
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/{{ server_to_deactivate.id }}"
+    method: PUT
+    force_basic_auth: yes
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body: "{{ data_deactivate | to_json }}"
+    body_format: json
+    return_content: yes
+    status_code: [ 200 ]
+  register: resultado_deactivate
+  environment: "{{ proxy_env | default({}) }}"
+
+- name: Debug - Resultado da desativação
+  ansible.builtin.debug:
+    msg: "Servidor '{{ server_to_deactivate.label }}' desativado no CMDB. ID: {{ server_to_deactivate.id }}"
+
+- name: Registrar desativação no log
+  ansible.builtin.set_fact:
+    sync_log_deactivate: "{{ sync_log_deactivate | default([]) + [server_to_deactivate.label] }}"
+
+================================================================
+ARQUIVO: ./roles/integration_assets/tasks/main.yml
+================================================================
+# =============================================================================
+# Task Principal: Sincronização GCP → CMDB
+# =============================================================================
+---
+- name: Incluir variáveis de mapeamento GCP
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/mapeamento_gcp_cmdb.yml"
+
+- name: Inicializar logs de sincronização
+  ansible.builtin.set_fact:
+    sync_log_create: []
+    sync_log_skip: []
+    sync_log_deactivate: []
+    sync_log_errors: []
+
+# ---------------------------------------------------------------------------
+# FASE 1: Coletar instâncias do GCP
+# ---------------------------------------------------------------------------
+- name: "FASE 1 - Coletar instâncias do GCP"
+  ansible.builtin.debug:
+    msg: "════════════════════════════════════════════════════════════════"
+
+- name: Normalizar lista de projetos GCP
+  ansible.builtin.set_fact:
+    _gcp_projects_to_sync: "{{ gcp_projects if gcp_projects is iterable and gcp_projects is not string else [gcp_projects] }}"
+
+- name: Listar instâncias de cada projeto GCP
+  ansible.builtin.command: >
+    gcloud compute instances list --project={{ project_item }} --format=json
+  register: gcp_list_result
+  changed_when: false
+  loop: "{{ _gcp_projects_to_sync }}"
+  loop_control:
+    loop_var: project_item
+    label: "{{ project_item }}"
+
+- name: Consolidar instâncias (basic listing) de todos os projetos
+  ansible.builtin.set_fact:
+    gcp_instances_basic: >-
+      {{ gcp_list_result.results
+         | selectattr('stdout', 'defined')
+         | map(attribute='stdout')
+         | map('from_json')
+         | flatten(levels=1)
+         | list }}
+
+- name: Debug - Total de instâncias encontradas
+  ansible.builtin.debug:
+    msg: "Encontradas {{ gcp_instances_basic | length }} instâncias em {{ _gcp_projects_to_sync | length }} projeto(s)"
+
+- name: Obter detalhes de cada instância (describe)
+  ansible.builtin.command: >
+    gcloud compute instances describe {{ item.name }}
+    --zone={{ item.zone | basename }}
+    --project={{ item.selfLink | extract_project_from_url }}
+    --format=json
+  loop: "{{ gcp_instances_basic }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: gcp_details_result
+  changed_when: false
+  when: gcp_instances_basic | length > 0
+
+- name: Consolidar detalhes das instâncias
+  ansible.builtin.set_fact:
+    gcp_instances: >-
+      {{ gcp_details_result.results | default([])
+         | selectattr('stdout', 'defined')
+         | map(attribute='stdout')
+         | map('from_json')
+         | list }}
+
+- name: Coletar machine types únicos
+  ansible.builtin.set_fact:
+    unique_machine_types: >-
+      {{ gcp_instances_basic
+         | map(attribute='machineType')
+         | map('basename')
+         | unique
+         | list }}
+
+- name: Obter detalhes dos machine types
+  ansible.builtin.command: >
+    gcloud compute machine-types describe {{ item }}
+    --zone={{ (gcp_instances_basic | first).zone | basename }}
+    --project={{ (gcp_instances_basic | first).selfLink | extract_project_from_url }}
+    --format=json
+  loop: "{{ unique_machine_types }}"
+  register: machine_types_result
+  changed_when: false
+  failed_when: false
+  when: unique_machine_types | length > 0 and gcp_instances_basic | length > 0
+
+- name: Montar dicionário de machine types
+  ansible.builtin.set_fact:
+    machine_types_dict: >-
+      {{ dict(
+           machine_types_result.results
+           | selectattr('stdout', 'defined')
+           | map(attribute='stdout')
+           | map('from_json')
+           | map(attribute='name')
+           | zip(
+               machine_types_result.results
+               | selectattr('stdout', 'defined')
+               | map(attribute='stdout')
+               | map('from_json')
+             )
+         ) }}
+  when: machine_types_result is defined and machine_types_result.results is defined
+
+- name: Transformar instâncias GCP para formato cloud_data
+  ansible.builtin.set_fact:
+    cloud_data_list: "{{ gcp_instances | batch_transform_instances(machine_types_dict | default({})) }}"
+
+- name: Debug - Instâncias transformadas
+  ansible.builtin.debug:
+    msg: "{{ cloud_data_list | length }} instâncias transformadas"
+
+# ---------------------------------------------------------------------------
+# FASE 2: Coletar dados do CMDB
+# ---------------------------------------------------------------------------
+- name: "FASE 2 - Coletar servidores GCP do CMDB"
+  ansible.builtin.debug:
+    msg: "════════════════════════════════════════════════════════════════"
+
+- name: Buscar servidores GCP existentes no CMDB
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
+    method: POST
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    force_basic_auth: yes
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      qlQuery: 'objectTypeId = {{ object_type_id_servidor }} AND Datacenter = "Google Cloud"'
+    status_code: [200]
+  register: cmdb_servers_result
+  environment: "{{ proxy_env | default({}) }}"
+
+- name: Parsear servidores do CMDB
+  ansible.builtin.set_fact:
+    cmdb_servers: "{{ cmdb_servers_result.json['values'] | default([]) }}"
+
+- name: Extrair nomes do CMDB
+  ansible.builtin.set_fact:
+    cmdb_server_names: "{{ cmdb_servers | map(attribute='label') | list }}"
+
+- name: Debug - Servidores encontrados no CMDB
+  ansible.builtin.debug:
+    msg: "Encontrados {{ cmdb_servers | length }} servidores Google Cloud no CMDB"
+
+# ---------------------------------------------------------------------------
+# FASE 3: Comparar e determinar ações
+# ---------------------------------------------------------------------------
+- name: "FASE 3 - Comparar GCP vs CMDB"
+  ansible.builtin.debug:
+    msg: "════════════════════════════════════════════════════════════════"
+
+- name: Extrair nomes das instâncias GCP
+  ansible.builtin.set_fact:
+    gcp_instance_names: "{{ cloud_data_list | map(attribute='name_cloud') | list }}"
+
+- name: Determinar servidores a criar
+  ansible.builtin.set_fact:
+    servers_to_create: "{{ cloud_data_list | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+
+- name: Determinar servidores existentes (skip)
+  ansible.builtin.set_fact:
+    servers_to_skip: "{{ cloud_data_list | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+
+- name: Determinar servidores a desativar
+  ansible.builtin.set_fact:
+    servers_to_deactivate: "{{ cmdb_servers | rejectattr('label', 'in', gcp_instance_names) | list }}"
+
+- name: Resumo da comparação
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════════════════════════════"
+      - "                    RESUMO DA SINCRONIZAÇÃO"
+      - "════════════════════════════════════════════════════════════════"
+      - "Total instâncias GCP: {{ cloud_data_list | length }}"
+      - "Total servidores CMDB: {{ cmdb_servers | length }}"
+      - "────────────────────────────────────────────────────────────────"
+      - "A CRIAR: {{ servers_to_create | length }}"
+      - "EXISTENTES (skip): {{ servers_to_skip | length }} (preservando dados manuais)"
+      - "A DESATIVAR: {{ servers_to_deactivate | length if enable_deactivation else '(desativado)' }}"
+      - "════════════════════════════════════════════════════════════════"
+
+# ---------------------------------------------------------------------------
+# FASE 4: Executar sincronização
+# ---------------------------------------------------------------------------
+- name: "FASE 4 - Executar sincronização"
+  ansible.builtin.debug:
+    msg: "════════════════════════════════════════════════════════════════"
+
+- name: Criar novos servidores no CMDB
+  ansible.builtin.include_tasks: create.yml
+  vars:
+    current_cloud_data: "{{ server_item }}"
+  loop: "{{ servers_to_create }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+  when:
+    - servers_to_create | length > 0
+    - sync_mode == 'full' or sync_mode == 'create'
+
+- name: Registrar servidores existentes (skip)
+  ansible.builtin.set_fact:
+    sync_log_skip: "{{ sync_log_skip + [server_item.name_cloud] }}"
+  loop: "{{ servers_to_skip }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+  when: servers_to_skip | length > 0
+
+- name: Desativar servidores removidos do GCP
+  ansible.builtin.include_tasks: deactivate.yml
+  vars:
+    server_to_deactivate: "{{ server_item }}"
+  loop: "{{ servers_to_deactivate }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.label }}"
+  when:
+    - servers_to_deactivate | length > 0
+    - sync_mode == 'full' or sync_mode == 'deactivate'
+    - enable_deactivation | default(false) | bool
+
+# ---------------------------------------------------------------------------
+# FASE 5: Relatório final
+# ---------------------------------------------------------------------------
+- name: "FASE 5 - Relatório final"
+  ansible.builtin.debug:
+    msg:
+      - "════════════════════════════════════════════════════════════════"
+      - "                    SINCRONIZAÇÃO CONCLUÍDA"
+      - "════════════════════════════════════════════════════════════════"
+      - "Servidores criados: {{ sync_log_create | length }}"
+      - "{{ sync_log_create | join(', ') if sync_log_create else '(nenhum)' }}"
+      - "────────────────────────────────────────────────────────────────"
+      - "Servidores existentes (skip): {{ sync_log_skip | length }}"
+      - "{{ sync_log_skip | join(', ') if sync_log_skip else '(nenhum)' }}"
+      - "────────────────────────────────────────────────────────────────"
+      - "Servidores desativados: {{ sync_log_deactivate | length }}"
+      - "{{ sync_log_deactivate | join(', ') if sync_log_deactivate else '(nenhum)' }}"
+      - "════════════════════════════════════════════════════════════════"
+
+================================================================
+ARQUIVO: ./roles/integration_assets/tasks/manage_network_interface.yml
+================================================================
+# =============================================================================
+# Task: Gerenciar Interface de Rede (criar se não existir)
+# =============================================================================
+---
+- name: Buscar Interface de Rede existente
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1"
+    method: POST
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    force_basic_auth: yes
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      qlQuery: 'objectTypeId = 230 AND Name = "{{ ip_info.ip }}"'
+    status_code: [ 200 ]
+  register: nic_search_result
+  environment: "{{ proxy_env | default({}) }}"
+
+- name: Verificar se Interface de Rede existe
+  ansible.builtin.set_fact:
+    nic_exists: "{{ nic_search_result.json.total | int > 0 }}"
+
+- name: Extrair ID da Interface de Rede (se existir)
+  ansible.builtin.set_fact:
+    nic_id: "{{ nic_search_result.json['values'][0]['id'] }}"
+  when: nic_search_result.json.total | int > 0
+
+- name: Definir nic_id vazio se não existir
+  ansible.builtin.set_fact:
+    nic_id: ""
+  when: nic_search_result.json.total | int == 0
+
+- name: Criar Interface de Rede se não existir
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/create"
+    method: POST
+    force_basic_auth: yes
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      objectTypeId: 230
+      attributes:
+      - objectTypeAttributeId: "{{ nic_name_attribute_id | default('1890') }}"
+        objectAttributeValues:
+        - value: "{{ ip_info.ip }}"
+    body_format: json
+    return_content: yes
+    status_code: [ 200, 201 ]
+  register: nic_create_result
+  environment: "{{ proxy_env | default({}) }}"
+  when: not nic_exists
+
+- name: Atualizar ID da Interface de Rede
+  ansible.builtin.set_fact:
+    nic_id: "{{ nic_create_result.json.id }}"
+  when: not nic_exists and nic_create_result is defined
+
+- name: Acumular ID da Interface de Rede
+  ansible.builtin.set_fact:
+    interface_rede_ids: "{{ interface_rede_ids | default([]) + [nic_id] }}"
+
+- name: Debug - Interface de Rede
+  ansible.builtin.debug:
+    msg: "Interface de Rede '{{ ip_info.ip }}': {{ 'Existente' if nic_exists else 'Criada' }} (ID: {{ nic_id }})"
+
+================================================================
+ARQUIVO: ./roles/integration_assets/vars/main.yml
+================================================================
+# =============================================================================
+# VARIAVEIS PRINCIPAIS - CONFIGURACAO GCP
+# =============================================================================
+---
+# Jira Assets
+workspace: "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+jira_url: "https://api.atlassian.com/jsm/insight/workspace/{{ workspace }}/v1"
+jira_user: "{{ lookup('env', 'JIRA_USER') }}"
+jira_password: "{{ lookup('env', 'JIRA_PASSWORD') }}"
+
+# Object Type IDs
+object_type_id_servidor: 121
+object_type_id_interface_rede: 230
+object_type_id_datacenter: 152
+object_type_id_sistema_operacional: 150
+
+# Attribute IDs para criação de objetos auxiliares
+nic_name_attribute_id: "1890"
+dc_name_attribute_id: "1339"
+
+# Modo de sincronizacao: full, create, update, deactivate
+sync_mode: "full"
+enable_deactivation: false
+
+# Proxy Lapa
+proxy_env:
+  http_proxy: "http://10.29.177.37:8080" #Lapa
+  https_proxy: "http://10.29.177.37:8080" #Lapa
+  no_proxy: ""
+
+# Projetos GCP a sincronizar (populado via extra-vars ou pelo playbook)
+gcp_projects: []
+
+================================================================
+ARQUIVO: ./roles/integration_assets/vars/mapeamento_gcp_cmdb.yml
+================================================================
+# =============================================================================
+# MAPEAMENTO COMPLETO: Google Cloud Platform → Jira Assets (CMDB)
+# =============================================================================
+# Campos mapeáveis automaticamente do GCP para o CMDB
+# Campos não listados aqui devem ser preenchidos manualmente pelo time de CMDB
+# =============================================================================
+
+workspace: "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+objectTypeId: 121 # Servidor
+objectSchemaId: 16
+# Object Type CPU (para referência)
+objectTypeId_cpu: 232
+cpu_name_attribute_id: 1899
+
+# =============================================================================
+# MAPEAMENTO DE ATRIBUTOS
+# =============================================================================
+object_attribute_map:
+
+# ---------------------------------------------------------------------------
+# CONTA CLOUD (Nome do Projeto GCP)
+# ---------------------------------------------------------------------------
+- id: 10548
+  name_assets: "Conta Cloud"
+  chave_cloud: "conta_cloud_cloud"
+  tipo: text
+  obrigatorio: false
+
+# ---------------------------------------------------------------------------
+# CPU (Referência ao Object Type 232)
+# ---------------------------------------------------------------------------
+- id: 3527
+  name_assets: "CPU"
+  chave_cloud: "cpu_id_cloud"
+  tipo: objeto_lista
+  referencia_object_type_id: 232
+  obrigatorio: false
+
+# ---------------------------------------------------------------------------
+# AMBIENTE
+# ---------------------------------------------------------------------------
+- id: 1922
+  name_assets: "Ambiente"
+  chave_cloud: "ambiente_cloud"
+  tipo: objeto
+  referencia_object_type_id: 188
+  valores:
+  - value: "Produção"
+    displayValue: "Produção"
+    searchValue: "Produção"
+    referencedType: 166234
+
+# ---------------------------------------------------------------------------
+# IDENTIFICAÇÃO
+# ---------------------------------------------------------------------------
+- id: 1104
+  name_assets: "Name"
+  chave_cloud: "name_cloud"
+  chave_gcp: "name"
+  tipo: text
+  obrigatorio: true
+
+- id: 3343
+  name_assets: "FQDN"
+  chave_cloud: "fqdn_cloud"
+  chave_gcp: null # Composto: {name}.{zone}.c.{project}.internal
+  tipo: text
+  obrigatorio: false
+
+# ---------------------------------------------------------------------------
+# SISTEMA OPERACIONAL
+# ---------------------------------------------------------------------------
+- id: 3358
+  name_assets: "Sistema Operacional"
+  chave_cloud: "sistema_operacional_cloud"
+  chave_gcp: "disks[0].licenses[0]"
+  tipo: objeto
+  referencia_object_type_id: 150
+  valores:
+  - value: Linux
+    displayValue: Linux
+    searchValue: Linux
+    referencedType: 171174
+    gcp_patterns:
+    - "debian"
+    - "ubuntu"
+    - "centos"
+    - "rhel"
+    - "red-hat"
+    - "suse"
+    - "rocky"
+    - "alma"
+    - "fedora"
+    - "cos"
+    - "container-optimized"
+
+  - value: Windows
+    displayValue: Windows
+    searchValue: Windows
+    referencedType: 170882
+    gcp_patterns:
+    - "windows"
+
+  - value: Unix
+    displayValue: Unix
+    searchValue: Unix
+    referencedType: 174028
+    gcp_patterns:
+    - "freebsd"
+
+  - value: ESXi
+    displayValue: ESXi
+    searchValue: ESXi
+    referencedType: 1460417
+    gcp_patterns: []
+
+# ---------------------------------------------------------------------------
+# HARDWARE
+# ---------------------------------------------------------------------------
+- id: 6840
+  name_assets: "Memória RAM"
+  chave_cloud: "memoria_ram_cloud"
+  chave_gcp: "machineType.memoryMb"
+  tipo: integer
+  sufixo: "Mb"
+  obrigatorio: false
+
+- id: 3359
+  name_assets: "CPU Count"
+  chave_cloud: "cpu_count_cloud"
+  chave_gcp: "machineType.guestCpus"
+  tipo: text
+  obrigatorio: false
+
+- id: 3613
+  name_assets: "Capacidade do Disco"
+  chave_cloud: "capacidade_disco_cloud"
+  chave_gcp: "disks[0].diskSizeGb"
+  tipo: text
+  sufixo: "GB"
+  obrigatorio: false
+
+# ---------------------------------------------------------------------------
+# REDE
+# ---------------------------------------------------------------------------
+# - id: 3528
+#   name_assets: "Interface de Rede"
+#   chave_cloud: "interface_rede_cloud"
+#   chave_gcp: "networkInterfaces"
+#   tipo: objeto_lista
+#   referencia_object_type_id: 230  # Interface de Rede
+#   criar_se_nao_existir: true
+#   obrigatorio: false
+
+- id: 3528
+  name_assets: "Interface de Rede"
+  chave_cloud: "interface_rede_cloud"
+  tipo: objeto_lista
+  referencia_object_type_id: 230
+  criar_se_nao_existir: true
+
+# ---------------------------------------------------------------------------
+# STATUS
+# ---------------------------------------------------------------------------
+- id: 2957
+  name_assets: "Status"
+  chave_cloud: "status_cloud"
+  chave_gcp: "status"
+  tipo: status
+  valores:
+  - value: "Em uso"
+    displayValue: "Em uso"
+    searchValue: "Em uso"
+    referencedType: 18
+    gcp_values:
+    - "RUNNING"
+
+  - value: "Reservado"
+    displayValue: "Reservado"
+    searchValue: "Reservado"
+    referencedType: 16
+    gcp_values:
+    - "STAGING"
+    - "PROVISIONING"
+
+  - value: "Desativado"
+    displayValue: "Desativado"
+    searchValue: "Desativado"
+    referencedType: 19
+    gcp_values:
+    - "TERMINATED"
+    - "STOPPED"
+    - "SUSPENDED"
+
+  - value: "Em preparação"
+    displayValue: "Em preparação"
+    searchValue: "Em preparação"
+    referencedType: 17
+    gcp_values:
+    - "PENDING"
+
+# ---------------------------------------------------------------------------
+# TIPO DE SERVIDOR
+# ---------------------------------------------------------------------------
+- id: 1897
+  name_assets: "Tipo de Servidor"
+  chave_cloud: "tipo_servidor_cloud"
+  chave_gcp: null # Valor fixo
+  tipo: select
+  valor_fixo: "Cloud Pública"
+  opcoes:
+  - "Desktop"
+  - "Físico"
+  - "Virtual"
+  - "Rancher"
+  - "Mainframe"
+  - "Cloud Pública"
+  - "Cloud Privada"
+  - "Verificar"
+
+# ---------------------------------------------------------------------------
+# MODELO DO SERVIDOR
+# ---------------------------------------------------------------------------
+#  - id: 3351
+#    name_assets: "Modelo do Servidor"
+#    chave_cloud: "modelo_servidor_cloud"
+#    chave_gcp: "machineType.name"
+#    tipo: select
+#    # Nota: Mapear machine type do GCP para opções existentes ou usar valor genérico
+#    valor_default: "VMware Virtual Platform"
+#    mapeamento_machine_types:
+#      "e2-": "VMware Virtual Platform"
+#      "n1-": "VMware Virtual Platform"
+#      "n2-": "VMware Virtual Platform"
+#      "c2-": "VMware Virtual Platform"
+#      "m1-": "VMware Virtual Platform"
+#      "a2-": "VMware Virtual Platform"
+#      "t2d-": "VMware Virtual Platform"
+#      "c3-": "VMware Virtual Platform"
+- id: 15656 #antigo 3351
+  name_assets: "Modelo do Servidor"
+  chave_cloud: "modelo_servidor_cloud"
+  chave_gcp: null
+  tipo: select
+  valor_fixo: "Indefinido"
+
+# ---------------------------------------------------------------------------
+# TIPO DE INFRAESTRUTURA
+# ---------------------------------------------------------------------------
+- id: 9948
+  name_assets: "Tipo de Infraestrutura"
+  chave_cloud: "tipo_infraestrutura_cloud"
+  chave_gcp: null # Valor fixo
+  tipo: objeto
+  referencia_object_type_id: 119
+  valor_fixo: "MAQUINA VIRTUAL"
+  valores:
+  - value: "MAQUINA VIRTUAL"
+    displayValue: "MAQUINA VIRTUAL"
+    searchValue: "MAQUINA VIRTUAL"
+    referencedType: 257344
+  # ---------------------------------------------------------------------------
+  # DATACENTER / ZONA
+  # ---------------------------------------------------------------------------
+  #  - id: 3296
+  #    name_assets: "Datacenter"
+  #    chave_cloud: "datacenter_cloud"
+  #    chave_gcp: "zone"
+  #    tipo: objeto
+  #    referencia_object_type_id: 152  # Datacenter
+  #    criar_se_nao_existir: true
+  #    prefixo_gcp: "GCP-"
+  #    # Valores existentes que podem ser mapeados:
+  #    valores_existentes:
+  #      - name: "Mackenzie"
+  #        id: 168963
+  # Adicionar mais datacenters existentes conforme necessário
+
+- id: 3296
+  name_assets: "Datacenter"
+  chave_cloud: "datacenter_cloud"
+  chave_gcp: null
+  tipo: objeto
+  referencia_object_type_id: 152
+  criar_se_nao_existir: false #valor_fixo_id: "XXXXX"  # <-- PREENCHA COM O ID DO DATACENTER "Google Cloud"
+  valores:
+  - value: "Google Cloud"
+    displayValue: "Google Cloud"
+    searchValue: "Google Cloud"
+    referencedType: 872213
+# ---------------------------------------------------------------------------
+# STATUS DISCOVERY
+# ---------------------------------------------------------------------------
+- id: 3053
+  name_assets: "Status Discovery"
+  chave_cloud: "status_discovery_cloud"
+  chave_gcp: null # Valor fixo
+  tipo: status
+  valor_fixo: "Running"
+  valores:
+  - value: "Running"
+    displayValue: "Running"
+    searchValue: "Running"
+    referencedType: 24
+      #      - value: "Discovered"
+      #        displayValue: "Discovered"
+      #        searchValue: "Discovered"
+      #        referencedType: 24
+      #
+      #      - value: "Rejected"
+      #        displayValue: "Rejected"
+      #        searchValue: "Rejected"
+      #        referencedType: 26
+
+# ---------------------------------------------------------------------------
+# CONTA CLOUD / PROJETO
+# ---------------------------------------------------------------------------
+# Nota: Este campo pode não existir no schema atual
+# Se existir, adicionar o ID correto
+# - id: XXXX
+#   name_assets: "Conta Cloud"
+#   chave_cloud: "conta_cloud"
+#   chave_gcp: "project"
+#   tipo: text
+
+# ---------------------------------------------------------------------------
+# CAMPOS BOOLEANOS (valores fixos para GCP)
+# ---------------------------------------------------------------------------
+- id: 9647
+  name_assets: "SOX"
+  chave_cloud: "sox_cloud"
+  chave_gcp: null
+  tipo: boolean
+  valor_fixo: false
+
+- id: 9648
+  name_assets: "IPE"
+  chave_cloud: "ipe_cloud"
+  chave_gcp: null
+  tipo: boolean
+  valor_fixo: false
+
+# =============================================================================
+# CAMPOS NÃO MAPEÁVEIS VIA GCP (preenchimento manual pelo CMDB)
+# =============================================================================
+# Os campos abaixo NÃO podem ser preenchidos automaticamente via GCP
+# Devem ser mantidos como estão ou preenchidos manualmente:
+#
+# - Criticidade (id: 3626) - Regra organizacional
+# - Sistema (id: 9219) - Labels do GCP ou manual
+# - Ambiente (id: 1922) - Labels do GCP (environment) ou manual
+# - Owner (id: 3381) - Manual
+# - Grupo Solucionador - Infra (id: 7274) - Organizacional
+# - Grupo Solucionador - Serviço (id: 9222) - Organizacional
+# - Unidade de Negócio (id: 2010) - Labels ou manual
+# - Plataformas de Segurança (id: 9522) - Manual
+# - VCenter (id: 8742) - Não aplicável para GCP
+# - Cluster (id: 3526) - Não existe conceito nativo na GCP
+# - Versão Sistema Operacional (id: 3471) - Requer agente instalado
+# - File Systems - Requer agente instalado
+# - Banco de Dados - Não detectável via API
+# - Disaster Recovery - Não detectável via API
+# - Chamado de Desativação - Processo ITSM
+# - Last User - Não disponível via API
+# =============================================================================
+
+
+# =============================================================================
+# MAPEAMENTO DE LABELS GCP → CAMPOS CMDB (OPCIONAL)
+# =============================================================================
+# Se as VMs GCP tiverem labels específicos, podem ser mapeados:
+labels_mapping:
+  environment:
+    campo_cmdb: "Ambiente"
+    id_cmdb: 1922
+    mapeamento:
+      prod: 166234 # Produção
+      production: 166234
+      prd: 166234
+      hml: 166235 # Homologação (verificar ID correto)
+      homolog: 166235
+      dev: 166236 # Desenvolvimento (verificar ID correto)
+      development: 166236
+
+  business_unit:
+    campo_cmdb: "Unidade de Negócio"
+    id_cmdb: 2010
+    # Adicionar mapeamento conforme necessário
+
+  system:
+    campo_cmdb: "Sistema"
+    id_cmdb: 9219
+    # Adicionar mapeamento conforme necessário
+
+
+    # - id: 15657
+    #   name_assets: "Forncedor"
+    #   chave_cloud: "datacenter_cloud"
+    #   tipo: text
+    #   obrigatorio: true
+
+================================================================
+ARQUIVO: ./roles/integration_assets/vars/modelo_servidor_map_gcp.yml
+================================================================
+# =============================================================================
+# vars/modelo_servidor_map_gcp.yml
+# =============================================================================
+# Mapa machine_type (GCP) -> objectKey (GDA-*) do Object Type 406 no CMDB.
+# Extraido do dump do CMDB (script acha_atributos.py --list-objects).
+#
+# Como usar no playbook GCP:
+#
+#   - name: Transformar hosts GCP
+#     ansible.builtin.set_fact:
+#       all_cloud_data: "{{ hosts | batch_transform_gcp_hosts(modelo_servidor_map, gcp_machine_specs, owner_ids) }}"
+#
+# Quando o time CMDB criar um novo machine_type, basta acrescentar a entrada
+# correspondente em modelo_servidor_map e, quando aplicavel, em
+# gcp_machine_specs.
+# NAO precisa mexer no filter Python nem no mapeamento_gcp_cmdb.yml.
+# =============================================================================
+---
+
+modelo_servidor_map:
+
+  # === C2 (compute optimized) ===
+  c2-standard-4:            GDA-3223797
+
+  # === N1 Custom ===
+  custom-16-65536-ext:      GDA-3223878
+  custom-2-12288:           GDA-3223879
+  custom-2-24576-ext:       GDA-3223881
+  custom-22-94208-ext:      GDA-3223883
+  custom-30-129024-ext:     GDA-3223886
+  custom-4-16384-ext:       GDA-3223888
+  custom-4-32768-ext:       GDA-3223890
+  custom-4-8192-ext:        GDA-3223892
+
+  # === E2 Custom ===
+  e2-custom-14-79872:       GDA-3223926
+  e2-custom-16-32768:       GDA-3223928
+  e2-custom-22-126976:      GDA-3223929
+  e2-custom-24-65536:       GDA-3223931
+
+  # === E2 Shared Core ===
+  e2-medium:                GDA-3223933
+  e2-small:                 GDA-3223935
+
+  # === E2 Standard ===
+  e2-standard-16:           GDA-3223938
+  e2-standard-2:            GDA-3223940
+  e2-standard-4:            GDA-3223941
+  e2-standard-8:            GDA-3223943
+
+  # === N1 Shared Core ===
+  f1-micro:                 GDA-3223964
+  g1-small:                 GDA-3223978
+
+  # === N1 Standard ===
+  n1-standard-1:            GDA-3223790
+  n1-standard-2:            GDA-3223792
+  n1-standard-8:            GDA-3223794
+
+  # === N2 Custom ===
+  n2-custom-2-9984:         GDA-3223796
+  n2-custom-32-200704:      GDA-3223798
+
+  # === N2 Standard ===
+  n2-standard-2:            GDA-3223800
+
+
+# =============================================================================
+# GCP MACHINE SPECS - CPU e Memoria por machine_type
+# =============================================================================
+# Mapa machine_type (GCP) -> quantidade de CPU e memoria RAM.
+#
+# Regra esperada em gcp_cmdb_filters.py -> transform_gcp_host:
+#
+#   machine_type
+#       -> gcp_machine_specs[machine_type]
+#       -> cpu        -> cpu_count_cloud
+#       -> memory_gb  -> memoria_ram_cloud (* 1024 para MB)
+#
+# O sync NAO deve consultar a API GCP para descobrir CPU ou memoria.
+# Estes valores sao mantidos estaticamente, seguindo o mesmo padrao utilizado
+# nos projetos AWS e Azure.
+# =============================================================================
+
+gcp_machine_specs:
+
+  # === C2 (compute optimized) ===
+  c2-standard-4:
+    cpu: 4
+    memory_gb: 16
+
+  # === N1 Custom ===
+  custom-16-65536-ext:
+    cpu: 16
+    memory_gb: 64
+
+  custom-2-12288:
+    cpu: 2
+    memory_gb: 12
+
+  custom-2-24576-ext:
+    cpu: 2
+    memory_gb: 24
+
+  custom-22-94208-ext:
+    cpu: 22
+    memory_gb: 92
+
+  custom-30-129024-ext:
+    cpu: 30
+    memory_gb: 126
+
+  custom-4-16384-ext:
+    cpu: 4
+    memory_gb: 16
+
+  custom-4-32768-ext:
+    cpu: 4
+    memory_gb: 32
+
+  custom-4-8192-ext:
+    cpu: 4
+    memory_gb: 8
+
+  # === E2 Custom ===
+  e2-custom-14-79872:
+    cpu: 14
+    memory_gb: 78
+
+  e2-custom-16-32768:
+    cpu: 16
+    memory_gb: 32
+
+  e2-custom-22-126976:
+    cpu: 22
+    memory_gb: 124
+
+  e2-custom-24-65536:
+    cpu: 24
+    memory_gb: 64
+
+  # === E2 Shared Core ===
+  e2-medium:
+    cpu: 2
+    memory_gb: 4
+
+  e2-small:
+    cpu: 2
+    memory_gb: 2
+
+  # === E2 Standard ===
+  e2-standard-16:
+    cpu: 16
+    memory_gb: 64
+
+  e2-standard-2:
+    cpu: 2
+    memory_gb: 8
+
+  e2-standard-4:
+    cpu: 4
+    memory_gb: 16
+
+  e2-standard-8:
+    cpu: 8
+    memory_gb: 32
+
+  # === N1 Shared Core ===
+  f1-micro:
+    cpu: 1
+    memory_gb: 0.6
+
+  g1-small:
+    cpu: 1
+    memory_gb: 1.7
+
+  # === N1 Standard ===
+  n1-standard-1:
+    cpu: 1
+    memory_gb: 3.75
+
+  n1-standard-2:
+    cpu: 2
+    memory_gb: 7.5
+
+  n1-standard-8:
+    cpu: 8
+    memory_gb: 30
+
+  # === N2 Custom ===
+  n2-custom-2-9984:
+    cpu: 2
+    memory_gb: 9.75
+
+  n2-custom-32-200704:
+    cpu: 32
+    memory_gb: 196
+
+  # === N2 Standard ===
+  n2-standard-2:
+    cpu: 2
+    memory_gb: 8
+
+
+# =============================================================================
+# OWNERS - IDs dos usuarios no Object Type 91 (Users) do Jira Assets
+# =============================================================================
+# Regra aplicada em gcp_cmdb_filters.py -> transform_gcp_host:
+#   - Producao + Linux    -> owner_ids.prod_linux    (USR-149372  Luccas Guarnier)
+#   - Producao + Windows  -> owner_ids.prod_windows  (USR-146496  Carlos Henrique Barboza)
+#   - Nao Producao        -> owner_ids.nao_producao  (vazio, Owner nao enviado)
+#
+# ef_owner NAO participa desta logica em nenhuma hipotese.
+# =============================================================================
+
+owner_ids:
+  prod_linux:   "149372"   # USR-149372  Luccas Guarnier
+  prod_windows: "146496"   # USR-146496  Carlos Henrique Barboza
+  nao_producao: ""         # Vazio -> Owner nao enviado

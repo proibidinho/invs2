@@ -102,9 +102,10 @@
 # ---------------------------------------------------------------------------
 # Payload
 # ---------------------------------------------------------------------------
-- name: Gerar payload base para criação
+
+- name: Gerar payload base para criacao
   ansible.builtin.set_fact:
-    data_create: "{{ current_cloud_data | update_asset(object_attribute_map) }}"
+    data_create: "{{ current_cloud_data | update_asset_gcp(object_attribute_map) }}"
 
 - name: Adicionar Interface de Rede ao payload
   ansible.builtin.set_fact:
