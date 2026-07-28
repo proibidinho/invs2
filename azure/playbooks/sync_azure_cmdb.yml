@@ -34,7 +34,6 @@
           - "Inventário ID: {{ aap_inventory_id }}"
           - "Modo: {{ _sync_mode }}"
           - "Modelos mapeados: {{ modelo_servidor_map | length }}"
-          - "Owner IDs carregados: {{ (owner_ids | default({})).keys() | list }}"
           - "════════════════════════════════════════════════════════════════"
 
   roles:
@@ -43,7 +42,6 @@
         sync_mode: "{{ _sync_mode }}"
         enable_deactivation: "{{ _enable_deactivation }}"
         modelo_servidor_map: "{{ modelo_servidor_map }}"
-        owner_ids: "{{ owner_ids }}"    # explicito, por consistencia com AWS/GCP
 
   post_tasks:
     - name: Resumo final

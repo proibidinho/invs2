@@ -161,41 +161,9 @@ def determine_ambiente_azure(variables):
 
     return None
 
-
-def determine_owner(sistema_operacional, ambiente, owner_ids=None):
-    """
-    Determina o Owner padrao da VM segundo as regras do CMDB:
-      - Producao + Linux    -> owner_ids['prod_linux']
-      - Producao + Windows  -> owner_ids['prod_windows']
-      - Nao Producao        -> owner_ids['nao_producao']
-
-    Retorna o objectId (str) do usuario no Object Type 91 (Users).
-    """
-    ids = owner_ids or {}
-    ambiente_norm = str(ambiente or "").strip().lower()
-    is_producao = ambiente_norm in (
-        "produção", "producao", "produccao", "production", "prod", "prd"
-    )
-
-    if not is_producao:
-        return str(ids.get("nao_producao")) if ids.get("nao_producao") else None
-
-    if str(sistema_operacional or "").strip().lower() == "windows":
-        return str(ids.get("prod_windows")) if ids.get("prod_windows") else None
-
-    return str(ids.get("prod_linux")) if ids.get("prod_linux") else None
-
-def transform_azure_host(host, modelo_servidor_map=None, vm_size_specs=None,
-                         owner_ids=None):
+def transform_azure_host(host, modelo_servidor_map=None):
     """
     Transforma os dados de um host Azure (do AAP) para cloud_data.
-
-    Args:
-        host: host do AAP.
-        modelo_servidor_map: opcional - mapa {vm_size: object_key}.
-        vm_size_specs: opcional - mapa {vm_size: {"vcpus": int, "memory_mb": int}}
-                       obtido via 'az vm list-sizes -l <location>'.
-        owner_ids: opcional - mapa de objectId dos usuarios (Owner).
     """
 
     # Parsear variables (mesmo padrão do AWS)
@@ -283,15 +251,6 @@ def transform_azure_host(host, modelo_servidor_map=None, vm_size_specs=None,
     # VM Size
     vm_size = variables.get("virtual_machine_size", "")
 
-    # CPU/Memoria via Azure API 'az vm list-sizes -l <location>' (quando
-    # disponivel no dicionario 'vm_size_specs' passado ao filter).
-    vm_size_cpu = None
-    vm_size_mem_mb = None
-    if vm_size and vm_size_specs:
-        specs = vm_size_specs.get(vm_size) or {}
-        vm_size_cpu = specs.get("vcpus")
-        vm_size_mem_mb = specs.get("memory_mb")
-
     # Tags Azure
     tag_owner = get_tag(variables, "ef_owner")
     tag_sistema = get_tag(variables, "ef_cmdb")
@@ -308,12 +267,6 @@ def transform_azure_host(host, modelo_servidor_map=None, vm_size_specs=None,
         if so_detectado == "Windows"
         else "CLBR-TI-INFRA-CLOUD-PUBLIC"
     )
-
-    # Ambiente (baseado em tags)
-    ambiente = determine_ambiente_azure(variables)
-
-    # Owner (regra fixa por Ambiente + SO - retorna objectId do usuario)
-    owner_padrao = determine_owner(so_detectado, ambiente, owner_ids=owner_ids)
     # Montar cloud_data
     cloud_data = {
         # Identificacao
@@ -321,11 +274,7 @@ def transform_azure_host(host, modelo_servidor_map=None, vm_size_specs=None,
         "fqdn_cloud": fqdn,
         
         # Sistema Operacional
-        "sistema_operacional_cloud": so_detectado,
-
-        # Hardware (obtido via 'az vm list-sizes')
-        "cpu_count_cloud": str(vm_size_cpu) if vm_size_cpu else None,
-        "memoria_ram_cloud": str(vm_size_mem_mb) if vm_size_mem_mb else None,
+        "sistema_operacional_cloud": extract_os_from_azure(variables),
 
         # Modelo do Servidor (vm_size -> objectKey via modelo_servidor_map)
         "modelo_servidor_cloud": (
@@ -356,7 +305,7 @@ def transform_azure_host(host, modelo_servidor_map=None, vm_size_specs=None,
         "ipe_cloud": "false",
 
         # Ambiente (baseado em tags)
-        "ambiente_cloud": ambiente,
+        "ambiente_cloud": determine_ambiente_azure(variables),
 
         # Last User (sempre Ansible, pois esta integracao escreve no CMDB)
         "last_user_cloud": "Ansible",
@@ -364,10 +313,8 @@ def transform_azure_host(host, modelo_servidor_map=None, vm_size_specs=None,
         # Grupo Solucionador - Infra (fixo por SO)
         "grupo_solucionador_infra_cloud": grupo_solucionador,
 
-        # Owner (regra fixa por Ambiente + SO)
-        "owner_cloud": owner_padrao,
-
-        # Tags Azure "ef_*" (metadados; nao substituem o owner padrao acima)
+        # Tags Azure "ef_*"
+        "owner_cloud": tag_owner,
         "sistema_cloud": tag_sistema,
         "produto_cloud": tag_produto,
         "vcenter_cloud": tag_regiao,
@@ -563,8 +510,7 @@ def update_asset(cloud_data, object_attribute_map):
     return data
 
 
-def batch_transform_hosts(hosts, modelo_servidor_map=None, vm_size_specs=None,
-                          owner_ids=None):
+def batch_transform_hosts(hosts, modelo_servidor_map=None):
 
     results = []
 
@@ -600,8 +546,6 @@ def batch_transform_hosts(hosts, modelo_servidor_map=None, vm_size_specs=None,
         cloud_data = transform_azure_host(
             host,
             modelo_servidor_map=modelo_servidor_map,
-            vm_size_specs=vm_size_specs,
-            owner_ids=owner_ids,
         )
 
         if cloud_data.get("name_cloud"):
@@ -620,7 +564,6 @@ class FilterModule(object):
             'batch_transform_azure_hosts': batch_transform_hosts,
             'extract_os_from_azure': extract_os_from_azure,
             'map_azure_status_to_cmdb': map_azure_status_to_cmdb,
-            'determine_owner': determine_owner,
             'extract_subscription_from_id': extract_subscription_from_id,
             'is_aks_node': is_aks_node,
             'search_attribute_azure': search_attribute,

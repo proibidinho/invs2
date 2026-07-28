@@ -37,99 +37,31 @@
     msg: "Encontrados {{ aap_hosts_result.json.count }} hosts no inventario Azure"
 
 # ---------------------------------------------------------------------------
-# FASE 1.5: Coletar CPU/Memoria via 'az vm list-sizes' (por location)
+# FASE 1.5: Buscar variaveis de cada host
 # ---------------------------------------------------------------------------
-# Extrai vm_sizes/locations diretamente do campo 'variables' de cada host
-# retornado pelo endpoint /inventories/{id}/hosts/ (nao precisa refetch
-# /variable_data/ - o payload ja vem com 'variables' como string JSON).
-- name: Parsear 'variables' de cada host (extrair vm_size + location)
+- name: Inicializar lista de cloud_data
   ansible.builtin.set_fact:
-    _azure_hosts_parsed: >-
-      {{ aap_hosts_result.json.results
-         | map(attribute='variables', default='{}')
-         | map('from_json')
-         | list }}
+    cloud_data_list: []
 
-- name: Coletar locations unicas
-  ansible.builtin.set_fact:
-    azure_locations_unicas: >-
-      {{ _azure_hosts_parsed
-         | map(attribute='azure_location', default='')
-         | list
-         | union(_azure_hosts_parsed | map(attribute='location', default='') | list)
-         | reject('equalto', '')
-         | unique
-         | list }}
-
-- name: Debug - Locations unicas encontradas
-  ansible.builtin.debug:
-    msg: "Locations Azure a consultar: {{ azure_locations_unicas }}"
-
-- name: Login no Azure CLI usando credenciais do credential AAP (service principal)
-  ansible.builtin.command: >
-    az login --service-principal
-    -u {{ lookup('env', 'AZURE_CLIENT_ID') }}
-    -p {{ lookup('env', 'AZURE_SECRET') }}
-    --tenant {{ lookup('env', 'AZURE_TENANT') }}
-  changed_when: false
-  failed_when: false
-  no_log: true
-  when: azure_locations_unicas | length > 0
-
-- name: (opcional) Fixar subscription especifica no Azure CLI
-  ansible.builtin.command: >
-    az account set --subscription {{ azure_subscription_id }}
-  changed_when: false
-  failed_when: false
-  when:
-    - azure_locations_unicas | length > 0
-    - azure_subscription_id is defined
-    - azure_subscription_id | length > 0
-
-- name: Buscar VM sizes disponiveis por location (az vm list-sizes)
-  ansible.builtin.command: >
-    az vm list-sizes --location {{ loc_item }} --output json
-  register: az_vm_sizes_raw
-  changed_when: false
-  failed_when: false
-  loop: "{{ azure_locations_unicas }}"
+- name: Buscar variaveis de cada host
+  ansible.builtin.uri:
+    url: "{{ aap_host }}/api/controller/v2/hosts/{{ item.id }}/variable_data/"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ aap_token }}"
+    validate_certs: "{{ aap_verify_ssl | default(false) }}"
+  register: host_vars_results
+  loop: "{{ aap_hosts_result.json.results }}"
   loop_control:
-    loop_var: loc_item
-  when: azure_locations_unicas | length > 0
+    label: "{{ item.name }}"
 
-- name: Inicializar dicionario vm_size_specs
+- name: Consolidar variaveis dos hosts
   ansible.builtin.set_fact:
-    azure_vm_size_specs: {}
+    all_host_vars: "{{ host_vars_results.results | map(attribute='json') | list }}"
 
-- name: Consolidar vm_size -> {vcpus, memory_mb} em todas as locations
+- name: Transformar hosts Azure para formato cloud_data (batch - com skip AKS + ef_cmdb)
   ansible.builtin.set_fact:
-    azure_vm_size_specs: >-
-      {{ azure_vm_size_specs
-         | combine({
-             (size_item.name): {
-               'vcpus':     size_item.numberOfCores,
-               'memory_mb': size_item.memoryInMB
-             }
-         }) }}
-  loop: >-
-    {{ az_vm_sizes_raw.results | default([])
-       | selectattr('stdout', 'defined')
-       | map(attribute='stdout')
-       | map('from_json')
-       | flatten(levels=1)
-       | list }}
-  loop_control:
-    loop_var: size_item
-    label: "{{ size_item.name }}"
-  when: az_vm_sizes_raw is defined
-
-- name: Transformar hosts Azure para formato cloud_data (skip AKS + ef_cmdb, com CPU/Mem/Owner)
-  ansible.builtin.set_fact:
-    cloud_data_list: >-
-      {{ aap_hosts_result.json.results
-         | batch_transform_azure_hosts(modelo_servidor_map | default({}),
-                                       azure_vm_size_specs,
-                                       owner_ids | default({})) }}
+    cloud_data_list: "{{ all_host_vars | batch_transform_azure_hosts(modelo_servidor_map | default({})) }}"
 
 - name: Debug - Hosts transformados
   ansible.builtin.debug:
@@ -200,7 +132,7 @@
       - "========================================================================"
       - "                    RESUMO DA SINCRONIZACAO"
       - "========================================================================"
-      - "Total instances Azure: {{ cloud_data_list | length }}"
+      - "Total instancias Azure: {{ cloud_data_list | length }}"
       - "Total servidores CMDB: {{ cmdb_servers | length }}"
       - "------------------------------------------------------------------------"
       - "A CRIAR: {{ servers_to_create | length }}"

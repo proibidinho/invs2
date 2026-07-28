@@ -36,70 +36,9 @@
   ansible.builtin.debug:
     msg: "Encontrados {{ aap_hosts_result.json.count }} hosts no inventário AWS"
 
-# ---------------------------------------------------------------------------
-# FASE 1.5: Coletar CPU/Memoria de cada instance_type via AWS CLI
-# ---------------------------------------------------------------------------
-# Extrai o instance_type de cada host (via variables JSON), chama
-# 'aws ec2 describe-instance-types' uma unica vez com todos os tipos unicos
-# e monta um dicionario { instance_type: { vcpus, memory_mib } } que sera
-# repassado ao filter batch_transform_aws_hosts.
-- name: Coletar instance_types unicos dos hosts AAP
-  ansible.builtin.set_fact:
-    aws_instance_types_unicos: >-
-      {{ aap_hosts_result.json.results
-         | map(attribute='variables')
-         | map('from_json')
-         | map(attribute='instance_type', default='')
-         | reject('equalto', '')
-         | unique
-         | list }}
-
-- name: Debug - Instance types unicos
-  ansible.builtin.debug:
-    msg: "Instance types a consultar: {{ aws_instance_types_unicos | length }}"
-
-- name: Buscar CPU/Memoria dos instance_types via AWS CLI (describe-instance-types)
-  ansible.builtin.command: >
-    aws ec2 describe-instance-types
-    --instance-types {{ aws_instance_types_unicos | join(' ') }}
-    --output json
-  register: aws_instance_types_raw
-  changed_when: false
-  failed_when: false
-  environment:
-    # Credenciais AWS vem do credential AAP (Amazon Web Services)
-    # e ja estao injetadas como env vars. So precisamos definir a regiao.
-    AWS_DEFAULT_REGION: "{{ aws_default_region | default('us-east-1') }}"
-  when: aws_instance_types_unicos | length > 0
-
-- name: Montar dicionario instance_type -> {vcpus, memory_mib}
-  ansible.builtin.set_fact:
-    aws_instance_type_specs: >-
-      {{
-        aws_instance_type_specs | default({})
-        | combine({
-            (item.InstanceType): {
-              'vcpus':      item.VCpuInfo.DefaultVCpus,
-              'memory_mib': item.MemoryInfo.SizeInMiB
-            }
-          })
-      }}
-  loop: "{{ (aws_instance_types_raw.stdout | from_json).InstanceTypes | default([]) }}"
-  loop_control:
-    label: "{{ item.InstanceType }}"
-  when:
-    - aws_instance_types_raw is defined
-    - aws_instance_types_raw.stdout is defined
-    - aws_instance_types_raw.stdout | length > 0
-
-- name: Definir dicionario vazio quando nao houver dados (fallback)
-  ansible.builtin.set_fact:
-    aws_instance_type_specs: {}
-  when: aws_instance_type_specs is not defined
-
 - name: Transformar hosts AWS para formato cloud_data
   ansible.builtin.set_fact:
-    cloud_data_list: "{{ aap_hosts_result.json.results | batch_transform_aws_hosts(modelo_servidor_map | default({}), aws_instance_type_specs, owner_ids | default({})) }}"
+    cloud_data_list: "{{ aap_hosts_result.json.results | batch_transform_aws_hosts(modelo_servidor_map | default({})) }}"
 
 - name: Debug - Hosts transformados
   ansible.builtin.debug:

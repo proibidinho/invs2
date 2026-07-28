@@ -44,3 +44,60 @@ modelo_servidor_map:
   # === Categorias genericas ===
   Generic:            GDA-3223981
   VMWare:             GDA-3230997
+
+
+azure_vm_specs:
+  Standard_B1s:
+    cpu: 1
+    memory_gb: 1
+  Standard_B2as_v2:
+    cpu: 2
+    memory_gb: 8
+  Standard_B2ms:
+    cpu: 2
+    memory_gb: 8
+  Standard_B2s:
+    cpu: 2
+    memory_gb: 4
+  Standard_B4as_v2:
+    cpu: 4
+    memory_gb: 16
+  Standard_B4ms:
+    cpu: 4
+    memory_gb: 16
+  Standard_D2s_v3:
+    cpu: 2
+    memory_gb: 8
+  Standard_D32as_v4:
+    cpu: 32
+    memory_gb: 128
+  Standard_D4_v2:
+    cpu: 8
+    memory_gb: 28
+  Standard_D4s_v3:
+    cpu: 4
+    memory_gb: 16
+  Standard_D8s_v3:
+    cpu: 8
+    memory_gb: 32
+  Standard_DS3_v2:
+    cpu: 4
+    memory_gb: 14
+  Standard_E2as_v4:
+    cpu: 2
+    memory_gb: 16
+  Standard_F16s_v2:
+    cpu: 16
+    memory_gb: 32
+  Standard_F2s_v2:
+    cpu: 2
+    memory_gb: 4
+  Standard_F4s:
+    cpu: 4
+    memory_gb: 8
+  Standard_F4s_v2:
+    cpu: 4
+    memory_gb: 8
+  Standard_F8s_v2:
+    cpu: 8
+    memory_gb: 16

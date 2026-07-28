@@ -29,21 +29,6 @@ object_attribute_map:
   chave_cloud: "cpu_count_cloud"
   tipo: text
 
-# MEMORIA RAM (em MB - obtida via AWS DescribeInstanceTypes)
-- id: 6840
-  name_assets: "Memória RAM"
-  chave_cloud: "memoria_ram_cloud"
-  tipo: integer
-  sufixo: "Mb"
-
-# OWNER (regra fixa por Ambiente + SO - preenchido pelo filter com objectId)
-# Ref: 91 (Users). O filter retorna diretamente o objectId (ex.: "149372")
-# baseado no dicionario 'owner_ids' definido em vars/main.yml.
-- id: 3381
-  name_assets: "Owner"
-  chave_cloud: "owner_cloud"
-  tipo: text
-
 # MODELO DO SERVIDOR (instance_type -> objectKey do CMDB)
 # tipo: objeto sem "valores" -> o filter passa o value direto (objectKey).
 # A conversao instance_type -> GDA-* eh feita no filter via "modelo_servidor_map"

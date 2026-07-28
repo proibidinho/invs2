@@ -69,28 +69,3 @@ proxy_env:
   http_proxy: "http://10.29.177.37:8080" #Lapa
   https_proxy: "http://10.29.177.37:8080" #Lapa
   no_proxy: ""
-
-# =============================================================================
-# CREDENCIAIS AWS (via AAP - credential type "Amazon Web Services")
-# =============================================================================
-# O credential AAP injeta automaticamente no ambiente do job:
-AWS_ACCESS_KEY_ID: ""
-AWS_SECRET_ACCESS_KEY: ""
-#   AWS_SECURITY_TOKEN         (quando aplicavel)
-# A CLI 'aws' consome esses envs sem configuracao adicional. So precisamos
-# informar a regiao default (list de instance-types nao muda entre regioes,
-# mas o CLI exige regiao configurada). Trocar aqui se necessario.
-aws_default_region: "us-east-1"
-
-# =============================================================================
-# OWNER - IDs dos usuarios no Object Type 91 (Users) do Jira Assets
-# =============================================================================
-# Regra aplicada pelo filter determine_owner(so, ambiente, owner_ids):
-#   - Producao + Linux    -> owner_ids.prod_linux    (Luccas Guarnier)
-#   - Producao + Windows  -> owner_ids.prod_windows  (Carlos Henrique Barboza)
-#   - Nao Producao        -> owner_ids.nao_producao  (Bernardo - TEMPORARIO)
-# Basta trocar o ID abaixo quando o objeto correto do Bernardo for criado.
-owner_ids:
-  prod_linux:   "149372"    # USR-149372  Luccas Guarnier
-  prod_windows: "146496"    # USR-146496  Carlos Henrique Barboza
-  nao_producao: "1497044"   # USR-1497044 Leonardo (TEMPORARIO - trocar p/ Bernardo)

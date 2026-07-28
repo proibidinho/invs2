@@ -96,34 +96,7 @@ def determine_ambiente_aws(variables: Dict) -> Optional[str]:
     return "Produção"
 
 
-def determine_owner(sistema_operacional: str, ambiente: Optional[str],
-                    owner_ids: Optional[Dict] = None) -> Optional[str]:
-    """
-    Determina o Owner padrao da VM segundo as regras do CMDB:
-      - Producao + Linux    -> owner_ids['prod_linux']
-      - Producao + Windows  -> owner_ids['prod_windows']
-      - Nao Producao        -> owner_ids['nao_producao']
-
-    Retorna o objectId (str) do usuario no Object Type 91 (Users).
-    """
-    ids = owner_ids or {}
-    ambiente_norm = str(ambiente or "").strip().lower()
-    is_producao = ambiente_norm in (
-        "produção", "producao", "produccao", "production", "prod", "prd"
-    )
-
-    if not is_producao:
-        return str(ids.get("nao_producao")) if ids.get("nao_producao") else None
-
-    if str(sistema_operacional or "").strip().lower() == "windows":
-        return str(ids.get("prod_windows")) if ids.get("prod_windows") else None
-
-    return str(ids.get("prod_linux")) if ids.get("prod_linux") else None
-
-
-def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = None,
-                       instance_type_specs: Optional[Dict] = None,
-                       owner_ids: Optional[Dict] = None) -> Dict:
+def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = None) -> Dict:
     """
     Transforma os dados de um host AWS (do AAP) para o formato cloud_data.
 
@@ -133,11 +106,6 @@ def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = No
                              {"t3.2xlarge": "GDA-3224029", ...}. Se fornecido,
                              o instance_type eh convertido para o objectKey
                              correspondente antes de popular modelo_servidor_cloud.
-        instance_type_specs: opcional - mapa {instance_type: {"vcpus": int,
-                             "memory_mib": int}} obtido via AWS
-                             DescribeInstanceTypes. Usado para popular
-                             cpu_count_cloud e memoria_ram_cloud com os
-                             valores reais da familia AWS.
     """
     # Parsear variables (pode ser string JSON ou dict)
     variables_str = host_data.get("variables", "{}")
@@ -184,22 +152,9 @@ def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = No
     core_count = cpu_options.get("core_count", 0)
     threads_per_core = cpu_options.get("threads_per_core", 1)
     vcpus = core_count * threads_per_core if core_count else None
-
+    
     # Instance Type (Modelo do Servidor)
     instance_type = variables.get("instance_type", "")
-
-    # CPU/Memoria via AWS DescribeInstanceTypes (quando disponivel).
-    # Se o mapa nao trouxer o instance_type, mantem o vcpus calculado por
-    # cpu_options (fallback) e memoria fica vazia.
-    memoria_ram_mib = None
-    if instance_type and instance_type_specs:
-        specs = instance_type_specs.get(instance_type) or {}
-        specs_vcpus = specs.get("vcpus")
-        specs_mem = specs.get("memory_mib")
-        if specs_vcpus:
-            vcpus = specs_vcpus
-        if specs_mem:
-            memoria_ram_mib = specs_mem
     
     # Status
     state = variables.get("state", "running")
@@ -213,9 +168,6 @@ def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = No
 
     # Ambiente
     ambiente = determine_ambiente_aws(variables)
-
-    # Owner (regra fixa por Ambiente + SO - retorna objectId do usuario)
-    owner = determine_owner(so_normalizado, ambiente, owner_ids=owner_ids)
 
     # Sistema (CMDB) - vem da tag ef_cmdb (ex.: "GDA-2730753").
     # Jira Assets aceita objectKey diretamente no value de campo Reference.
@@ -233,9 +185,6 @@ def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = No
         # Ambiente
         "ambiente_cloud": ambiente,
 
-        # Owner (regra fixa por Ambiente + SO)
-        "owner_cloud": owner,
-
         # Sistema (Reference no CMDB - passa objectKey vindo da tag ef_cmdb)
         "sistema_cloud": sistema_cmdb if sistema_cmdb else None,
         
@@ -248,7 +197,6 @@ def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = No
         
         # Hardware
         "cpu_count_cloud": str(vcpus) if vcpus else None,
-        "memoria_ram_cloud": str(memoria_ram_mib) if memoria_ram_mib else None,
         
         # Modelo do Servidor (instance_type -> objectKey via modelo_servidor_map)
         "modelo_servidor_cloud": (
@@ -293,17 +241,12 @@ def transform_aws_host(host_data: Dict, modelo_servidor_map: Optional[Dict] = No
     return cloud_data
 
 
-def batch_transform_aws_hosts(hosts: List[Dict], modelo_servidor_map: Optional[Dict] = None,
-                              instance_type_specs: Optional[Dict] = None,
-                              owner_ids: Optional[Dict] = None) -> List[Dict]:
+def batch_transform_aws_hosts(hosts: List[Dict], modelo_servidor_map: Optional[Dict] = None) -> List[Dict]:
     """Transforma uma lista de hosts AWS (do AAP) para o formato cloud_data.
 
     Args:
         hosts: lista de hosts vindos do AAP.
         modelo_servidor_map: opcional - mapa {instance_type: object_key}.
-        instance_type_specs: opcional - mapa {instance_type: {"vcpus", "memory_mib"}}
-                             obtido via AWS DescribeInstanceTypes.
-        owner_ids: opcional - mapa de objectId dos usuarios (Owner).
     """
     results = []
     
@@ -327,12 +270,7 @@ def batch_transform_aws_hosts(hosts: List[Dict], modelo_servidor_map: Optional[D
         if not isinstance(tags, dict) or not str(tags.get("ef_cmdb", "")).strip():
             continue
 
-        cloud_data = transform_aws_host(
-            host,
-            modelo_servidor_map=modelo_servidor_map,
-            instance_type_specs=instance_type_specs,
-            owner_ids=owner_ids,
-        )
+        cloud_data = transform_aws_host(host, modelo_servidor_map=modelo_servidor_map)
         
         if cloud_data.get("name_cloud"):
             results.append(cloud_data)
@@ -441,7 +379,6 @@ class FilterModule(object):
             'map_aws_status_to_cmdb': map_aws_status_to_cmdb,
             'extract_os_from_platform': extract_os_from_platform,
             'determine_ambiente_aws': determine_ambiente_aws,
-            'determine_owner': determine_owner,
             'is_eks_node': is_eks_node,
             'search_attribute': search_attribute,
         }

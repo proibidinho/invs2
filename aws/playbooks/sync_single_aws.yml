@@ -52,9 +52,6 @@
           - "════════════════════════════════════════════════════════════════"
 
   tasks:
-    # =========================================================================
-    # FASE 1: Buscar hosts do AAP
-    # =========================================================================
     - name: Buscar hosts do AAP
       ansible.builtin.uri:
         url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=500"
@@ -65,10 +62,7 @@
         return_content: yes
       register: aap_hosts
 
-    # =========================================================================
-    # FASE 2: Batch inicial (skip EKS + ef_cmdb) + aplicar test_limit
-    # =========================================================================
-    - name: Transformar hosts (batch inicial - so p/ filtrar EKS/ef_cmdb)
+    - name: Transformar todos os hosts (batch - com skip EKS + ef_cmdb + Modelo do Servidor)
       ansible.builtin.set_fact:
         all_cloud_data: "{{ aap_hosts.json.results | batch_transform_aws_hosts(modelo_servidor_map) }}"
 
@@ -86,88 +80,13 @@
         selected_servers: "{{ all_cloud_data[:test_limit | int] }}"
       when: test_limit | int > 0 and test_servers | length == 0
 
-    # =========================================================================
-    # FASE 2.5: ENRIQUECER selected_servers com CPU / Memoria / Owner
-    # Roda 'aws ec2 describe-instance-types' APENAS para os instance_types
-    # do subset ja filtrado por test_limit / test_servers.
-    # =========================================================================
-    - name: Recuperar hosts AAP originais dos selecionados
-      ansible.builtin.set_fact:
-        selected_aap_hosts: >-
-          {{ aap_hosts.json.results
-             | selectattr('name', 'in', selected_servers | map(attribute='name_cloud') | list)
-             | list }}
-
-    - name: Coletar instance_types unicos (apenas do subset)
-      ansible.builtin.set_fact:
-        aws_instance_types_unicos: >-
-          {{ selected_aap_hosts
-             | map(attribute='variables', default='{}')
-             | map('from_json')
-             | map(attribute='instance_type', default='')
-             | reject('equalto', '')
-             | unique
-             | list }}
-
-    - name: Debug - Instance types a consultar (subset)
-      ansible.builtin.debug:
-        msg: "Instance types (subset): {{ aws_instance_types_unicos }}"
-
-    - name: Buscar CPU/Memoria via aws ec2 describe-instance-types
-      ansible.builtin.command: >
-        aws ec2 describe-instance-types
-        --instance-types {{ aws_instance_types_unicos | join(' ') }}
-        --output json
-      register: aws_instance_types_raw
-      changed_when: false
-      failed_when: false
-      environment:
-        AWS_DEFAULT_REGION: "{{ aws_default_region | default('us-east-1') }}"
-      when: aws_instance_types_unicos | length > 0
-
-    - name: Montar dicionario instance_type_specs
-      ansible.builtin.set_fact:
-        aws_instance_type_specs: >-
-          {{
-            aws_instance_type_specs | default({})
-            | combine({
-                (item.InstanceType): {
-                  'vcpus':      item.VCpuInfo.DefaultVCpus,
-                  'memory_mib': item.MemoryInfo.SizeInMiB
-                }
-              })
-          }}
-      loop: "{{ (aws_instance_types_raw.stdout | from_json).InstanceTypes | default([]) }}"
-      loop_control:
-        label: "{{ item.InstanceType }}"
-      when:
-        - aws_instance_types_raw is defined
-        - aws_instance_types_raw.stdout is defined
-        - aws_instance_types_raw.stdout | length > 0
-
-    - name: Definir dicionario vazio (fallback)
-      ansible.builtin.set_fact:
-        aws_instance_type_specs: {}
-      when: aws_instance_type_specs is not defined
-
-    - name: Re-transformar selected_servers com CPU/Memoria/Owner
-      ansible.builtin.set_fact:
-        selected_servers: >-
-          {{ selected_aap_hosts
-             | batch_transform_aws_hosts(modelo_servidor_map,
-                                         aws_instance_type_specs,
-                                         owner_ids) }}
-
-    # =========================================================================
-    # FASE 3: Resumo e (opcional) dry_run
-    # =========================================================================
     - name: Resumo dos servidores selecionados
       ansible.builtin.debug:
         msg:
           - "════════════════════════════════════════════════════════════════"
           - "                 {{ selected_servers | length }} SERVIDORES SELECIONADOS"
           - "════════════════════════════════════════════════════════════════"
-          - "{% for s in selected_servers %}{{ s.name_cloud }} ({{ s.modelo_servidor_cloud | default('N/A') }}, {{ s.sistema_operacional_cloud }}, CPU={{ s.cpu_count_cloud | default('?') }}, RAM={{ s.memoria_ram_cloud | default('?') }}MiB, Owner={{ s.owner_cloud | default('?') }})\n{% endfor %}"
+          - "{% for s in selected_servers %}{{ s.name_cloud }} ({{ s.modelo_servidor_cloud | default('N/A') }}, {{ s.sistema_operacional_cloud }})\n{% endfor %}"
 
     - name: Exibir cloud_data de cada servidor
       ansible.builtin.debug:
@@ -180,9 +99,7 @@
       ansible.builtin.meta: end_play
       when: dry_run | bool
 
-    # =========================================================================
-    # FASE 4: Execução real
-    # =========================================================================
+    # --- EXECUÇÃO REAL ---
     - name: Inicializar logs
       ansible.builtin.set_fact:
         sync_log_create: []

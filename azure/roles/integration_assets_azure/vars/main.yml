@@ -38,32 +38,3 @@ proxy_env:
   http_proxy: "http://10.29.177.37:8080" #Lapa
   https_proxy: "http://10.29.177.37:8080" #Lapa
   no_proxy: ""
-
-# =============================================================================
-# CREDENCIAIS AZURE (via AAP - credential type customizado)
-# =============================================================================
-# O credential AAP customizado injeta como env vars:
-AZURE_CLIENT_ID: ""
-AZURE_SECRET: ""
-AZURE_TENANT: ""
-# A CLI 'az' NAO consome esses envs automaticamente - por isso o main.yml
-# executa 'az login --service-principal' com esses valores antes de chamar
-# 'az vm list-sizes'. Se o nome das envs mudar no credential type, ajuste
-# os lookups em tasks/main.yml.
-#
-# (opcional) Se precisar fixar uma subscription especifica para os comandos
-# 'az', preencha abaixo. Deixe em branco para usar a subscription default.
-azure_subscription_id: ""
-
-# =============================================================================
-# OWNER - IDs dos usuarios no Object Type 91 (Users) do Jira Assets
-# =============================================================================
-# Regra aplicada pelo filter determine_owner(so, ambiente, owner_ids):
-#   - Producao + Linux    -> owner_ids.prod_linux    (Luccas Guarnier)
-#   - Producao + Windows  -> owner_ids.prod_windows  (Carlos Henrique Barboza)
-#   - Nao Producao        -> owner_ids.nao_producao  (Bernardo - TEMPORARIO)
-# Basta trocar o ID abaixo quando o objeto correto do Bernardo for criado.
-owner_ids:
-  prod_linux:   "149372"    # USR-149372  Luccas Guarnier
-  prod_windows: "146496"    # USR-146496  Carlos Henrique Barboza
-  nao_producao: "1497044"   # USR-1497044 Leonardo (TEMPORARIO - trocar p/ Bernardo)
