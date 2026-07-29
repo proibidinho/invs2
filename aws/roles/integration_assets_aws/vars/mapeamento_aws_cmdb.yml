@@ -202,10 +202,3 @@ object_attribute_map:
   chave_cloud: "ipe_cloud"
   tipo: boolean
   valor_fixo: false
-
-# DISASTER RECOVERY (tag ef_recuperacao_de_desastre / ef_dr; fallback false)
-- id: 10677
-  name_assets: "Disaster Recovery"
-  chave_cloud: "disaster_recovery_cloud"
-  tipo: boolean
-  valor_fallback: false

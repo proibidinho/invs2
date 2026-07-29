@@ -187,3 +187,26 @@ object_attribute_map:
   chave_cloud: "cpu_platform_cloud"
   tipo: objeto
   referencia_object_type_id: 232
+
+- id: 1922
+  name_assets: "Ambiente"
+  chave_cloud: "ambiente_cloud"
+  tipo: objeto
+  referencia_object_type_id: 153
+  valores:
+  - value: "Produção"
+    referencedType: 166234
+  - value: "Pré-Produção"
+    referencedType: 169886
+  - value: "Homologação"
+    referencedType: 166233
+  - value: "Desenvolvimento"
+    referencedType: 166232
+  - value: "Certificação"
+    referencedType: 169398
+  - value: "Teste"
+    referencedType: 169397
+  - value: "Treinamento"
+    referencedType: 169416
+  - value: "Legado"
+    referencedType: 169924

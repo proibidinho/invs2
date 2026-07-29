@@ -19,6 +19,7 @@
 #
 # OBS: Defina JIRA_USER e JIRA_PASSWORD como variaveis de ambiente
 # =============================================================================
+#FUNCIONANDO
 ---
 - name: Testar sincronizacao Azure com servidores selecionados
   hosts: localhost
