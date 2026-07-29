@@ -1,0 +1,238 @@
+Vou anexar 3 arquivos README.md referentes aos projetos:
+
+- integration_assets_aws
+- integration_assets_azure
+- integration_assets_gcp
+
+Sua tarefa é analisar completamente os 3 READMEs e gerar um documento executivo em PDF, tomando os três documentos como única fonte da verdade.
+
+IMPORTANTE:
+
+- Utilize exclusivamente as informações contidas nos READMEs anexados.
+- Não invente funcionalidades não documentadas.
+- Considere a solução como uma Prova de Conceito (POC).
+- O documento é destinado à apresentação executiva para gestores e stakeholders.
+- Não é um documento técnico operacional.
+- O objetivo é apresentar valor, resultados e arquitetura da solução.
+
+Contexto da POC:
+
+Foi desenvolvida uma solução de integração multi-cloud para automatizar a descoberta e cadastro de ativos de infraestrutura no CMDB corporativo.
+
+Clouds suportadas:
+
+✅ AWS
+✅ Microsoft Azure
+✅ Google Cloud Platform
+
+Ferramentas utilizadas:
+
+✅ Ansible Automation Platform (AAP)
+✅ Jira Assets (CMDB)
+✅ Inventários Dinâmicos Cloud
+✅ APIs dos Cloud Providers
+
+Mensagem obrigatória a destacar em caixa de atenção:
+
+"Embora a arquitetura já possua componentes para Create, Update e Deactivate, o escopo atual da POC contempla apenas a criação automática de novos ativos no CMDB.
+
+Atualizações automáticas de ativos existentes e desativações automáticas permanecem previstas para futuras evoluções e não fazem parte do escopo operacional atual."
+
+Gerar um PDF profissional contendo:
+
+# Página 1 - Resumo Executivo
+
+Título:
+
+☁️ Integração Multi-Cloud → CMDB
+
+Subtítulo:
+
+POC de automação de cadastro de ativos AWS, Azure e Google Cloud utilizando Ansible Automation Platform e Jira Assets.
+
+Explicar:
+
+- Problema de negócio
+- Objetivo da POC
+- Escopo realizado
+- Benefícios obtidos
+
+Adicionar ícones e gráficos visuais.
+
+---
+
+# Página 2 - Problema e Oportunidade
+
+Comparativo:
+
+ANTES
+
+❌ Cadastro manual
+❌ Inventários distribuídos
+❌ Informações inconsistentes
+❌ Dependência operacional
+
+DEPOIS
+
+✅ Descoberta automática
+✅ Padronização entre clouds
+✅ CMDB mais confiável
+✅ Menor esforço operacional
+
+---
+
+# Página 3 - Arquitetura da Solução
+
+Criar um diagrama visual semelhante a:
+
+AWS
+Azure
+Google Cloud
+       │
+       ▼
+Ansible Automation Platform
+       │
+       ▼
+Camada de Transformação
+       │
+       ▼
+Jira Assets (CMDB)
+
+Explicar resumidamente o fluxo.
+
+---
+
+# Página 4 - O que foi desenvolvido
+
+Consolidar os três projetos.
+
+Mostrar que para AWS, Azure e GCP foram implementados:
+
+✅ Descoberta automática de instâncias/VMs
+
+✅ Consumo dos inventários dinâmicos do AAP
+
+✅ Transformação dos dados cloud para modelo CMDB
+
+✅ Associação automática de Ambiente
+
+✅ Associação automática de Sistema
+
+✅ Associação automática de Modelo de Servidor
+
+✅ Associação automática de Owner
+
+✅ Associação automática de Interface de Rede
+
+✅ Criação automática de ativos no CMDB
+
+Destacar:
+
+✅ AWS
+✅ Azure
+✅ GCP
+
+suportados pela mesma arquitetura.
+
+---
+
+# Página 5 - Informações sincronizadas
+
+Representar visualmente os atributos sincronizados:
+
+🖥 Nome
+
+🌐 FQDN
+
+⚙ Sistema Operacional
+
+💾 Memória
+
+🧠 CPU
+
+🏷 Ambiente
+
+📡 IPs
+
+☁ Conta Cloud
+
+👤 Owner
+
+📦 Modelo do Servidor
+
+🏢 Datacenter
+
+🔄 Status
+
+Destacar a padronização entre as três clouds.
+
+---
+
+# Página 6 - Limitações e Escopo Atual
+
+Explicar claramente:
+
+✅ Criação de ativos
+
+❌ Update automático
+
+❌ Deactivate automático
+
+Mostrar essas funcionalidades como roadmap futuro.
+
+Explicar que a decisão foi proposital para garantir onboarding seguro dos ativos.
+
+---
+
+# Página 7 - FAQ Executivo
+
+Responder perguntas comuns:
+
+- A solução altera servidores nas clouds?
+- As três clouds estão suportadas?
+- Como os dados são obtidos?
+- O CMDB é atualizado automaticamente?
+- Existe risco para produção?
+- Qual o benefício da solução?
+- Como novos modelos de servidor são adicionados?
+- O que acontece se uma VM já existir no CMDB?
+
+---
+
+# Página 8 - Roadmap
+
+Fase 1 ✅
+POC de descoberta e criação
+
+Fase 2 🔄
+Atualização automática de atributos
+
+Fase 3 🔄
+Desativação automática
+
+Fase 4 🔄
+Sincronização por eventos
+
+Fase 5 🔄
+Governança e Compliance
+
+---
+
+Visual desejado:
+
+- Estilo moderno corporativo
+- Inspiração Microsoft Learn / GitHub
+- Muitas caixas informativas
+- Ícones
+- Emojis corporativos
+- Fluxogramas
+- Destaques coloridos
+- Pouco texto por página
+- Foco executivo
+- PDF pronto para apresentação gerencial
+
+Ao final incluir uma página:
+
+"Resultado da POC"
+
+com uma conclusão executiva destacando que a integração multi-cloud AWS, Azure e GCP → AAP → Jira Assets foi validada com sucesso e está apta para evolução para as próximas fases do projeto.
