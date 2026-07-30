@@ -1,0 +1,21 @@
+msg:
+  - ════════════════════════════════════════════════════════════════
+  - '                    SINCRONIZACAO CONCLUIDA'
+  - ════════════════════════════════════════════════════════════════
+  - 'Criados com sucesso: 30'
+  - 'Ignorados (ja existentes): 2'
+  - 'Desativados: 0'
+  - 'ERROS: 2'
+  - ────────────────────────────────────────────────────────────────
+  - >
+    - validate | status=400 | {'errorMessages': [], 'errors':
+    {'rlabs-insight-attribute-1104': "The attribute 'Name' has duplicated values
+    (validate)."}}
+
+    - asg-cticenter-prd | status=400 | {'errorMessages': [], 'errors':
+    {'rlabs-insight-attribute-1104': "The attribute 'Name' has duplicated values
+    (asg-cticenter-prd)."}}
+  - ════════════════════════════════════════════════════════════════
+_ansible_verbose_always: true
+_ansible_no_log: false
+changed: false
