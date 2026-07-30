@@ -444,6 +444,9 @@ ARQUIVO: gcp/playbooks/sync_single_gcp.yml
           - "════════════════════════════════════════════════════════════════"
 
   tasks:
+    # -------------------------------------------------------------------------
+    # AAP
+    # -------------------------------------------------------------------------
     - name: Buscar hosts do AAP
       ansible.builtin.uri:
         url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=500"
@@ -485,6 +488,9 @@ ARQUIVO: gcp/playbooks/sync_single_gcp.yml
       ansible.builtin.debug:
         msg: "Hosts AAP: {{ all_host_vars | length }} | Elegiveis: {{ all_cloud_data | length }} | Ignorados: {{ all_host_vars | length - all_cloud_data | length }}"
 
+    # -------------------------------------------------------------------------
+    # SELECAO DOS SERVIDORES DE TESTE
+    # -------------------------------------------------------------------------
     - name: Selecionar por lista de nomes
       ansible.builtin.set_fact:
         selected_servers: "{{ all_cloud_data | selectattr('name_cloud', 'in', test_servers) | list }}"
@@ -506,15 +512,38 @@ ARQUIVO: gcp/playbooks/sync_single_gcp.yml
       ansible.builtin.meta: end_play
       when: dry_run | bool
 
-    # --- EXECUCAO REAL ---
+    # =========================================================================
+    # EXECUCAO REAL
+    # =========================================================================
     - name: Inicializar logs
       ansible.builtin.set_fact:
         sync_log_create: []
         sync_log_skip: []
 
-    - name: Buscar servidores existentes no CMDB
+    # -------------------------------------------------------------------------
+    # CMDB - BUSCA GLOBAL PAGINADA
+    #
+    # O Jira limita cada resposta a 1000 objetos.
+    #
+    # Por isso buscamos:
+    #
+    #   startAt=0
+    #   startAt=1000
+    #   startAt=2000
+    #   ...
+    #   startAt=19000
+    #
+    # Isso permite carregar ate 20.000 objetos do Object Type 121.
+    #
+    # IMPORTANTE:
+    # Nao existe filtro por Datacenter aqui.
+    #
+    # Para decidir CREATE/SKIP precisamos verificar se o Name existe
+    # em QUALQUER servidor do CMDB.
+    # -------------------------------------------------------------------------
+    - name: Buscar servidores existentes no CMDB - paginado
       ansible.builtin.uri:
-        url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
+        url: "{{ jira_url }}/object/aql?startAt={{ item }}&maxResults=1000"
         method: POST
         headers:
           Accept: "application/json"
@@ -523,21 +552,92 @@ ARQUIVO: gcp/playbooks/sync_single_gcp.yml
         user: "{{ jira_user }}"
         password: "{{ jira_password }}"
         body:
-          #qlQuery: 'objectTypeId = 121 AND Datacenter = "Google Cloud"'
           qlQuery: 'objectTypeId = 121'
         body_format: json
-      register: cmdb_result
+        status_code: [200]
+        timeout: 60
+      register: cmdb_pages
       environment: "{{ proxy_env | default({}) }}"
+      loop: "{{ range(0, 20000, 1000) | list }}"
+      loop_control:
+        label: "startAt={{ item }}"
+      retries: 3
+      delay: 5
+      until: cmdb_pages.status == 200
 
-    - name: Separar servidores a criar e existentes
+    # -------------------------------------------------------------------------
+    # CONSOLIDAR AS PAGINAS
+    # -------------------------------------------------------------------------
+    - name: Inicializar lista de servidores do CMDB
       ansible.builtin.set_fact:
-        cmdb_server_names: "{{ cmdb_result.json['values'] | default([]) | map(attribute='label') | list }}"
+        cmdb_all_servers: []
 
+    - name: Consolidar paginas do CMDB
+      ansible.builtin.set_fact:
+        cmdb_all_servers: >-
+          {{
+            cmdb_all_servers
+            + (item.json['values'] | default([]))
+          }}
+      loop: "{{ cmdb_pages.results }}"
+      loop_control:
+        label: "Pagina com {{ item.json['values'] | default([]) | length }} objetos"
+
+    # -------------------------------------------------------------------------
+    # EXTRAIR TODOS OS NAMES
+    # -------------------------------------------------------------------------
+    - name: Extrair nomes globais do CMDB
+      ansible.builtin.set_fact:
+        cmdb_server_names: >-
+          {{
+            cmdb_all_servers
+            | map(attribute='label')
+            | list
+          }}
+
+    - name: Debug - Total de servidores carregados do CMDB
+      ansible.builtin.debug:
+        msg:
+          - "Total de objetos carregados: {{ cmdb_all_servers | length }}"
+          - "Total de Names carregados: {{ cmdb_server_names | length }}"
+
+    # -------------------------------------------------------------------------
+    # DETERMINAR ACOES
+    #
+    # Se Name existe em qualquer objeto do CMDB:
+    #   -> SKIP
+    #
+    # Se Name nao existe:
+    #   -> CREATE
+    # -------------------------------------------------------------------------
     - name: Determinar acoes
       ansible.builtin.set_fact:
-        servers_to_create: "{{ selected_servers | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-        servers_to_skip:   "{{ selected_servers | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+        servers_to_create: >-
+          {{
+            selected_servers
+            | rejectattr('name_cloud', 'in', cmdb_server_names)
+            | list
+          }}
 
+        servers_to_skip: >-
+          {{
+            selected_servers
+            | selectattr('name_cloud', 'in', cmdb_server_names)
+            | list
+          }}
+
+    - name: Exibir acoes determinadas
+      ansible.builtin.debug:
+        msg:
+          - "Selecionados: {{ selected_servers | length }}"
+          - "A criar: {{ servers_to_create | length }}"
+          - "Existentes (skip): {{ servers_to_skip | length }}"
+          - "CREATE: {{ servers_to_create | map(attribute='name_cloud') | list }}"
+          - "SKIP: {{ servers_to_skip | map(attribute='name_cloud') | list }}"
+
+    # -------------------------------------------------------------------------
+    # CREATE
+    # -------------------------------------------------------------------------
     - name: Criar servidores
       ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/integration_assets_gcp/tasks/create.yml"
       vars:
@@ -547,11 +647,19 @@ ARQUIVO: gcp/playbooks/sync_single_gcp.yml
         label: "{{ item.name_cloud }}"
       when: servers_to_create | length > 0
 
+    # -------------------------------------------------------------------------
+    # RESULTADO
+    # -------------------------------------------------------------------------
     - name: Resultado final
       ansible.builtin.debug:
         msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "                    RESULTADO DO TESTE"
+          - "════════════════════════════════════════════════════════════════"
+          - "Selecionados: {{ selected_servers | length }}"
           - "Criados: {{ sync_log_create | length }}"
           - "Existentes (skip): {{ servers_to_skip | length }}"
+          - "════════════════════════════════════════════════════════════════"
 ================================================================
 ARQUIVO: gcp/projeto_completo_gcp.txt
 ================================================================
@@ -4141,10 +4249,7 @@ ARQUIVO: gcp/roles/integration_assets_gcp/tasks/fetch_all_hosts.yml
 ARQUIVO: gcp/roles/integration_assets_gcp/tasks/main.yml
 ================================================================
 # =============================================================================
-# Task Principal: Sincronizacao GCP (via AAP) -> CMDB
-# =============================================================================
-# GCP usa /variable_data/ por host porque o filtro Python foi construido
-# para receber o dict cru de variaveis (diferente de AWS/Azure).
+# Task Principal: Sincronizacao GCP (via AAP) → CMDB
 # =============================================================================
 ---
 - name: Incluir variaveis de mapeamento GCP
@@ -4163,58 +4268,44 @@ ARQUIVO: gcp/roles/integration_assets_gcp/tasks/main.yml
     sync_log_errors: []
 
 # ---------------------------------------------------------------------------
-# FASE 1: Coletar hosts do AAP (paginado)
+# FASE 1: Coletar hosts do AAP
 # ---------------------------------------------------------------------------
-- name: "FASE 1 - Coletar hosts do inventario GCP no AAP (paginado)"
+- name: "FASE 1 - Coletar hosts do inventario GCP no AAP"
   ansible.builtin.debug:
     msg: "════════════════════════════════════════════════════════════════"
 
-- name: Coletar todos os hosts (paginacao real)
-  ansible.builtin.include_tasks: fetch_all_hosts.yml
+- name: Buscar hosts do inventario GCP no AAP
+  ansible.builtin.uri:
+    url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=500"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ aap_token }}"
+      Content-Type: "application/json"
+    validate_certs: "{{ aap_verify_ssl | default(false) }}"
+    return_content: yes
+    status_code: [200]
+  register: aap_hosts_result
 
-# ---------------------------------------------------------------------------
-# FASE 1.5: Buscar variables de cada host (padrao GCP)
-# ---------------------------------------------------------------------------
-- name: Buscar variaveis de cada host (com retry)
+- name: Debug - Total de hosts encontrados
+  ansible.builtin.debug:
+    msg: "Encontrados {{ aap_hosts_result.json.count }} hosts no inventario GCP"
+
+# Buscar variables de cada host (mesmo padrao Azure)
+- name: Buscar variaveis de cada host
   ansible.builtin.uri:
     url: "{{ aap_host }}/api/controller/v2/hosts/{{ item.id }}/variable_data/"
     method: GET
     headers:
       Authorization: "Bearer {{ aap_token }}"
     validate_certs: "{{ aap_verify_ssl | default(false) }}"
-    return_content: yes
-    status_code: [200]
-    timeout: 30
   register: host_vars_results
-  retries: 3
-  delay: 3
-  until: host_vars_results.status == 200
-  loop: "{{ aap_all_hosts }}"
+  loop: "{{ aap_hosts_result.json.results }}"
   loop_control:
     label: "{{ item.name }}"
-  failed_when: false
 
-- name: Consolidar variaveis dos hosts (apenas OK)
+- name: Consolidar variaveis dos hosts
   ansible.builtin.set_fact:
-    all_host_vars: >-
-      {{ host_vars_results.results
-         | selectattr('status', 'defined')
-         | selectattr('status', 'equalto', 200)
-         | map(attribute='json')
-         | list }}
-
-- name: Registrar hosts com falha na leitura de variables
-  ansible.builtin.set_fact:
-    sync_log_errors: >-
-      {{ sync_log_errors + [{
-           'name': item.item.name,
-           'status': item.status | default('unknown'),
-           'msg': 'falha ao buscar variable_data'
-         }] }}
-  loop: "{{ host_vars_results.results | rejectattr('status', 'equalto', 200) | list }}"
-  loop_control:
-    label: "{{ item.item.name }}"
-  when: host_vars_results.results | rejectattr('status', 'equalto', 200) | list | length > 0
+    all_host_vars: "{{ host_vars_results.results | map(attribute='json') | list }}"
 
 - name: Transformar hosts GCP para formato cloud_data (batch - com skip GKE + ef_cmdb)
   ansible.builtin.set_fact:
@@ -4228,7 +4319,7 @@ ARQUIVO: gcp/roles/integration_assets_gcp/tasks/main.yml
 
 - name: Debug - Hosts transformados
   ansible.builtin.debug:
-    msg: "{{ aap_all_hosts | length }} hosts coletados | {{ all_host_vars | length }} com variables | {{ cloud_data_list | length }} elegiveis"
+    msg: "{{ cloud_data_list | length }} hosts transformados"
 
 # ---------------------------------------------------------------------------
 # FASE 2: Coletar dados do CMDB
@@ -4237,6 +4328,19 @@ ARQUIVO: gcp/roles/integration_assets_gcp/tasks/main.yml
   ansible.builtin.debug:
     msg: "════════════════════════════════════════════════════════════════"
 
+# ---------------------------------------------------------------------------
+# Consulta especifica GCP
+#
+# IMPORTANTE:
+# Esta consulta continua filtrada por Datacenter = "Google Cloud".
+#
+# Ela NAO e utilizada para decidir CREATE/SKIP.
+#
+# Ela e utilizada para montar cmdb_servers, que posteriormente participa
+# exclusivamente da identificacao dos servidores que podem ser DESATIVADOS.
+#
+# NAO remover o filtro de Datacenter desta consulta.
+# ---------------------------------------------------------------------------
 - name: Buscar servidores GCP existentes no CMDB
   ansible.builtin.uri:
     url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
@@ -4258,14 +4362,150 @@ ARQUIVO: gcp/roles/integration_assets_gcp/tasks/main.yml
   delay: 5
   until: cmdb_servers_result.status == 200
 
-- name: Parsear servidores do CMDB
+- name: Parsear servidores GCP do CMDB
   ansible.builtin.set_fact:
     cmdb_servers: "{{ cmdb_servers_result.json['values'] | default([]) }}"
-    cmdb_server_names: "{{ cmdb_servers_result.json['values'] | default([]) | map(attribute='label') | list }}"
 
-- name: Debug - Servidores encontrados no CMDB
+- name: Debug - Servidores GCP encontrados no CMDB
   ansible.builtin.debug:
     msg: "Encontrados {{ cmdb_servers | length }} servidores GCP no CMDB"
+
+# ---------------------------------------------------------------------------
+# Consulta GLOBAL paginada para verificacao de Name
+#
+# O endpoint do Jira limita o retorno a 1000 objetos por requisicao.
+#
+# Por isso, a consulta abaixo percorre:
+#
+#   startAt=0
+#   startAt=1000
+#   startAt=2000
+#   ...
+#   startAt=19000
+#
+# Total maximo considerado: 20.000 objetos.
+#
+# Esta consulta NAO possui filtro de Datacenter porque o atributo Name
+# precisa ser verificado globalmente no Object Type Servidor.
+#
+# Esta lista e usada SOMENTE para CREATE/SKIP.
+#
+# A consulta anterior, filtrada por Google Cloud, continua sendo usada
+# para DEACTIVATE.
+# ---------------------------------------------------------------------------
+- name: Buscar todos os servidores do CMDB - paginado
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/aql?startAt={{ item }}&maxResults=1000"
+    method: POST
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    force_basic_auth: yes
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      qlQuery: 'objectTypeId = {{ object_type_id_servidor }}'
+    status_code: [200]
+    timeout: 60
+  register: cmdb_all_pages
+  environment: "{{ proxy_env | default({}) }}"
+  loop: "{{ range(0, 20000, 1000) | list }}"
+  loop_control:
+    label: "startAt={{ item }}"
+  retries: 3
+  delay: 5
+  until: cmdb_all_pages.status == 200
+
+# ---------------------------------------------------------------------------
+# Consolidar todas as paginas retornadas pelo Jira
+# ---------------------------------------------------------------------------
+- name: Inicializar lista global de servidores CMDB
+  ansible.builtin.set_fact:
+    cmdb_all_servers: []
+
+- name: Consolidar paginas do CMDB
+  ansible.builtin.set_fact:
+    cmdb_all_servers: >-
+      {{
+        cmdb_all_servers
+        + (item.json['values'] | default([]))
+      }}
+  loop: "{{ cmdb_all_pages.results }}"
+  loop_control:
+    label: "Pagina com {{ item.json['values'] | default([]) | length }} objetos"
+
+# ---------------------------------------------------------------------------
+# Gerar lista GLOBAL de Names
+#
+# Exemplo:
+#
+# cmdb_all_servers:
+#   - label: servidor01
+#   - label: servidor02
+#
+# vira:
+#
+# cmdb_server_names:
+#   - servidor01
+#   - servidor02
+#
+# Essa e a lista utilizada para decidir CREATE/SKIP.
+# ---------------------------------------------------------------------------
+- name: Extrair Names globais do CMDB
+  ansible.builtin.set_fact:
+    cmdb_server_names: >-
+      {{
+        cmdb_all_servers
+        | map(attribute='label')
+        | list
+      }}
+
+- name: Debug - Total de Names carregados do CMDB
+  ansible.builtin.debug:
+    msg:
+      - "Total de objetos carregados: {{ cmdb_all_servers | length }}"
+      - "Total de Names carregados: {{ cmdb_server_names | length }}"
+
+# ---------------------------------------------------------------------------
+# ALTERNATIVA FUTURA - NAO ATIVAR SEM VALIDACAO DO TIME DE CMDB
+# ---------------------------------------------------------------------------
+#
+# COMPORTAMENTO ATUAL:
+#
+#   Se o Name ja existir em QUALQUER servidor do CMDB:
+#       -> SKIP
+#
+# Isso evita:
+#
+#   "The attribute 'Name' has duplicated values"
+#
+#
+# CASO O TIME DE CMDB DECIDA QUE O INVENTARIO CLOUD DEVE SER A VERDADE:
+#
+# Nao basta remover a verificacao global.
+#
+# O comportamento recomendado nesse caso seria:
+#
+#   1. verificar se Name existe globalmente;
+#   2. verificar se pertence ao mesmo Datacenter;
+#   3. se existir fora de Google Cloud:
+#        trocar temporariamente name_cloud por _gcp_instance_id;
+#   4. criar o novo CI;
+#   5. posteriormente o time de CMDB realiza a reconciliacao.
+#
+# Exemplo:
+#
+#   Name existente:
+#       servidor01
+#
+#   Novo CI GCP:
+#       <gcp_instance_id>
+#
+# O _gcp_instance_id ja existe no cloud_data gerado pelo filtro GCP.
+#
+# NAO IMPLEMENTADO/ATIVO enquanto nao houver definicao do time de CMDB.
+# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # FASE 3: Comparar
@@ -4274,11 +4514,37 @@ ARQUIVO: gcp/roles/integration_assets_gcp/tasks/main.yml
   ansible.builtin.set_fact:
     gcp_instance_names: "{{ cloud_data_list | map(attribute='name_cloud') | list }}"
 
-- name: Determinar acoes
+- name: Determinar servidores a criar / skip / desativar
   ansible.builtin.set_fact:
-    servers_to_create:     "{{ cloud_data_list | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-    servers_to_skip:       "{{ cloud_data_list | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-    servers_to_deactivate: "{{ cmdb_servers | rejectattr('label', 'in', gcp_instance_names) | list }}"
+
+    # CREATE:
+    # Somente servidores cujo Name NAO existe em nenhum objeto do CMDB.
+    servers_to_create: >-
+      {{
+        cloud_data_list
+        | rejectattr('name_cloud', 'in', cmdb_server_names)
+        | list
+      }}
+
+    # SKIP:
+    # Servidores cujo Name ja existe em qualquer objeto do CMDB,
+    # independentemente do Datacenter.
+    servers_to_skip: >-
+      {{
+        cloud_data_list
+        | selectattr('name_cloud', 'in', cmdb_server_names)
+        | list
+      }}
+
+    # DEACTIVATE:
+    # Continua comparando SOMENTE contra os objetos classificados
+    # como Google Cloud.
+    servers_to_deactivate: >-
+      {{
+        cmdb_servers
+        | rejectattr('label', 'in', gcp_instance_names)
+        | list
+      }}
 
 - name: Resumo da comparacao
   ansible.builtin.debug:
@@ -4287,18 +4553,12 @@ ARQUIVO: gcp/roles/integration_assets_gcp/tasks/main.yml
       - "                    RESUMO DA SINCRONIZACAO"
       - "════════════════════════════════════════════════════════════════"
       - "Total instancias GCP: {{ cloud_data_list | length }}"
-      - "Total servidores CMDB: {{ cmdb_servers | length }}"
+      - "Total servidores GCP no CMDB: {{ cmdb_servers | length }}"
+      - "Total Names globais no CMDB: {{ cmdb_server_names | length }}"
       - "A CRIAR: {{ servers_to_create | length }}"
       - "EXISTENTES (skip): {{ servers_to_skip | length }}"
       - "A DESATIVAR: {{ servers_to_deactivate | length if enable_deactivation else '(desativado)' }}"
       - "════════════════════════════════════════════════════════════════"
-
-# ---------------------------------------------------------------------------
-# DRY RUN
-# ---------------------------------------------------------------------------
-- name: "DRY RUN - encerrar antes de escrever no CMDB"
-  ansible.builtin.meta: end_play
-  when: dry_run | default(false) | bool
 
 # ---------------------------------------------------------------------------
 # FASE 4: Executar sincronizacao
@@ -4311,7 +4571,6 @@ ARQUIVO: gcp/roles/integration_assets_gcp/tasks/main.yml
   loop_control:
     loop_var: server_item
     label: "{{ server_item.name_cloud }}"
-    pause: "{{ jira_create_delay_seconds | default(0.3) }}"
   when:
     - servers_to_create | length > 0
     - sync_mode == 'full' or sync_mode == 'create'
@@ -4333,7 +4592,6 @@ ARQUIVO: gcp/roles/integration_assets_gcp/tasks/main.yml
   loop_control:
     loop_var: server_item
     label: "{{ server_item.label }}"
-    pause: "{{ jira_create_delay_seconds | default(0.3) }}"
   when:
     - servers_to_deactivate | length > 0
     - sync_mode == 'full' or sync_mode == 'deactivate'
@@ -4342,27 +4600,17 @@ ARQUIVO: gcp/roles/integration_assets_gcp/tasks/main.yml
 # ---------------------------------------------------------------------------
 # FASE 5: Relatorio final
 # ---------------------------------------------------------------------------
-- name: "FASE 5 - Relatorio final"
+- name: Relatorio final
   ansible.builtin.debug:
     msg:
       - "════════════════════════════════════════════════════════════════"
       - "                    SINCRONIZACAO CONCLUIDA"
       - "════════════════════════════════════════════════════════════════"
-      - "Criados com sucesso: {{ sync_log_create | length }}"
-      - "Ignorados (ja existentes): {{ sync_log_skip | length }}"
-      - "Desativados: {{ sync_log_deactivate | length }}"
-      - "ERROS: {{ sync_log_errors | length }}"
-      - "────────────────────────────────────────────────────────────────"
-      - "{% for e in sync_log_errors %}- {{ e.name }} | status={{ e.status }} | {{ e.msg }}\n{% endfor %}"
+      - "Servidores criados: {{ sync_log_create | length }}"
+      - "{{ sync_log_create | join(', ') if sync_log_create else '(nenhum)' }}"
+      - "Servidores existentes (skip): {{ sync_log_skip | length }}"
+      - "Servidores desativados: {{ sync_log_deactivate | length }}"
       - "════════════════════════════════════════════════════════════════"
-
-- name: Falhar apenas se TODOS falharam
-  ansible.builtin.fail:
-    msg: "Sincronizacao falhou: TODOS os {{ servers_to_create | length }} servidores tiveram erro"
-  when:
-    - servers_to_create | length > 0
-    - sync_log_create | length == 0
-    - sync_log_errors | length >= servers_to_create | length
 ================================================================
 ARQUIVO: gcp/roles/integration_assets_gcp/tasks/manage_network_interface.yml
 ================================================================

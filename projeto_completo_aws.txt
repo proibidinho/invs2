@@ -115,16 +115,20 @@ ARQUIVO: aws/playbooks/sync_aws_cmdb.yml
 ARQUIVO: aws/playbooks/sync_single_aws.yml
 ================================================================
 # =============================================================================
-# Playbook: Testar sincronização AWS com servidores selecionados
+# Playbook: Testar sincronizacao AWS com servidores selecionados
 # =============================================================================
 # Uso:
 #   ansible-playbook playbooks/sync_single_aws.yml \
 #     -e '{"test_servers": ["i-abc.sa-east-1.compute.internal"]}'
+#
 #   ansible-playbook playbooks/sync_single_aws.yml -e "test_limit=5"
-#   ansible-playbook playbooks/sync_single_aws.yml -e "test_limit=5" -e "dry_run=true"
+#
+#   ansible-playbook playbooks/sync_single_aws.yml \
+#     -e "test_limit=5" \
+#     -e "dry_run=true"
 # =============================================================================
 ---
-- name: Testar sincronização AWS com servidores selecionados
+- name: Testar sincronizacao AWS com servidores selecionados
   hosts: localhost
   connection: local
   gather_facts: true
@@ -135,7 +139,7 @@ ARQUIVO: aws/playbooks/sync_single_aws.yml
     dry_run: false
 
   pre_tasks:
-    - name: Incluir variáveis do role
+    - name: Incluir variaveis do role
       ansible.builtin.include_vars:
         file: "{{ item }}"
       loop:
@@ -156,12 +160,11 @@ ARQUIVO: aws/playbooks/sync_single_aws.yml
           - test_servers | length > 0 or test_limit | int > 0
         fail_msg: "Defina test_servers (lista) ou test_limit (numero)"
 
-
-    - name: Exibir configuração
+    - name: Exibir configuracao
       ansible.builtin.debug:
         msg:
           - "════════════════════════════════════════════════════════════════"
-          - "          TESTE: SINCRONIZAÇÃO Azure → JIRA ASSETS"
+          - "          TESTE: SINCRONIZACAO AWS → JIRA ASSETS"
           - "════════════════════════════════════════════════════════════════"
           - "Servidores: {{ test_servers if test_servers | length > 0 else 'primeiros ' ~ test_limit }}"
           - "Dry Run: {{ dry_run }}"
@@ -171,6 +174,9 @@ ARQUIVO: aws/playbooks/sync_single_aws.yml
           - "════════════════════════════════════════════════════════════════"
 
   tasks:
+    # =========================================================================
+    # FASE 1: Buscar hosts do AAP
+    # =========================================================================
     - name: Buscar hosts do AAP
       ansible.builtin.uri:
         url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=500"
@@ -185,16 +191,18 @@ ARQUIVO: aws/playbooks/sync_single_aws.yml
       ansible.builtin.set_fact:
         all_cloud_data: >-
           {{ aap_hosts.json.results | batch_transform_aws_hosts(
-              modelo_servidor_map | default({}),
-              aws_vm_specs        | default({}),
-              owner_ids           | default({})
-            ) }}
-
+               modelo_servidor_map | default({}),
+               aws_vm_specs        | default({}),
+               owner_ids           | default({})
+             ) }}
 
     - name: "Log - hosts ignorados (EKS + sem ef_cmdb + desabilitados + invalidos)"
       ansible.builtin.debug:
         msg: "Hosts do AAP: {{ aap_hosts.json.results | length }} | Elegiveis para sync: {{ all_cloud_data | length }} | Ignorados: {{ aap_hosts.json.results | length - all_cloud_data | length }}"
 
+    # =========================================================================
+    # SELECAO
+    # =========================================================================
     - name: Selecionar por lista de nomes
       ansible.builtin.set_fact:
         selected_servers: "{{ all_cloud_data | selectattr('name_cloud', 'in', test_servers) | list }}"
@@ -224,16 +232,40 @@ ARQUIVO: aws/playbooks/sync_single_aws.yml
       ansible.builtin.meta: end_play
       when: dry_run | bool
 
-    # --- EXECUÇÃO REAL ---
+    # =========================================================================
+    # EXECUCAO REAL
+    # =========================================================================
     - name: Inicializar logs
       ansible.builtin.set_fact:
         sync_log_create: []
         sync_log_skip: []
         sync_log_errors: []
 
-    - name: Buscar servidores existentes no CMDB
+    # -------------------------------------------------------------------------
+    # CMDB - BUSCA GLOBAL PAGINADA
+    #
+    # O Jira limita cada resposta a 1000 objetos.
+    #
+    # Buscamos:
+    #
+    #   startAt=0
+    #   startAt=1000
+    #   startAt=2000
+    #   ...
+    #   startAt=19000
+    #
+    # Capacidade: ate 20.000 objetos.
+    #
+    # IMPORTANTE:
+    #
+    # Nao filtramos Datacenter aqui.
+    #
+    # Para CREATE/SKIP precisamos verificar se o Name existe em QUALQUER
+    # objeto do Object Type 121.
+    # -------------------------------------------------------------------------
+    - name: Buscar servidores existentes no CMDB - paginado
       ansible.builtin.uri:
-        url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
+        url: "{{ jira_url }}/object/aql?startAt={{ item }}&maxResults=1000"
         method: POST
         headers:
           Accept: "application/json"
@@ -242,21 +274,75 @@ ARQUIVO: aws/playbooks/sync_single_aws.yml
         user: "{{ jira_user }}"
         password: "{{ jira_password }}"
         body:
-          qlQuery: 'objectTypeId = 121 AND Datacenter = "AWS"'
+          qlQuery: 'objectTypeId = 121'
         body_format: json
-      register: cmdb_result
+        status_code: [200]
+        timeout: 60
+      register: cmdb_pages
       environment: "{{ proxy_env | default({}) }}"
+      loop: "{{ range(0, 20000, 1000) | list }}"
+      loop_control:
+        label: "startAt={{ item }}"
+      retries: 3
+      delay: 5
+      until: cmdb_pages.status == 200
 
-    - name: Extrair nomes do CMDB
+    # -------------------------------------------------------------------------
+    # Consolidar todas as paginas
+    # -------------------------------------------------------------------------
+    - name: Inicializar lista de servidores do CMDB
       ansible.builtin.set_fact:
-        cmdb_server_names: "{{ cmdb_result.json['values'] | default([]) | map(attribute='label') | list }}"
+        cmdb_all_servers: []
 
+    - name: Consolidar paginas do CMDB
+      ansible.builtin.set_fact:
+        cmdb_all_servers: >-
+          {{
+            cmdb_all_servers
+            + (item.json['values'] | default([]))
+          }}
+      loop: "{{ cmdb_pages.results }}"
+      loop_control:
+        label: "Pagina com {{ item.json['values'] | default([]) | length }} objetos"
+
+    # -------------------------------------------------------------------------
+    # Extrair lista global de Names
+    # -------------------------------------------------------------------------
+    - name: Extrair nomes globais do CMDB
+      ansible.builtin.set_fact:
+        cmdb_server_names: >-
+          {{
+            cmdb_all_servers
+            | map(attribute='label')
+            | list
+          }}
+
+    - name: Debug - Total de servidores carregados do CMDB
+      ansible.builtin.debug:
+        msg:
+          - "Total de objetos carregados: {{ cmdb_all_servers | length }}"
+          - "Total de Names carregados: {{ cmdb_server_names | length }}"
+
+    # -------------------------------------------------------------------------
+    # CREATE / SKIP
+    # -------------------------------------------------------------------------
     - name: Separar servidores a criar e existentes (skip)
       ansible.builtin.set_fact:
-        servers_to_create: "{{ selected_servers | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-        servers_to_skip: "{{ selected_servers | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+        servers_to_create: >-
+          {{
+            selected_servers
+            | rejectattr('name_cloud', 'in', cmdb_server_names)
+            | list
+          }}
 
-    - name: Resumo das ações
+        servers_to_skip: >-
+          {{
+            selected_servers
+            | selectattr('name_cloud', 'in', cmdb_server_names)
+            | list
+          }}
+
+    - name: Resumo das acoes
       ansible.builtin.debug:
         msg:
           - "════════════════════════════════════════════════════════════════"
@@ -266,6 +352,9 @@ ARQUIVO: aws/playbooks/sync_single_aws.yml
           - "{% for s in servers_to_skip %}- {{ s.name_cloud }} (preservando dados manuais)\n{% endfor %}"
           - "════════════════════════════════════════════════════════════════"
 
+    # -------------------------------------------------------------------------
+    # CREATE
+    # -------------------------------------------------------------------------
     - name: Criar servidores
       ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/integration_assets_aws/tasks/create.yml"
       vars:
@@ -275,6 +364,9 @@ ARQUIVO: aws/playbooks/sync_single_aws.yml
         label: "{{ item.name_cloud }}"
       when: servers_to_create | length > 0
 
+    # -------------------------------------------------------------------------
+    # SKIP
+    # -------------------------------------------------------------------------
     - name: Registrar servidores existentes (skip)
       ansible.builtin.set_fact:
         sync_log_skip: "{{ sync_log_skip + [item.name_cloud] }}"
@@ -283,16 +375,20 @@ ARQUIVO: aws/playbooks/sync_single_aws.yml
         label: "{{ item.name_cloud }}"
       when: servers_to_skip | length > 0
 
+    # -------------------------------------------------------------------------
+    # RESULTADO
+    # -------------------------------------------------------------------------
     - name: Resultado final
       ansible.builtin.debug:
         msg:
           - "════════════════════════════════════════════════════════════════"
-          - "                    TESTE CONCLUÍDO"
+          - "                    TESTE CONCLUIDO"
           - "════════════════════════════════════════════════════════════════"
+          - "Selecionados: {{ selected_servers | length }}"
           - "Criados: {{ sync_log_create | length }}"
           - "Existentes (skip): {{ sync_log_skip | length }}"
+          - "Erros: {{ sync_log_errors | length }}"
           - "════════════════════════════════════════════════════════════════"
-
 ================================================================
 ARQUIVO: aws/readme.md
 ================================================================
@@ -1628,6 +1724,16 @@ ARQUIVO: aws/roles/integration_assets_aws/tasks/main.yml
   ansible.builtin.debug:
     msg: "════════════════════════════════════════════════════════════════"
 
+# ---------------------------------------------------------------------------
+# Consulta especifica AWS
+#
+# Esta consulta continua filtrada por Datacenter = "AWS".
+#
+# Ela e usada para montar cmdb_servers, que posteriormente participa
+# exclusivamente da identificacao dos servidores que podem ser DESATIVADOS.
+#
+# NAO remover o filtro de Datacenter desta consulta.
+# ---------------------------------------------------------------------------
 - name: Buscar servidores AWS existentes no CMDB
   ansible.builtin.uri:
     url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
@@ -1649,14 +1755,133 @@ ARQUIVO: aws/roles/integration_assets_aws/tasks/main.yml
   delay: 5
   until: cmdb_servers_result.status == 200
 
-- name: Parsear servidores do CMDB
+- name: Parsear servidores AWS do CMDB
   ansible.builtin.set_fact:
     cmdb_servers: "{{ cmdb_servers_result.json['values'] | default([]) }}"
-    cmdb_server_names: "{{ cmdb_servers_result.json['values'] | default([]) | map(attribute='label') | list }}"
 
-- name: Debug - Servidores encontrados no CMDB
+- name: Debug - Servidores AWS encontrados no CMDB
   ansible.builtin.debug:
     msg: "Encontrados {{ cmdb_servers | length }} servidores AWS no CMDB"
+
+# ---------------------------------------------------------------------------
+# Consulta GLOBAL paginada para verificacao de Name
+#
+# O endpoint do Jira limita o retorno a 1000 objetos por requisicao.
+#
+# Por isso, a consulta abaixo percorre:
+#
+#   startAt=0
+#   startAt=1000
+#   startAt=2000
+#   ...
+#   startAt=19000
+#
+# Total maximo considerado: 20.000 objetos.
+#
+# Esta consulta NAO possui filtro de Datacenter porque o atributo Name
+# precisa ser verificado globalmente no Object Type Servidor.
+#
+# Esta lista e usada SOMENTE para CREATE/SKIP.
+#
+# A consulta anterior, filtrada por AWS, continua sendo usada
+# para DEACTIVATE.
+# ---------------------------------------------------------------------------
+- name: Buscar todos os servidores do CMDB - paginado
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/aql?startAt={{ item }}&maxResults=1000"
+    method: POST
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    force_basic_auth: yes
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      qlQuery: 'objectTypeId = {{ object_type_id_servidor }}'
+    status_code: [200]
+    timeout: 60
+  register: cmdb_all_pages
+  environment: "{{ proxy_env | default({}) }}"
+  loop: "{{ range(0, 20000, 1000) | list }}"
+  loop_control:
+    label: "startAt={{ item }}"
+  retries: 3
+  delay: 5
+  until: cmdb_all_pages.status == 200
+
+# ---------------------------------------------------------------------------
+# Consolidar todas as paginas retornadas pelo Jira
+# ---------------------------------------------------------------------------
+- name: Inicializar lista global de servidores CMDB
+  ansible.builtin.set_fact:
+    cmdb_all_servers: []
+
+- name: Consolidar paginas do CMDB
+  ansible.builtin.set_fact:
+    cmdb_all_servers: >-
+      {{
+        cmdb_all_servers
+        + (item.json['values'] | default([]))
+      }}
+  loop: "{{ cmdb_all_pages.results }}"
+  loop_control:
+    label: "Pagina com {{ item.json['values'] | default([]) | length }} objetos"
+
+# ---------------------------------------------------------------------------
+# Gerar lista GLOBAL de Names
+# ---------------------------------------------------------------------------
+- name: Extrair Names globais do CMDB
+  ansible.builtin.set_fact:
+    cmdb_server_names: >-
+      {{
+        cmdb_all_servers
+        | map(attribute='label')
+        | list
+      }}
+
+- name: Debug - Total de Names carregados do CMDB
+  ansible.builtin.debug:
+    msg:
+      - "Total de objetos carregados: {{ cmdb_all_servers | length }}"
+      - "Total de Names carregados: {{ cmdb_server_names | length }}"
+
+# ---------------------------------------------------------------------------
+# ALTERNATIVA FUTURA - NAO ATIVAR SEM VALIDACAO DO TIME DE CMDB
+# ---------------------------------------------------------------------------
+#
+# COMPORTAMENTO ATUAL:
+#
+#   Se o Name ja existir em QUALQUER servidor do CMDB:
+#       -> SKIP
+#
+# Isso evita:
+#   "The attribute 'Name' has duplicated values"
+#
+#
+# CASO O TIME DE CMDB DECIDA QUE O INVENTARIO CLOUD DEVE SER A VERDADE:
+#
+# Nao basta remover a verificacao global.
+#
+# O comportamento recomendado nesse caso seria:
+#
+#   1. verificar se Name existe globalmente;
+#   2. verificar se pertence ao mesmo Datacenter;
+#   3. se existir fora de AWS:
+#        trocar temporariamente name_cloud por _aws_instance_id;
+#   4. criar o novo CI;
+#   5. posteriormente o time de CMDB realiza a reconciliacao.
+#
+# Exemplo:
+#
+#   Name existente:
+#       servidor01
+#
+#   Novo CI AWS:
+#       i-0123456789abcdef0
+#
+# NAO IMPLEMENTADO/ATIVO enquanto nao houver definicao do time de CMDB.
+# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # FASE 3: Comparar
@@ -1667,9 +1892,34 @@ ARQUIVO: aws/roles/integration_assets_aws/tasks/main.yml
 
 - name: Determinar acoes
   ansible.builtin.set_fact:
-    servers_to_create:     "{{ cloud_data_list | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-    servers_to_skip:       "{{ cloud_data_list | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-    servers_to_deactivate: "{{ cmdb_servers | rejectattr('label', 'in', aws_instance_names) | list }}"
+
+    # CREATE:
+    # Somente servidores cujo Name NAO existe em nenhum objeto do CMDB.
+    servers_to_create: >-
+      {{
+        cloud_data_list
+        | rejectattr('name_cloud', 'in', cmdb_server_names)
+        | list
+      }}
+
+    # SKIP:
+    # Servidores cujo Name ja existe em qualquer objeto do CMDB,
+    # independentemente do Datacenter.
+    servers_to_skip: >-
+      {{
+        cloud_data_list
+        | selectattr('name_cloud', 'in', cmdb_server_names)
+        | list
+      }}
+
+    # DEACTIVATE:
+    # Continua comparando SOMENTE contra os objetos classificados como AWS.
+    servers_to_deactivate: >-
+      {{
+        cmdb_servers
+        | rejectattr('label', 'in', aws_instance_names)
+        | list
+      }}
 
 - name: Resumo da comparacao
   ansible.builtin.debug:
@@ -1678,7 +1928,8 @@ ARQUIVO: aws/roles/integration_assets_aws/tasks/main.yml
       - "                    RESUMO DA SINCRONIZACAO"
       - "════════════════════════════════════════════════════════════════"
       - "Total instancias AWS: {{ cloud_data_list | length }}"
-      - "Total servidores CMDB: {{ cmdb_servers | length }}"
+      - "Total servidores AWS no CMDB: {{ cmdb_servers | length }}"
+      - "Total Names globais no CMDB: {{ cmdb_server_names | length }}"
       - "A CRIAR: {{ servers_to_create | length }}"
       - "EXISTENTES (skip): {{ servers_to_skip | length }}"
       - "A DESATIVAR: {{ servers_to_deactivate | length if enable_deactivation else '(desativado)' }}"

@@ -83,31 +83,39 @@
     msg: "Encontrados {{ cmdb_servers | length }} servidores AWS no CMDB"
 
 # ---------------------------------------------------------------------------
-# Consulta GLOBAL paginada para verificacao de Name
+# Consulta GLOBAL direcionada para verificacao de Name
 #
-# O endpoint do Jira limita o retorno a 1000 objetos por requisicao.
+# Em vez de carregar 20.000+ objetos do CMDB, consultamos somente os Names
+# que realmente existem no inventario desta cloud.
 #
-# Por isso, a consulta abaixo percorre:
+# A consulta NAO possui filtro de Datacenter porque o atributo Name precisa
+# ser verificado globalmente no Object Type Servidor.
 #
-#   startAt=0
-#   startAt=1000
-#   startAt=2000
-#   ...
-#   startAt=19000
-#
-# Total maximo considerado: 20.000 objetos.
-#
-# Esta consulta NAO possui filtro de Datacenter porque o atributo Name
-# precisa ser verificado globalmente no Object Type Servidor.
+# Os Names sao enviados em lotes de 200 para evitar uma AQL excessivamente
+# grande. Cada lote retorna no maximo 200 objetos, portanto nao depende da
+# paginacao global do CMDB.
 #
 # Esta lista e usada SOMENTE para CREATE/SKIP.
-#
-# A consulta anterior, filtrada por AWS, continua sendo usada
-# para DEACTIVATE.
+# A consulta anterior, filtrada por Datacenter, continua sendo usada para
+# DEACTIVATE.
 # ---------------------------------------------------------------------------
-- name: Buscar todos os servidores do CMDB - paginado
+- name: Extrair Names da cloud para consulta no CMDB
+  ansible.builtin.set_fact:
+    cloud_server_names: >-
+      {{
+        cloud_data_list
+        | map(attribute='name_cloud')
+        | unique
+        | list
+      }}
+
+- name: Dividir Names em lotes de 200
+  ansible.builtin.set_fact:
+    cloud_server_name_batches: "{{ cloud_server_names | batch(200) | map('list') | list }}"
+
+- name: Buscar no CMDB somente os Names existentes no AAP
   ansible.builtin.uri:
-    url: "{{ jira_url }}/object/aql?startAt={{ item }}&maxResults=1000"
+    url: "{{ jira_url }}/object/aql?startAt=0&maxResults=200"
     method: POST
     headers:
       Accept: "application/json"
@@ -117,53 +125,47 @@
     user: "{{ jira_user }}"
     password: "{{ jira_password }}"
     body:
-      qlQuery: 'objectTypeId = {{ object_type_id_servidor }}'
+      qlQuery: 'objectTypeId = {{ object_type_id_servidor }} AND Name IN ({{ item | map("to_json") | join(", ") }})'
     status_code: [200]
     timeout: 60
-  register: cmdb_all_pages
+  register: cmdb_name_batches_result
   environment: "{{ proxy_env | default({}) }}"
-  loop: "{{ range(0, 20000, 1000) | list }}"
+  loop: "{{ cloud_server_name_batches }}"
   loop_control:
-    label: "startAt={{ item }}"
+    label: "Lote com {{ item | length }} Names"
   retries: 3
   delay: 5
-  until: cmdb_all_pages.status == 200
+  until: cmdb_name_batches_result.status == 200
+  when: item | length > 0
 
-# ---------------------------------------------------------------------------
-# Consolidar todas as paginas retornadas pelo Jira
-# ---------------------------------------------------------------------------
-- name: Inicializar lista global de servidores CMDB
+- name: Inicializar lista de Names encontrados no CMDB
   ansible.builtin.set_fact:
-    cmdb_all_servers: []
+    cmdb_server_names: []
 
-- name: Consolidar paginas do CMDB
-  ansible.builtin.set_fact:
-    cmdb_all_servers: >-
-      {{
-        cmdb_all_servers
-        + (item.json['values'] | default([]))
-      }}
-  loop: "{{ cmdb_all_pages.results }}"
-  loop_control:
-    label: "Pagina com {{ item.json['values'] | default([]) | length }} objetos"
-
-# ---------------------------------------------------------------------------
-# Gerar lista GLOBAL de Names
-# ---------------------------------------------------------------------------
-- name: Extrair Names globais do CMDB
+- name: Consolidar Names encontrados no CMDB
   ansible.builtin.set_fact:
     cmdb_server_names: >-
       {{
-        cmdb_all_servers
-        | map(attribute='label')
-        | list
+        cmdb_server_names
+        + (item.json['values'] | default([]) | map(attribute='label') | list)
       }}
+  loop: "{{ cmdb_name_batches_result.results | default([]) }}"
+  loop_control:
+    label: "{{ item.json['values'] | default([]) | length }} Names encontrados"
+  when:
+    - not (item.skipped | default(false))
+    - item.json is defined
 
-- name: Debug - Total de Names carregados do CMDB
+- name: Normalizar lista de Names encontrados no CMDB
+  ansible.builtin.set_fact:
+    cmdb_server_names: "{{ cmdb_server_names | unique | list }}"
+
+- name: Debug - Consulta direcionada por Name
   ansible.builtin.debug:
     msg:
-      - "Total de objetos carregados: {{ cmdb_all_servers | length }}"
-      - "Total de Names carregados: {{ cmdb_server_names | length }}"
+      - "Names consultados: {{ cloud_server_names | length }}"
+      - "Lotes AQL: {{ cloud_server_name_batches | length }}"
+      - "Names ja existentes no CMDB: {{ cmdb_server_names | length }}"
 
 # ---------------------------------------------------------------------------
 # ALTERNATIVA FUTURA - NAO ATIVAR SEM VALIDACAO DO TIME DE CMDB
