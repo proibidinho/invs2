@@ -57,6 +57,9 @@
           - "════════════════════════════════════════════════════════════════"
 
   tasks:
+    # -------------------------------------------------------------------------
+    # AAP
+    # -------------------------------------------------------------------------
     - name: Buscar hosts do AAP
       ansible.builtin.uri:
         url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=500"
@@ -98,6 +101,9 @@
       ansible.builtin.debug:
         msg: "Hosts AAP: {{ all_host_vars | length }} | Elegiveis: {{ all_cloud_data | length }} | Ignorados: {{ all_host_vars | length - all_cloud_data | length }}"
 
+    # -------------------------------------------------------------------------
+    # SELECAO DOS SERVIDORES DE TESTE
+    # -------------------------------------------------------------------------
     - name: Selecionar por lista de nomes
       ansible.builtin.set_fact:
         selected_servers: "{{ all_cloud_data | selectattr('name_cloud', 'in', test_servers) | list }}"
@@ -119,15 +125,40 @@
       ansible.builtin.meta: end_play
       when: dry_run | bool
 
-    # --- EXECUCAO REAL ---
+    # =========================================================================
+    # EXECUCAO REAL
+    # =========================================================================
     - name: Inicializar logs
       ansible.builtin.set_fact:
         sync_log_create: []
         sync_log_skip: []
 
-    - name: Buscar servidores existentes no CMDB
+    # -------------------------------------------------------------------------
+    # CMDB - BUSCA DIRECIONADA PELOS Names SELECIONADOS
+    #
+    # Nao carregamos mais os 20.000+ objetos do CMDB. Consultamos somente os
+    # Names dos servidores selecionados neste teste, em lotes de 200.
+    #
+    # A busca continua GLOBAL no Object Type 121, sem filtro de Datacenter,
+    # para impedir CREATE quando o mesmo Name ja existir em qualquer origem.
+    # -------------------------------------------------------------------------
+    - name: Extrair Names selecionados para consulta no CMDB
+      ansible.builtin.set_fact:
+        cloud_server_names: >-
+          {{
+            selected_servers
+            | map(attribute='name_cloud')
+            | unique
+            | list
+          }}
+
+    - name: Dividir Names em lotes de 200
+      ansible.builtin.set_fact:
+        cloud_server_name_batches: "{{ cloud_server_names | batch(200) | map('list') | list }}"
+
+    - name: Buscar no CMDB somente os Names selecionados
       ansible.builtin.uri:
-        url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
+        url: "{{ jira_url }}/object/aql?startAt=0&maxResults=200"
         method: POST
         headers:
           Accept: "application/json"
@@ -136,31 +167,57 @@
         user: "{{ jira_user }}"
         password: "{{ jira_password }}"
         body:
-          qlQuery: 'objectTypeId = 121 AND Datacenter = "Google Cloud"'
+          qlQuery: 'objectTypeId = 121 AND Name IN ({{ item | map("to_json") | join(", ") }})'
         body_format: json
-      register: cmdb_result
+        status_code: [200]
+        timeout: 60
+      register: cmdb_name_batches_result
       environment: "{{ proxy_env | default({}) }}"
-
-    - name: Separar servidores a criar e existentes
-      ansible.builtin.set_fact:
-        cmdb_server_names: "{{ cmdb_result.json['values'] | default([]) | map(attribute='label') | list }}"
-
-    - name: Determinar acoes
-      ansible.builtin.set_fact:
-        servers_to_create: "{{ selected_servers | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-        servers_to_skip:   "{{ selected_servers | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-
-    - name: Criar servidores
-      ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/integration_assets_gcp/tasks/create.yml"
-      vars:
-        current_cloud_data: "{{ item }}"
-      loop: "{{ servers_to_create }}"
+      loop: "{{ cloud_server_name_batches }}"
       loop_control:
-        label: "{{ item.name_cloud }}"
-      when: servers_to_create | length > 0
+        label: "Lote com {{ item | length }} Names"
+      retries: 3
+      delay: 5
+      until: cmdb_name_batches_result.status == 200
+      when: item | length > 0
 
+    - name: Inicializar lista de Names encontrados no CMDB
+      ansible.builtin.set_fact:
+        cmdb_server_names: []
+
+    - name: Consolidar Names encontrados no CMDB
+      ansible.builtin.set_fact:
+        cmdb_server_names: >-
+          {{
+            cmdb_server_names
+            + (item.json['values'] | default([]) | map(attribute='label') | list)
+          }}
+      loop: "{{ cmdb_name_batches_result.results | default([]) }}"
+      loop_control:
+        label: "{{ item.json['values'] | default([]) | length }} Names encontrados"
+      when:
+        - not (item.skipped | default(false))
+        - item.json is defined
+
+    - name: Normalizar lista de Names encontrados no CMDB
+      ansible.builtin.set_fact:
+        cmdb_server_names: "{{ cmdb_server_names | unique | list }}"
+
+    - name: Debug - Consulta direcionada por Name
+      ansible.builtin.debug:
+        msg:
+          - "Names consultados: {{ cloud_server_names | length }}"
+          - "Lotes AQL: {{ cloud_server_name_batches | length }}"
+          - "Names ja existentes no CMDB: {{ cmdb_server_names | length }}"
+
+    # -------------------------------------------------------------------------
     - name: Resultado final
       ansible.builtin.debug:
         msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "                    RESULTADO DO TESTE"
+          - "════════════════════════════════════════════════════════════════"
+          - "Selecionados: {{ selected_servers | length }}"
           - "Criados: {{ sync_log_create | length }}"
           - "Existentes (skip): {{ servers_to_skip | length }}"
+          - "════════════════════════════════════════════════════════════════"

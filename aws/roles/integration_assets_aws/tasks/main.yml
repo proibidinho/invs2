@@ -43,6 +43,16 @@
   ansible.builtin.debug:
     msg: "════════════════════════════════════════════════════════════════"
 
+# ---------------------------------------------------------------------------
+# Consulta especifica AWS
+#
+# Esta consulta continua filtrada por Datacenter = "AWS".
+#
+# Ela e usada para montar cmdb_servers, que posteriormente participa
+# exclusivamente da identificacao dos servidores que podem ser DESATIVADOS.
+#
+# NAO remover o filtro de Datacenter desta consulta.
+# ---------------------------------------------------------------------------
 - name: Buscar servidores AWS existentes no CMDB
   ansible.builtin.uri:
     url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
@@ -64,14 +74,135 @@
   delay: 5
   until: cmdb_servers_result.status == 200
 
-- name: Parsear servidores do CMDB
+- name: Parsear servidores AWS do CMDB
   ansible.builtin.set_fact:
     cmdb_servers: "{{ cmdb_servers_result.json['values'] | default([]) }}"
-    cmdb_server_names: "{{ cmdb_servers_result.json['values'] | default([]) | map(attribute='label') | list }}"
 
-- name: Debug - Servidores encontrados no CMDB
+- name: Debug - Servidores AWS encontrados no CMDB
   ansible.builtin.debug:
     msg: "Encontrados {{ cmdb_servers | length }} servidores AWS no CMDB"
+
+# ---------------------------------------------------------------------------
+# Consulta GLOBAL direcionada para verificacao de Name
+#
+# Em vez de carregar 20.000+ objetos do CMDB, consultamos somente os Names
+# que realmente existem no inventario desta cloud.
+#
+# A consulta NAO possui filtro de Datacenter porque o atributo Name precisa
+# ser verificado globalmente no Object Type Servidor.
+#
+# Os Names sao enviados em lotes de 200 para evitar uma AQL excessivamente
+# grande. Cada lote retorna no maximo 200 objetos, portanto nao depende da
+# paginacao global do CMDB.
+#
+# Esta lista e usada SOMENTE para CREATE/SKIP.
+# A consulta anterior, filtrada por Datacenter, continua sendo usada para
+# DEACTIVATE.
+# ---------------------------------------------------------------------------
+- name: Extrair Names da cloud para consulta no CMDB
+  ansible.builtin.set_fact:
+    cloud_server_names: >-
+      {{
+        cloud_data_list
+        | map(attribute='name_cloud')
+        | unique
+        | list
+      }}
+
+- name: Dividir Names em lotes de 200
+  ansible.builtin.set_fact:
+    cloud_server_name_batches: "{{ cloud_server_names | batch(200) | map('list') | list }}"
+
+- name: Buscar no CMDB somente os Names existentes no AAP
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/aql?startAt=0&maxResults=200"
+    method: POST
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    force_basic_auth: yes
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      qlQuery: 'objectTypeId = {{ object_type_id_servidor }} AND Name IN ({{ item | map("to_json") | join(", ") }})'
+    status_code: [200]
+    timeout: 60
+  register: cmdb_name_batches_result
+  environment: "{{ proxy_env | default({}) }}"
+  loop: "{{ cloud_server_name_batches }}"
+  loop_control:
+    label: "Lote com {{ item | length }} Names"
+  retries: 3
+  delay: 5
+  until: cmdb_name_batches_result.status == 200
+  when: item | length > 0
+
+- name: Inicializar lista de Names encontrados no CMDB
+  ansible.builtin.set_fact:
+    cmdb_server_names: []
+
+- name: Consolidar Names encontrados no CMDB
+  ansible.builtin.set_fact:
+    cmdb_server_names: >-
+      {{
+        cmdb_server_names
+        + (item.json['values'] | default([]) | map(attribute='label') | list)
+      }}
+  loop: "{{ cmdb_name_batches_result.results | default([]) }}"
+  loop_control:
+    label: "{{ item.json['values'] | default([]) | length }} Names encontrados"
+  when:
+    - not (item.skipped | default(false))
+    - item.json is defined
+
+- name: Normalizar lista de Names encontrados no CMDB
+  ansible.builtin.set_fact:
+    cmdb_server_names: "{{ cmdb_server_names | unique | list }}"
+
+- name: Debug - Consulta direcionada por Name
+  ansible.builtin.debug:
+    msg:
+      - "Names consultados: {{ cloud_server_names | length }}"
+      - "Lotes AQL: {{ cloud_server_name_batches | length }}"
+      - "Names ja existentes no CMDB: {{ cmdb_server_names | length }}"
+
+# ---------------------------------------------------------------------------
+# ALTERNATIVA FUTURA - NAO ATIVAR SEM VALIDACAO DO TIME DE CMDB
+# ---------------------------------------------------------------------------
+#
+# COMPORTAMENTO ATUAL:
+#
+#   Se o Name ja existir em QUALQUER servidor do CMDB:
+#       -> SKIP
+#
+# Isso evita:
+#   "The attribute 'Name' has duplicated values"
+#
+#
+# CASO O TIME DE CMDB DECIDA QUE O INVENTARIO CLOUD DEVE SER A VERDADE:
+#
+# Nao basta remover a verificacao global.
+#
+# O comportamento recomendado nesse caso seria:
+#
+#   1. verificar se Name existe globalmente;
+#   2. verificar se pertence ao mesmo Datacenter;
+#   3. se existir fora de AWS:
+#        trocar temporariamente name_cloud por _aws_instance_id;
+#   4. criar o novo CI;
+#   5. posteriormente o time de CMDB realiza a reconciliacao.
+#
+# Exemplo:
+#
+#   Name existente:
+#       servidor01
+#
+#   Novo CI AWS:
+#       i-0123456789abcdef0
+#
+# NAO IMPLEMENTADO/ATIVO enquanto nao houver definicao do time de CMDB.
+# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # FASE 3: Comparar
@@ -82,9 +213,34 @@
 
 - name: Determinar acoes
   ansible.builtin.set_fact:
-    servers_to_create:     "{{ cloud_data_list | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-    servers_to_skip:       "{{ cloud_data_list | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-    servers_to_deactivate: "{{ cmdb_servers | rejectattr('label', 'in', aws_instance_names) | list }}"
+
+    # CREATE:
+    # Somente servidores cujo Name NAO existe em nenhum objeto do CMDB.
+    servers_to_create: >-
+      {{
+        cloud_data_list
+        | rejectattr('name_cloud', 'in', cmdb_server_names)
+        | list
+      }}
+
+    # SKIP:
+    # Servidores cujo Name ja existe em qualquer objeto do CMDB,
+    # independentemente do Datacenter.
+    servers_to_skip: >-
+      {{
+        cloud_data_list
+        | selectattr('name_cloud', 'in', cmdb_server_names)
+        | list
+      }}
+
+    # DEACTIVATE:
+    # Continua comparando SOMENTE contra os objetos classificados como AWS.
+    servers_to_deactivate: >-
+      {{
+        cmdb_servers
+        | rejectattr('label', 'in', aws_instance_names)
+        | list
+      }}
 
 - name: Resumo da comparacao
   ansible.builtin.debug:
@@ -93,7 +249,8 @@
       - "                    RESUMO DA SINCRONIZACAO"
       - "════════════════════════════════════════════════════════════════"
       - "Total instancias AWS: {{ cloud_data_list | length }}"
-      - "Total servidores CMDB: {{ cmdb_servers | length }}"
+      - "Total servidores AWS no CMDB: {{ cmdb_servers | length }}"
+      - "Total Names globais no CMDB: {{ cmdb_server_names | length }}"
       - "A CRIAR: {{ servers_to_create | length }}"
       - "EXISTENTES (skip): {{ servers_to_skip | length }}"
       - "A DESATIVAR: {{ servers_to_deactivate | length if enable_deactivation else '(desativado)' }}"
