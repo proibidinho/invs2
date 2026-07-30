@@ -46,6 +46,8 @@
   ansible.builtin.debug:
     msg: "════════════════════════════════════════════════════════════════"
 
+# Esta consulta continua filtrada por Azure porque cmdb_servers e usado
+# posteriormente para determinar os servidores candidatos a desativacao.
 - name: Buscar servidores Azure existentes no CMDB
   ansible.builtin.uri:
     url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
@@ -67,14 +69,103 @@
   delay: 5
   until: cmdb_servers_result.status == 200
 
-- name: Parsear servidores do CMDB
+- name: Parsear servidores Azure do CMDB
   ansible.builtin.set_fact:
     cmdb_servers: "{{ cmdb_servers_result.json['values'] | default([]) }}"
-    cmdb_server_names: "{{ cmdb_servers_result.json['values'] | default([]) | map(attribute='label') | list }}"
 
-- name: Debug - Servidores encontrados no CMDB
+- name: Debug - Servidores Azure encontrados no CMDB
   ansible.builtin.debug:
     msg: "Encontrados {{ cmdb_servers | length }} servidores Azure no CMDB"
+
+# ---------------------------------------------------------------------------
+# VERIFICACAO GLOBAL DE NAME
+#
+# O atributo Name e unico no Object Type Servidor.
+#
+# Portanto, para decidir CREATE/SKIP, nao podemos olhar somente servidores
+# cujo Datacenter = Azure.
+#
+# Exemplo real:
+#
+#   Name: vmzbxprx01
+#   Datacenter: vazio/outro
+#
+# Mesmo nao sendo Azure, o Jira nao permite criar outro objeto com o mesmo Name.
+#
+# Esta consulta global e usada SOMENTE para CREATE/SKIP.
+# A consulta Azure acima continua sendo usada para DEACTIVATE.
+# ---------------------------------------------------------------------------
+- name: Buscar todos os Names existentes no CMDB
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/aql?startAt=0&maxResults=10000"
+    method: POST
+    headers:
+      Accept: "application/json"
+      Content-Type: "application/json"
+    body_format: json
+    force_basic_auth: yes
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      qlQuery: 'objectTypeId = {{ object_type_id_servidor }}'
+    status_code: [200]
+    timeout: 60
+  register: cmdb_all_servers_result
+  environment: "{{ proxy_env | default({}) }}"
+  retries: 3
+  delay: 5
+  until: cmdb_all_servers_result.status == 200
+
+- name: Extrair Names globais do CMDB
+  ansible.builtin.set_fact:
+    cmdb_server_names: >-
+      {{
+        cmdb_all_servers_result.json['values']
+        | default([])
+        | map(attribute='label')
+        | list
+      }}
+
+- name: Debug - Names globais encontrados no CMDB
+  ansible.builtin.debug:
+    msg: "Encontrados {{ cmdb_server_names | length }} Names de servidores no CMDB"
+
+# ---------------------------------------------------------------------------
+# ALTERNATIVA FUTURA - NAO ATIVAR SEM VALIDACAO DO TIME DE CMDB
+# ---------------------------------------------------------------------------
+#
+# COMPORTAMENTO ATUAL:
+#
+#   Se o Name ja existir em QUALQUER servidor do CMDB:
+#       -> SKIP
+#
+# Isso evita:
+#   "The attribute 'Name' has duplicated values"
+#
+#
+# CASO O TIME DE CMDB DECIDA QUE O INVENTARIO CLOUD DEVE SER A VERDADE:
+#
+# Nao basta remover a verificacao global.
+#
+# O comportamento recomendado nesse caso seria:
+#
+#   1. verificar se Name existe globalmente;
+#   2. verificar se pertence ao mesmo Datacenter;
+#   3. se existir fora de Azure:
+#        trocar temporariamente name_cloud por azure_vm_id;
+#   4. criar o novo CI;
+#   5. posteriormente o time de CMDB realiza a reconciliacao.
+#
+# Exemplo:
+#
+#   Name existente:
+#       vmzbxprx01
+#
+#   Novo CI Azure:
+#       <azure_vm_id>
+#
+# NAO IMPLEMENTADO/ATIVO enquanto nao houver definicao do time de CMDB.
+# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # FASE 3: Comparar
@@ -85,8 +176,12 @@
 
 - name: Determinar acoes
   ansible.builtin.set_fact:
-    servers_to_create:     "{{ cloud_data_list | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-    servers_to_skip:       "{{ cloud_data_list | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+
+    # CREATE/SKIP usa a lista GLOBAL de Names.
+    servers_to_create: "{{ cloud_data_list | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+    servers_to_skip: "{{ cloud_data_list | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+
+    # DEACTIVATE continua usando SOMENTE os objetos classificados como Azure.
     servers_to_deactivate: "{{ cmdb_servers | rejectattr('label', 'in', azure_instance_names) | list }}"
 
 - name: Resumo da comparacao
@@ -96,7 +191,8 @@
       - "                    RESUMO DA SINCRONIZACAO"
       - "════════════════════════════════════════════════════════════════"
       - "Total instancias Azure: {{ cloud_data_list | length }}"
-      - "Total servidores CMDB: {{ cmdb_servers | length }}"
+      - "Total servidores Azure no CMDB: {{ cmdb_servers | length }}"
+      - "Total Names globais no CMDB: {{ cmdb_server_names | length }}"
       - "A CRIAR: {{ servers_to_create | length }}"
       - "EXISTENTES (skip): {{ servers_to_skip | length }}"
       - "A DESATIVAR: {{ servers_to_deactivate | length if enable_deactivation else '(desativado)' }}"

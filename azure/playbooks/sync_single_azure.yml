@@ -160,7 +160,8 @@
         user: "{{ jira_user }}"
         password: "{{ jira_password }}"
         body:
-          qlQuery: 'objectTypeId = 121 AND Datacenter = "Azure"'
+          #qlQuery: 'objectTypeId = 121 AND Datacenter = "Azure"'
+          qlQuery: 'objectTypeId = 121'
         body_format: json
       register: cmdb_result
       environment: "{{ proxy_env | default({}) }}"
