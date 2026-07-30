@@ -148,6 +148,10 @@ gcp_machine_specs:
     cpu: 2
     memory_gb: 2
 
+  e2-micro:
+    cpu: 2
+    memory_gb: 1
+
   # === E2 Standard ===
   e2-standard-16:
     cpu: 16

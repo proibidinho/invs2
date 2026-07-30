@@ -17,6 +17,10 @@
   retries: 3
   delay: 5
   until: aap_page_result.status == 200
+  environment:
+    http_proxy: "http://10.29.177.37:8080"
+    https_proxy: "http://10.29.177.37:8080"
+    no_proxy: ""
   when:
     - aap_next_url is not none
     - (aap_next_url | default('') | length) > 0
