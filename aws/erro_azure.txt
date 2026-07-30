@@ -1,0 +1,17 @@
+{
+  "msg": [
+    "════════════════════════════════════════════════════════════════",
+    "                    SINCRONIZACAO CONCLUIDA",
+    "════════════════════════════════════════════════════════════════",
+    "Criados com sucesso: 15",
+    "Ignorados (ja existentes): 1",
+    "Desativados: 0",
+    "ERROS: 4",
+    "────────────────────────────────────────────────────────────────",
+    "- vmdynprx01 | status=400 | {'errorMessages': [], 'errors': {'rlabs-insight-attribute-1104': \"The attribute 'Name' has duplicated values (vmdynprx01).\"}}\n- vm-poc-test-vmLinux-0 | status=400 | {'errorMessages': [], 'errors': {'rlabs-insight-attribute-1104': \"The attribute 'Name' has duplicated values (vm-poc-test-vmLinux-0).\"}}\n- vm-thousand-eyes-azure | status=400 | {'errorMessages': [], 'errors': {'rlabs-insight-attribute-1104': \"The attribute 'Name' has duplicated values (vm-thousand-eyes-azure).\"}}\n- vmzbxprx01 | status=400 | {'errorMessages': [], 'errors': {'rlabs-insight-attribute-1104': \"The attribute 'Name' has duplicated values (vmzbxprx01).\"}}\n",
+    "════════════════════════════════════════════════════════════════"
+  ],
+  "_ansible_verbose_always": true,
+  "_ansible_no_log": false,
+  "changed": false
+}
