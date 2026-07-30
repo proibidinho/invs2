@@ -57,6 +57,9 @@
           - "════════════════════════════════════════════════════════════════"
 
   tasks:
+    # -------------------------------------------------------------------------
+    # AAP
+    # -------------------------------------------------------------------------
     - name: Buscar hosts do AAP
       ansible.builtin.uri:
         url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=500"
@@ -98,6 +101,9 @@
       ansible.builtin.debug:
         msg: "Hosts AAP: {{ all_host_vars | length }} | Elegiveis: {{ all_cloud_data | length }} | Ignorados: {{ all_host_vars | length - all_cloud_data | length }}"
 
+    # -------------------------------------------------------------------------
+    # SELECAO DOS SERVIDORES DE TESTE
+    # -------------------------------------------------------------------------
     - name: Selecionar por lista de nomes
       ansible.builtin.set_fact:
         selected_servers: "{{ all_cloud_data | selectattr('name_cloud', 'in', test_servers) | list }}"
@@ -119,15 +125,38 @@
       ansible.builtin.meta: end_play
       when: dry_run | bool
 
-    # --- EXECUCAO REAL ---
+    # =========================================================================
+    # EXECUCAO REAL
+    # =========================================================================
     - name: Inicializar logs
       ansible.builtin.set_fact:
         sync_log_create: []
         sync_log_skip: []
 
-    - name: Buscar servidores existentes no CMDB
+    # -------------------------------------------------------------------------
+    # CMDB - BUSCA GLOBAL PAGINADA
+    #
+    # O Jira limita cada resposta a 1000 objetos.
+    #
+    # Por isso buscamos:
+    #
+    #   startAt=0
+    #   startAt=1000
+    #   startAt=2000
+    #   ...
+    #   startAt=19000
+    #
+    # Isso permite carregar ate 20.000 objetos do Object Type 121.
+    #
+    # IMPORTANTE:
+    # Nao existe filtro por Datacenter aqui.
+    #
+    # Para decidir CREATE/SKIP precisamos verificar se o Name existe
+    # em QUALQUER servidor do CMDB.
+    # -------------------------------------------------------------------------
+    - name: Buscar servidores existentes no CMDB - paginado
       ansible.builtin.uri:
-        url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
+        url: "{{ jira_url }}/object/aql?startAt={{ item }}&maxResults=1000"
         method: POST
         headers:
           Accept: "application/json"
@@ -136,21 +165,92 @@
         user: "{{ jira_user }}"
         password: "{{ jira_password }}"
         body:
-          #qlQuery: 'objectTypeId = 121 AND Datacenter = "Google Cloud"'
           qlQuery: 'objectTypeId = 121'
         body_format: json
-      register: cmdb_result
+        status_code: [200]
+        timeout: 60
+      register: cmdb_pages
       environment: "{{ proxy_env | default({}) }}"
+      loop: "{{ range(0, 20000, 1000) | list }}"
+      loop_control:
+        label: "startAt={{ item }}"
+      retries: 3
+      delay: 5
+      until: cmdb_pages.status == 200
 
-    - name: Separar servidores a criar e existentes
+    # -------------------------------------------------------------------------
+    # CONSOLIDAR AS PAGINAS
+    # -------------------------------------------------------------------------
+    - name: Inicializar lista de servidores do CMDB
       ansible.builtin.set_fact:
-        cmdb_server_names: "{{ cmdb_result.json['values'] | default([]) | map(attribute='label') | list }}"
+        cmdb_all_servers: []
 
+    - name: Consolidar paginas do CMDB
+      ansible.builtin.set_fact:
+        cmdb_all_servers: >-
+          {{
+            cmdb_all_servers
+            + (item.json['values'] | default([]))
+          }}
+      loop: "{{ cmdb_pages.results }}"
+      loop_control:
+        label: "Pagina com {{ item.json['values'] | default([]) | length }} objetos"
+
+    # -------------------------------------------------------------------------
+    # EXTRAIR TODOS OS NAMES
+    # -------------------------------------------------------------------------
+    - name: Extrair nomes globais do CMDB
+      ansible.builtin.set_fact:
+        cmdb_server_names: >-
+          {{
+            cmdb_all_servers
+            | map(attribute='label')
+            | list
+          }}
+
+    - name: Debug - Total de servidores carregados do CMDB
+      ansible.builtin.debug:
+        msg:
+          - "Total de objetos carregados: {{ cmdb_all_servers | length }}"
+          - "Total de Names carregados: {{ cmdb_server_names | length }}"
+
+    # -------------------------------------------------------------------------
+    # DETERMINAR ACOES
+    #
+    # Se Name existe em qualquer objeto do CMDB:
+    #   -> SKIP
+    #
+    # Se Name nao existe:
+    #   -> CREATE
+    # -------------------------------------------------------------------------
     - name: Determinar acoes
       ansible.builtin.set_fact:
-        servers_to_create: "{{ selected_servers | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-        servers_to_skip:   "{{ selected_servers | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+        servers_to_create: >-
+          {{
+            selected_servers
+            | rejectattr('name_cloud', 'in', cmdb_server_names)
+            | list
+          }}
 
+        servers_to_skip: >-
+          {{
+            selected_servers
+            | selectattr('name_cloud', 'in', cmdb_server_names)
+            | list
+          }}
+
+    - name: Exibir acoes determinadas
+      ansible.builtin.debug:
+        msg:
+          - "Selecionados: {{ selected_servers | length }}"
+          - "A criar: {{ servers_to_create | length }}"
+          - "Existentes (skip): {{ servers_to_skip | length }}"
+          - "CREATE: {{ servers_to_create | map(attribute='name_cloud') | list }}"
+          - "SKIP: {{ servers_to_skip | map(attribute='name_cloud') | list }}"
+
+    # -------------------------------------------------------------------------
+    # CREATE
+    # -------------------------------------------------------------------------
     - name: Criar servidores
       ansible.builtin.include_tasks: "{{ playbook_dir }}/../roles/integration_assets_gcp/tasks/create.yml"
       vars:
@@ -160,8 +260,16 @@
         label: "{{ item.name_cloud }}"
       when: servers_to_create | length > 0
 
+    # -------------------------------------------------------------------------
+    # RESULTADO
+    # -------------------------------------------------------------------------
     - name: Resultado final
       ansible.builtin.debug:
         msg:
+          - "════════════════════════════════════════════════════════════════"
+          - "                    RESULTADO DO TESTE"
+          - "════════════════════════════════════════════════════════════════"
+          - "Selecionados: {{ selected_servers | length }}"
           - "Criados: {{ sync_log_create | length }}"
           - "Existentes (skip): {{ servers_to_skip | length }}"
+          - "════════════════════════════════════════════════════════════════"
