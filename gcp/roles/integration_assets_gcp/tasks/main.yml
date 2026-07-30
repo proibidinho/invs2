@@ -345,14 +345,24 @@
 # ---------------------------------------------------------------------------
 # FASE 5: Relatorio final
 # ---------------------------------------------------------------------------
-- name: Relatorio final
+- name: "FASE 5 - Relatorio final"
   ansible.builtin.debug:
     msg:
       - "════════════════════════════════════════════════════════════════"
       - "                    SINCRONIZACAO CONCLUIDA"
       - "════════════════════════════════════════════════════════════════"
-      - "Servidores criados: {{ sync_log_create | length }}"
-      - "{{ sync_log_create | join(', ') if sync_log_create else '(nenhum)' }}"
-      - "Servidores existentes (skip): {{ sync_log_skip | length }}"
-      - "Servidores desativados: {{ sync_log_deactivate | length }}"
+      - "Criados com sucesso: {{ sync_log_create | length }}"
+      - "Ignorados (ja existentes): {{ sync_log_skip | length }}"
+      - "Desativados: {{ sync_log_deactivate | length }}"
+      - "ERROS: {{ sync_log_errors | length }}"
+      - "────────────────────────────────────────────────────────────────"
+      - "{% for e in sync_log_errors %}- {{ e.name }} | status={{ e.status }} | {{ e.msg }}\n{% endfor %}"
       - "════════════════════════════════════════════════════════════════"
+
+- name: Falhar apenas se TODOS falharam
+  ansible.builtin.fail:
+    msg: "Sincronizacao falhou: TODOS os {{ servers_to_create | length }} servidores tiveram erro"
+  when:
+    - servers_to_create | length > 0
+    - sync_log_create | length == 0
+    - sync_log_errors | length == servers_to_create | length
