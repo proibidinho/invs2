@@ -1,0 +1,17 @@
+msg: >
+  The task includes an option with an undefined variable. The error was:
+  'servers_to_skip' is undefined. 'servers_to_skip' is undefined
+
+
+  The error appears to be in '/runner/project/playbooks/sync_single_gcp.yml':
+  line 214, column 7, but may
+
+  be elsewhere in the file depending on the exact syntax problem.
+
+
+  The offending line appears to be:
+
+      # -------------------------------------------------------------------------
+      - name: Resultado final
+        ^ here
+_ansible_no_log: false
