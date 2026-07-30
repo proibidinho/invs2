@@ -1,0 +1,57 @@
+{
+  "url": "/api/controller/v2/inventories/92/hosts/?page=2&page_size=200",
+  "status": -1,
+  "msg": "unknown url type: '/api/controller/v2/inventories/92/hosts/?page=2&page_size=200'",
+  "invocation": {
+    "module_args": {
+      "url": "/api/controller/v2/inventories/92/hosts/?page=2&page_size=200",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer H24SO6wHLaCieDzHySh18ou4ghQhh9",
+        "Content-Type": "application/json"
+      },
+      "validate_certs": false,
+      "return_content": true,
+      "status_code": [
+        200,
+        201
+      ],
+      "timeout": 60,
+      "unsafe_writes": true,
+      "force": false,
+      "http_agent": "ansible-httpget",
+      "use_proxy": true,
+      "force_basic_auth": false,
+      "use_gssapi": false,
+      "body_format": "raw",
+      "follow_redirects": "safe",
+      "remote_src": false,
+      "unredirected_headers": [],
+      "decompress": true,
+      "use_netrc": true,
+      "url_username": null,
+      "url_password": null,
+      "client_cert": null,
+      "client_key": null,
+      "dest": null,
+      "body": null,
+      "src": null,
+      "creates": null,
+      "removes": null,
+      "unix_socket": null,
+      "ca_path": null,
+      "ciphers": null,
+      "mode": null,
+      "owner": null,
+      "group": null,
+      "seuser": null,
+      "serole": null,
+      "selevel": null,
+      "setype": null,
+      "attributes": null
+    }
+  },
+  "_ansible_no_log": false,
+  "attempts": 10,
+  "changed": false
+}
