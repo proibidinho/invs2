@@ -14,6 +14,10 @@
     status_code: [200]
     timeout: 60
   register: aap_page_result
+  environment:
+    http_proxy: "http://10.29.177.37:8080" #Lapa
+    https_proxy: "http://10.29.177.37:8080" #Lapa
+    no_proxy: ""
   retries: 3
   delay: 5
   until: aap_page_result.status == 200
