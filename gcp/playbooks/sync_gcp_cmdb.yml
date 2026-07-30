@@ -1,11 +1,12 @@
 # =============================================================================
-# Playbook: Sincronizacao GCP (via AAP) → Jira Assets (CMDB)
+# Playbook: Sincronizacao GCP (via AAP) -> Jira Assets (CMDB)
 # =============================================================================
 # Uso:
 #   ansible-playbook playbooks/sync_gcp_cmdb.yml -e "sync_mode=full"
+#   ansible-playbook playbooks/sync_gcp_cmdb.yml -e "dry_run=true"
 # =============================================================================
 ---
-- name: Sincronizacao GCP (via AAP) → Jira Assets CMDB
+- name: Sincronizacao GCP (via AAP) -> Jira Assets CMDB
   hosts: localhost
   connection: local
   gather_facts: true
@@ -22,18 +23,25 @@
       ansible.builtin.set_fact:
         _sync_mode: "{{ sync_mode | default('full') }}"
         _enable_deactivation: "{{ enable_deactivation | default(false) }}"
+        _dry_run: "{{ dry_run | default(false) | bool }}"
+
+    - name: Verificar credenciais Jira
+      ansible.builtin.assert:
+        that:
+          - jira_user is defined and jira_user | length > 0
+          - jira_password is defined and jira_password | length > 0
+        fail_msg: "Defina JIRA_USER e JIRA_PASSWORD"
 
     - name: Exibir configuracao
       ansible.builtin.debug:
         msg:
           - "════════════════════════════════════════════════════════════════"
-          - "          SINCRONIZACAO GCP (AAP) → JIRA ASSETS (CMDB)"
+          - "          SINCRONIZACAO GCP (AAP) -> JIRA ASSETS (CMDB)"
           - "════════════════════════════════════════════════════════════════"
           - "AAP Host: {{ aap_host }}"
           - "Inventario ID: {{ aap_inventory_id }}"
-          - "Modo: {{ _sync_mode }}"
-          - "Modelos mapeados: {{ modelo_servidor_map | length }}"
-          - "Machine specs mapeados: {{ gcp_machine_specs | length }}"
+          - "Modo: {{ _sync_mode }} | Dry Run: {{ _dry_run }}"
+          - "Modelos: {{ modelo_servidor_map | length }} | Specs: {{ gcp_machine_specs | length }}"
           - "CPU Platform map: {{ cpu_platform_map | default({}) | length }}"
           - "════════════════════════════════════════════════════════════════"
 
@@ -42,6 +50,7 @@
       vars:
         sync_mode: "{{ _sync_mode }}"
         enable_deactivation: "{{ _enable_deactivation }}"
+        dry_run: "{{ _dry_run }}"
         modelo_servidor_map: "{{ modelo_servidor_map }}"
         gcp_machine_specs: "{{ gcp_machine_specs }}"
         owner_ids: "{{ owner_ids }}"

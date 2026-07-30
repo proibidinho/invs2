@@ -69,3 +69,7 @@ proxy_env:
   http_proxy: "http://10.29.177.37:8080" #Lapa
   https_proxy: "http://10.29.177.37:8080" #Lapa
   no_proxy: ""
+
+# Delay entre chamadas de criacao no Jira Assets (segundos)
+# Serve para evitar rate limit em batches grandes.
+jira_create_delay_seconds: 0.3

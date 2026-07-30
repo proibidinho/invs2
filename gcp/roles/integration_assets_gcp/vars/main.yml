@@ -25,6 +25,8 @@ object_type_id_servidor: 121
 object_type_id_interface_rede: 230
 object_type_id_datacenter: 152
 object_type_id_sistema_operacional: 150
+objectTypeId_cpu: "232"
+cpu_name_attribute_id: "1891"
 
 # Attribute IDs para criação de objetos auxiliares
 nic_name_attribute_id: "1890"
@@ -42,3 +44,7 @@ proxy_env:
 
 # Projetos GCP a sincronizar (populado via extra-vars ou pelo playbook)
 gcp_projects: []
+
+# Delay entre chamadas de criacao no Jira Assets (segundos)
+# Serve para evitar rate limit em batches grandes.
+jira_create_delay_seconds: 0.3

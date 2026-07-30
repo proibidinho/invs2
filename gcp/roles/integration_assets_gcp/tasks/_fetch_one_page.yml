@@ -1,0 +1,31 @@
+# =============================================================================
+# Task auxiliar: buscar UMA pagina do AAP e acumular
+# =============================================================================
+---
+- name: "Buscar pagina do AAP"
+  ansible.builtin.uri:
+    url: "{{ aap_next_url }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ aap_token }}"
+      Content-Type: "application/json"
+    validate_certs: "{{ aap_verify_ssl | default(false) }}"
+    return_content: yes
+    status_code: [200]
+    timeout: 60
+  register: aap_page_result
+  retries: 3
+  delay: 5
+  until: aap_page_result.status == 200
+  when:
+    - aap_next_url is not none
+    - (aap_next_url | default('') | length) > 0
+
+- name: Acumular resultados e avancar next
+  ansible.builtin.set_fact:
+    aap_all_hosts: "{{ aap_all_hosts + (aap_page_result.json.results | default([])) }}"
+    aap_page_num: "{{ (aap_page_num | int) + 1 }}"
+    aap_next_url: "{{ aap_page_result.json.next if (aap_page_result.json.next is not none and (aap_page_result.json.next | default('') | length) > 0) else none }}"
+  when:
+    - aap_page_result is defined
+    - aap_page_result.json is defined

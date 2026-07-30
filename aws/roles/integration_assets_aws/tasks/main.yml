@@ -1,12 +1,12 @@
 # =============================================================================
-# Task Principal: Sincronização AWS (via AAP) → CMDB
+# Task Principal: Sincronizacao AWS (via AAP) -> CMDB
 # =============================================================================
 ---
-- name: Incluir variáveis de mapeamento AWS
+- name: Incluir variaveis de mapeamento AWS
   ansible.builtin.include_vars:
     file: "{{ role_path }}/vars/mapeamento_aws_cmdb.yml"
 
-- name: Inicializar logs de sincronização
+- name: Inicializar logs de sincronizacao
   ansible.builtin.set_fact:
     sync_log_create: []
     sync_log_skip: []
@@ -14,32 +14,19 @@
     sync_log_errors: []
 
 # ---------------------------------------------------------------------------
-# FASE 1: Coletar hosts do AAP
+# FASE 1: Coletar hosts do AAP (paginado)
 # ---------------------------------------------------------------------------
-- name: "FASE 1 - Coletar hosts do inventário AWS no AAP"
+- name: "FASE 1 - Coletar hosts do inventario AWS no AAP (paginado)"
   ansible.builtin.debug:
     msg: "════════════════════════════════════════════════════════════════"
 
-- name: Buscar hosts do inventário AWS no AAP
-  ansible.builtin.uri:
-    url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=500"
-    method: GET
-    headers:
-      Authorization: "Bearer {{ aap_token }}"
-      Content-Type: "application/json"
-    validate_certs: "{{ aap_verify_ssl | default(false) }}"
-    return_content: yes
-    status_code: [200]
-  register: aap_hosts_result
+- name: Coletar todos os hosts (paginacao real)
+  ansible.builtin.include_tasks: fetch_all_hosts.yml
 
-- name: Debug - Total de hosts encontrados
-  ansible.builtin.debug:
-    msg: "Encontrados {{ aap_hosts_result.json.count }} hosts no inventário AWS"
-
-- name: Transformar hosts AWS para formato cloud_data
+- name: Transformar hosts AWS para formato cloud_data (batch - com skip EKS + ef_cmdb)
   ansible.builtin.set_fact:
     cloud_data_list: >-
-      {{ aap_hosts_result.json.results | batch_transform_aws_hosts(
+      {{ aap_all_hosts | batch_transform_aws_hosts(
            modelo_servidor_map | default({}),
            aws_vm_specs        | default({}),
            owner_ids           | default({})
@@ -47,7 +34,7 @@
 
 - name: Debug - Hosts transformados
   ansible.builtin.debug:
-    msg: "{{ cloud_data_list | length }} hosts transformados"
+    msg: "{{ aap_all_hosts | length }} hosts coletados | {{ cloud_data_list | length }} elegiveis | {{ aap_all_hosts | length - cloud_data_list | length }} ignorados"
 
 # ---------------------------------------------------------------------------
 # FASE 2: Coletar dados do CMDB
@@ -70,62 +57,59 @@
     body:
       qlQuery: 'objectTypeId = {{ object_type_id_servidor }} AND Datacenter = "AWS"'
     status_code: [200]
+    timeout: 60
   register: cmdb_servers_result
   environment: "{{ proxy_env | default({}) }}"
+  retries: 3
+  delay: 5
+  until: cmdb_servers_result.status == 200
 
 - name: Parsear servidores do CMDB
   ansible.builtin.set_fact:
     cmdb_servers: "{{ cmdb_servers_result.json['values'] | default([]) }}"
-
-- name: Extrair nomes do CMDB
-  ansible.builtin.set_fact:
-    cmdb_server_names: "{{ cmdb_servers | map(attribute='label') | list }}"
+    cmdb_server_names: "{{ cmdb_servers_result.json['values'] | default([]) | map(attribute='label') | list }}"
 
 - name: Debug - Servidores encontrados no CMDB
   ansible.builtin.debug:
     msg: "Encontrados {{ cmdb_servers | length }} servidores AWS no CMDB"
 
 # ---------------------------------------------------------------------------
-# FASE 3: Comparar e determinar ações
+# FASE 3: Comparar
 # ---------------------------------------------------------------------------
-- name: "FASE 3 - Comparar AWS vs CMDB"
-  ansible.builtin.debug:
-    msg: "════════════════════════════════════════════════════════════════"
-
-- name: Extrair nomes das instâncias AWS
+- name: Extrair nomes das instancias AWS
   ansible.builtin.set_fact:
     aws_instance_names: "{{ cloud_data_list | map(attribute='name_cloud') | list }}"
 
-- name: Determinar servidores a criar
+- name: Determinar acoes
   ansible.builtin.set_fact:
-    servers_to_create: "{{ cloud_data_list | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-
-- name: Determinar servidores existentes (skip)
-  ansible.builtin.set_fact:
-    servers_to_skip: "{{ cloud_data_list | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
-
-- name: Determinar servidores a desativar
-  ansible.builtin.set_fact:
+    servers_to_create:     "{{ cloud_data_list | rejectattr('name_cloud', 'in', cmdb_server_names) | list }}"
+    servers_to_skip:       "{{ cloud_data_list | selectattr('name_cloud', 'in', cmdb_server_names) | list }}"
     servers_to_deactivate: "{{ cmdb_servers | rejectattr('label', 'in', aws_instance_names) | list }}"
 
-- name: Resumo da comparação
+- name: Resumo da comparacao
   ansible.builtin.debug:
     msg:
       - "════════════════════════════════════════════════════════════════"
-      - "                    RESUMO DA SINCRONIZAÇÃO"
+      - "                    RESUMO DA SINCRONIZACAO"
       - "════════════════════════════════════════════════════════════════"
-      - "Total instâncias AWS: {{ cloud_data_list | length }}"
+      - "Total instancias AWS: {{ cloud_data_list | length }}"
       - "Total servidores CMDB: {{ cmdb_servers | length }}"
-      - "────────────────────────────────────────────────────────────────"
       - "A CRIAR: {{ servers_to_create | length }}"
-      - "EXISTENTES (skip): {{ servers_to_skip | length }} (preservando dados manuais)"
+      - "EXISTENTES (skip): {{ servers_to_skip | length }}"
       - "A DESATIVAR: {{ servers_to_deactivate | length if enable_deactivation else '(desativado)' }}"
       - "════════════════════════════════════════════════════════════════"
 
 # ---------------------------------------------------------------------------
-# FASE 4: Executar sincronização
+# DRY RUN - encerrar aqui
 # ---------------------------------------------------------------------------
-- name: "FASE 4 - Executar sincronização"
+- name: "DRY RUN - encerrar antes de escrever no CMDB"
+  ansible.builtin.meta: end_play
+  when: dry_run | default(false) | bool
+
+# ---------------------------------------------------------------------------
+# FASE 4: Executar sincronizacao
+# ---------------------------------------------------------------------------
+- name: "FASE 4 - Executar sincronizacao"
   ansible.builtin.debug:
     msg: "════════════════════════════════════════════════════════════════"
 
@@ -137,6 +121,7 @@
   loop_control:
     loop_var: server_item
     label: "{{ server_item.name_cloud }}"
+    pause: "{{ jira_create_delay_seconds | default(0.3) }}"
   when:
     - servers_to_create | length > 0
     - sync_mode == 'full' or sync_mode == 'create'
@@ -150,7 +135,6 @@
     label: "{{ server_item.name_cloud }}"
   when: servers_to_skip | length > 0
 
-# --- DESATIVAR ---
 - name: Desativar servidores removidos da AWS
   ansible.builtin.include_tasks: deactivate.yml
   vars:
@@ -159,26 +143,33 @@
   loop_control:
     loop_var: server_item
     label: "{{ server_item.label }}"
+    pause: "{{ jira_create_delay_seconds | default(0.3) }}"
   when:
     - servers_to_deactivate | length > 0
     - sync_mode == 'full' or sync_mode == 'deactivate'
     - enable_deactivation | default(false) | bool
 
 # ---------------------------------------------------------------------------
-# FASE 5: Relatório final
+# FASE 5: Relatorio final
 # ---------------------------------------------------------------------------
-- name: "FASE 5 - Relatório final"
+- name: "FASE 5 - Relatorio final"
   ansible.builtin.debug:
     msg:
       - "════════════════════════════════════════════════════════════════"
-      - "                    SINCRONIZAÇÃO CONCLUÍDA"
+      - "                    SINCRONIZACAO CONCLUIDA"
       - "════════════════════════════════════════════════════════════════"
-      - "Servidores criados: {{ sync_log_create | length }}"
-      - "{{ sync_log_create | join(', ') if sync_log_create else '(nenhum)' }}"
+      - "Criados com sucesso: {{ sync_log_create | length }}"
+      - "Ignorados (ja existentes): {{ sync_log_skip | length }}"
+      - "Desativados: {{ sync_log_deactivate | length }}"
+      - "ERROS: {{ sync_log_errors | length }}"
       - "────────────────────────────────────────────────────────────────"
-      - "Servidores existentes (skip): {{ sync_log_skip | length }}"
-      - "{{ sync_log_skip | join(', ') if sync_log_skip else '(nenhum)' }}"
-      - "────────────────────────────────────────────────────────────────"
-      - "Servidores desativados: {{ sync_log_deactivate | length }}"
-      - "{{ sync_log_deactivate | join(', ') if sync_log_deactivate else '(nenhum)' }}"
+      - "{% for e in sync_log_errors %}- {{ e.name }} | status={{ e.status }} | {{ e.msg }}\n{% endfor %}"
       - "════════════════════════════════════════════════════════════════"
+
+- name: Falhar apenas se TODOS falharam
+  ansible.builtin.fail:
+    msg: "Sincronizacao falhou: TODOS os {{ servers_to_create | length }} servidores tiveram erro"
+  when:
+    - servers_to_create | length > 0
+    - sync_log_create | length == 0
+    - sync_log_errors | length == servers_to_create | length
