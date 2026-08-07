@@ -1,0 +1,134 @@
+---
+###############################################################################
+# set_instance_group.yml
+#
+# Interacao com a API REST do Controller (AAP 2.5) usando exclusivamente
+# ansible.builtin.uri.
+#
+# Passos:
+#   1. Descobrir o Job Template "Notifica Disco"
+#   2. Descobrir / ajustar os Instance Groups (remover antigos, associar o correto)
+#   3. Descobrir / ajustar as Credentials (remover antigas, associar a correta)
+#
+# Metodos usados: GET, POST associate, POST disassociate (sem PATCH).
+###############################################################################
+
+- name: Definir cabecalhos, URL base e validate_certs da API do Controller
+  ansible.builtin.set_fact:
+    api_base: "https://aap.claro.com.br/api/controller/v2"
+    api_validate_certs: false
+    api_headers:
+      Authorization: "Bearer {{ aap_api_token }}"
+      Content-Type: "application/json"
+
+# ---------------------------------------------------------------------------
+# 1. Descobrir o Job Template "Notifica Disco"
+# ---------------------------------------------------------------------------
+
+- name: Buscar o Job Template "Notifica Disco"
+  ansible.builtin.uri:
+    url: "{{ api_base }}/job_templates/?name=Notifica%20Disco"
+    method: GET
+    headers: "{{ api_headers }}"
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200]
+  register: jt_lookup
+  no_log: true
+
+- name: Validar se o Job Template foi encontrado
+  ansible.builtin.assert:
+    that:
+      - (jt_lookup.json.count | int) > 0
+    fail_msg: "Job Template 'Notifica Disco' nao encontrado no Controller."
+    success_msg: "Job Template 'Notifica Disco' encontrado (id={{ jt_lookup.json.results[0].id }})."
+
+- name: Definir id e URL base do Job Template
+  ansible.builtin.set_fact:
+    jt_id: "{{ jt_lookup.json.results[0].id | int }}"
+    jt_url: "{{ api_base }}/job_templates/{{ jt_lookup.json.results[0].id }}"
+
+# ---------------------------------------------------------------------------
+# 2. Instance Groups
+# ---------------------------------------------------------------------------
+
+- name: Buscar Instance Groups atualmente associados ao Job Template
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/instance_groups/"
+    method: GET
+    headers: "{{ api_headers }}"
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200]
+  register: current_igs
+  no_log: true
+
+- name: Desassociar Instance Groups divergentes
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/instance_groups/"
+    method: POST
+    headers: "{{ api_headers }}"
+    body_format: json
+    body:
+      id: "{{ item.id }}"
+      disassociate: true
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200, 201, 204]
+  loop: "{{ current_igs.json.results }}"
+  loop_control:
+    label: "Desassociar IG {{ item.id }} ({{ item.name }})"
+  when: (item.id | int) != (target_ig | int)
+
+- name: Associar o Instance Group correto
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/instance_groups/"
+    method: POST
+    headers: "{{ api_headers }}"
+    body_format: json
+    body:
+      id: "{{ target_ig | int }}"
+      associate: true
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200, 201, 204]
+  when: (target_ig | int) not in (current_igs.json.results | map(attribute='id') | map('int') | list)
+
+# ---------------------------------------------------------------------------
+# 3. Credentials
+# ---------------------------------------------------------------------------
+
+- name: Buscar Credentials atualmente associadas ao Job Template
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/credentials/"
+    method: GET
+    headers: "{{ api_headers }}"
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200]
+  register: current_creds
+  no_log: true
+
+- name: Desassociar Credentials divergentes
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/credentials/"
+    method: POST
+    headers: "{{ api_headers }}"
+    body_format: json
+    body:
+      id: "{{ item.id }}"
+      disassociate: true
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200, 201, 204]
+  loop: "{{ current_creds.json.results }}"
+  loop_control:
+    label: "Desassociar Credential {{ item.id }} ({{ item.name }})"
+  when: (item.id | int) != (target_credential | int)
+
+- name: Associar a Credential correta
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/credentials/"
+    method: POST
+    headers: "{{ api_headers }}"
+    body_format: json
+    body:
+      id: "{{ target_credential | int }}"
+      associate: true
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200, 201, 204]
+  when: (target_credential | int) not in (current_creds.json.results | map(attribute='id') | map('int') | list)

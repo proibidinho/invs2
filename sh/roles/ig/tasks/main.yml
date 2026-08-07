@@ -1,0 +1,53 @@
+---
+###############################################################################
+# ROLE: ig
+# Responsavel apenas por:
+#   1. criar o mapa dos datacenters (Instance Group + Credential)
+#   2. validar a location recebida
+#   3. selecionar o Instance Group e a Credential corretos
+#   4. chamar o set_instance_group.yml
+#
+# Toda a interacao com a API REST do Controller fica em set_instance_group.yml
+###############################################################################
+
+- name: Criar o mapa unico dos datacenters (Instance Group + Credential)
+  ansible.builtin.set_fact:
+    dc_map:
+      LAPA:
+        ig: 4
+        credential: 79
+      MACKENZIE:
+        ig: 5
+        credential: 35
+      CAMPINAS:
+        ig: 3
+        credential: 85
+      "OCI-NM-NM":
+        ig: 3
+        credential: 85
+
+- name: Identificar o datacenter a partir da location recebida
+  ansible.builtin.set_fact:
+    datacenter_name: >-
+      {{
+        (dc_map.keys() | list
+          | select('in', location | upper)
+          | list
+          | first)
+        | default('')
+      }}
+
+- name: Validar se o datacenter e conhecido
+  ansible.builtin.assert:
+    that:
+      - datacenter_name | length > 0
+    fail_msg: "Datacenter desconhecido para a location '{{ location }}'. Datacenters validos: {{ dc_map.keys() | list | join(', ') }}."
+    success_msg: "Datacenter identificado: {{ datacenter_name }} (location='{{ location }}')."
+
+- name: Selecionar Instance Group e Credential do datacenter
+  ansible.builtin.set_fact:
+    target_ig: "{{ dc_map[datacenter_name].ig | int }}"
+    target_credential: "{{ dc_map[datacenter_name].credential | int }}"
+
+- name: Aplicar Instance Group e Credential no Job Template "Notifica Disco"
+  ansible.builtin.include_tasks: set_instance_group.yml
