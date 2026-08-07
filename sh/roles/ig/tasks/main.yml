@@ -1,14 +1,29 @@
 ---
 ###############################################################################
-# ROLE: ig
-# Responsavel apenas por:
-#   1. criar o mapa dos datacenters (Instance Group + Credential)
-#   2. validar a location recebida
-#   3. selecionar o Instance Group e a Credential corretos
-#   4. chamar o set_instance_group.yml
+# ROLE: ig  (Seleciona Instance Group)
 #
-# Toda a interacao com a API REST do Controller fica em set_instance_group.yml
+# Role UNICA e REUTILIZAVEL para qualquer Self-Healing.
+# Ajusta dinamicamente o Instance Group e a Credential de um Job Template
+# alvo, de acordo com o datacenter (location) recebido.
+#
+# Reutilizacao em outros self-healings:
+#   - passe "target_jt_name" com o nome do Job Template a ser ajustado.
+#     (default: "Notifica Disco")
+#
+# Entradas esperadas (extra_vars):
+#   - location        : localizacao vinda do evento (ex: "DC-LAPA")
+#   - aap_api_token   : token Bearer (group_vars criptografado)
+# Opcionais:
+#   - target_jt_name  : nome do Job Template alvo (default "Notifica Disco")
+#   - api_base        : base da API do Controller (default aap.claro.com.br)
+#
+# Interacao 100% via ansible.builtin.uri: GET, POST associate, POST disassociate.
+# Sem PATCH. Sem awx.awx / tower-cli / infra.aap_configuration.
 ###############################################################################
+
+# ---------------------------------------------------------------------------
+# 1. Mapa unico dos datacenters (Instance Group + Credential) e selecao
+# ---------------------------------------------------------------------------
 
 - name: Criar o mapa unico dos datacenters (Instance Group + Credential)
   ansible.builtin.set_fact:
@@ -32,8 +47,7 @@
       {{
         (dc_map.keys() | list
           | select('in', location | upper)
-          | list
-          | first)
+          | list | first)
         | default('')
       }}
 
@@ -41,13 +55,127 @@
   ansible.builtin.assert:
     that:
       - datacenter_name | length > 0
-    fail_msg: "Datacenter desconhecido para a location '{{ location }}'. Datacenters validos: {{ dc_map.keys() | list | join(', ') }}."
+    fail_msg: "Datacenter desconhecido para a location '{{ location }}'. Validos: {{ dc_map.keys() | list | join(', ') }}."
     success_msg: "Datacenter identificado: {{ datacenter_name }} (location='{{ location }}')."
 
-- name: Selecionar Instance Group e Credential do datacenter
+- name: Selecionar Instance Group / Credential e montar headers e URLs da API
   ansible.builtin.set_fact:
     target_ig: "{{ dc_map[datacenter_name].ig | int }}"
     target_credential: "{{ dc_map[datacenter_name].credential | int }}"
+    api_base: "{{ api_base | default('https://aap.claro.com.br/api/controller/v2') }}"
+    target_jt_name: "{{ target_jt_name | default('Notifica Disco') }}"
+    api_validate_certs: false
+    api_headers:
+      Authorization: "Bearer {{ aap_api_token }}"
+      Content-Type: "application/json"
 
-- name: Aplicar Instance Group e Credential no Job Template "Notifica Disco"
-  ansible.builtin.include_tasks: set_instance_group.yml
+# ---------------------------------------------------------------------------
+# 2. Descobrir o Job Template alvo
+# ---------------------------------------------------------------------------
+
+- name: "Buscar o Job Template '{{ target_jt_name }}'"
+  ansible.builtin.uri:
+    url: "{{ api_base }}/job_templates/?name={{ target_jt_name | urlencode }}"
+    method: GET
+    headers: "{{ api_headers }}"
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200]
+  register: jt_lookup
+  no_log: true
+
+- name: Validar se o Job Template foi encontrado
+  ansible.builtin.assert:
+    that:
+      - (jt_lookup.json.count | int) > 0
+    fail_msg: "Job Template '{{ target_jt_name }}' nao encontrado no Controller."
+    success_msg: "Job Template '{{ target_jt_name }}' encontrado (id={{ jt_lookup.json.results[0].id }})."
+
+- name: Definir a URL base do Job Template
+  ansible.builtin.set_fact:
+    jt_url: "{{ api_base }}/job_templates/{{ jt_lookup.json.results[0].id }}"
+
+# ---------------------------------------------------------------------------
+# 3. Instance Groups (remover divergentes / associar o correto)
+# ---------------------------------------------------------------------------
+
+- name: Buscar Instance Groups associados ao Job Template
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/instance_groups/"
+    method: GET
+    headers: "{{ api_headers }}"
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200]
+  register: current_igs
+  no_log: true
+
+- name: Desassociar Instance Groups divergentes
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/instance_groups/"
+    method: POST
+    headers: "{{ api_headers }}"
+    body_format: json
+    body:
+      id: "{{ item.id }}"
+      disassociate: true
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200, 201, 204]
+  loop: "{{ current_igs.json.results }}"
+  loop_control:
+    label: "Desassociar IG {{ item.id }} ({{ item.name }})"
+  when: (item.id | int) != (target_ig | int)
+
+- name: Associar o Instance Group correto
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/instance_groups/"
+    method: POST
+    headers: "{{ api_headers }}"
+    body_format: json
+    body:
+      id: "{{ target_ig | int }}"
+      associate: true
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200, 201, 204]
+  when: (target_ig | int) not in (current_igs.json.results | map(attribute='id') | map('int') | list)
+
+# ---------------------------------------------------------------------------
+# 4. Credentials (remover divergentes / associar a correta)
+# ---------------------------------------------------------------------------
+
+- name: Buscar Credentials associadas ao Job Template
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/credentials/"
+    method: GET
+    headers: "{{ api_headers }}"
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200]
+  register: current_creds
+  no_log: true
+
+- name: Desassociar Credentials divergentes
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/credentials/"
+    method: POST
+    headers: "{{ api_headers }}"
+    body_format: json
+    body:
+      id: "{{ item.id }}"
+      disassociate: true
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200, 201, 204]
+  loop: "{{ current_creds.json.results }}"
+  loop_control:
+    label: "Desassociar Credential {{ item.id }} ({{ item.name }})"
+  when: (item.id | int) != (target_credential | int)
+
+- name: Associar a Credential correta
+  ansible.builtin.uri:
+    url: "{{ jt_url }}/credentials/"
+    method: POST
+    headers: "{{ api_headers }}"
+    body_format: json
+    body:
+      id: "{{ target_credential | int }}"
+      associate: true
+    validate_certs: "{{ api_validate_certs }}"
+    status_code: [200, 201, 204]
+  when: (target_credential | int) not in (current_creds.json.results | map(attribute='id') | map('int') | list)
