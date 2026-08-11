@@ -1,7 +1,0 @@
----
-dono_home:
-  dynatrace: equipe-observabilidade@claro.com.br
-  zabbix: equipe-observabilidade@claro.com.br
-  oracle: banco-de-dados@claro.com.br
-
-email_default: unix-linux@claro.com.br
