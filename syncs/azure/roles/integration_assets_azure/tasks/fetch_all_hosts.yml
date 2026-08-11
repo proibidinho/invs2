@@ -1,0 +1,26 @@
+# =============================================================================
+# Task: Coleta paginada de hosts do AAP (segue .next ate acabar)
+# =============================================================================
+# Entrada:  aap_host, aap_inventory_id, aap_token
+# Saida:    aap_all_hosts (list) - todos os hosts do inventario
+# =============================================================================
+---
+- name: Inicializar coleta paginada
+  ansible.builtin.set_fact:
+    aap_all_hosts: []
+    aap_next_url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=200"
+    aap_page_num: 0
+
+- name: Coletar paginas do AAP (loop com teto de seguranca)
+  ansible.builtin.include_tasks: _fetch_one_page.yml
+  loop: "{{ range(0, 200) | list }}"   # 200 paginas x 200 hosts = 40.000 (teto de seguranca)
+  loop_control:
+    loop_var: _page_iter
+    label: "pagina {{ (aap_page_num | int) + 1 }}"
+  when:
+    - aap_next_url is not none
+    - (aap_next_url | default('') | length) > 0
+
+- name: Debug - Total consolidado
+  ansible.builtin.debug:
+    msg: "Total de hosts coletados do AAP: {{ aap_all_hosts | length }} em {{ aap_page_num }} pagina(s)"

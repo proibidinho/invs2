@@ -1,0 +1,212 @@
+# =============================================================================
+# MAPEAMENTO: GCP → Jira Assets (CMDB)
+# =============================================================================
+workspace: "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+objectTypeId: 121
+objectSchemaId: 16
+
+object_attribute_map:
+
+# CONTA CLOUD (Projeto GCP)
+- id: 10548
+  name_assets: "Conta Cloud"
+  chave_cloud: "conta_cloud_cloud"
+  tipo: text
+
+# NAME
+- id: 1104
+  name_assets: "Name"
+  chave_cloud: "name_cloud"
+  tipo: text
+  obrigatorio: true
+
+# FQDN (name.zone.c.project.internal)
+- id: 3343
+  name_assets: "FQDN"
+  chave_cloud: "fqdn_cloud"
+  tipo: text
+
+# CPU COUNT (gcp_machine_specs[machine_type].cpu)
+- id: 3359
+  name_assets: "CPU Count"
+  chave_cloud: "cpu_count_cloud"
+  tipo: integer
+  obrigatorio: false
+
+# MEMORIA RAM (gcp_machine_specs[machine_type].memory_gb * 1024, em Mb)
+- id: 6840
+  name_assets: "Memória RAM"
+  chave_cloud: "memoria_ram_cloud"
+  tipo: integer
+  sufixo: "Mb"
+
+# OWNER (Object Type 91 Users) - USR-* passado direto pelo filter.
+# Fonte unica: Ambiente + Sistema Operacional + owner_ids. ef_owner IGNORADO.
+- id: 3381
+  name_assets: "Owner"
+  chave_cloud: "owner_cloud"
+  tipo: objeto
+  referencia_object_type_id: 91
+
+# MODELO DO SERVIDOR (machine_type -> objectKey GDA-* via modelo_servidor_map)
+- id: 15656
+  name_assets: "Modelo do Servidor"
+  chave_cloud: "modelo_servidor_cloud"
+  tipo: objeto
+
+# SISTEMA OPERACIONAL
+- id: 3358
+  name_assets: "Sistema Operacional"
+  chave_cloud: "sistema_operacional_cloud"
+  tipo: objeto
+  referencia_object_type_id: 150
+  valores:
+  - value: Linux
+    referencedType: 171174
+  - value: Windows
+    referencedType: 170882
+  - value: Unix
+    referencedType: 174028
+  - value: ESXi
+    referencedType: 1460417
+
+# INTERFACE DE REDE
+- id: 3528
+  name_assets: "Interface de Rede"
+  chave_cloud: "interface_rede_cloud"
+  tipo: objeto_lista
+  referencia_object_type_id: 230
+  criar_se_nao_existir: true
+
+# STATUS
+- id: 2957
+  name_assets: "Status"
+  chave_cloud: "status_cloud"
+  tipo: status
+  valores:
+  - value: "Em uso"
+    referencedType: 18
+  - value: "Reservado"
+    referencedType: 16
+  - value: "Em preparação"
+    referencedType: 17
+  - value: "Desativado"
+    referencedType: 19
+
+# TIPO DE INFRAESTRUTURA
+- id: 9948
+  name_assets: "Tipo de Infraestrutura"
+  chave_cloud: "tipo_infraestrutura_cloud"
+  tipo: objeto
+  referencia_object_type_id: 119
+  valores:
+  - value: "CLOUD PUBLICA"
+    referencedType: 223965
+
+# DATACENTER (Google Cloud)
+- id: 3296
+  name_assets: "Datacenter"
+  chave_cloud: "datacenter_cloud"
+  tipo: objeto
+  referencia_object_type_id: 152
+  valores:
+  - value: "Google Cloud"
+    referencedType: 872213
+
+# FORNECEDOR (texto livre)
+- id: 6829
+  name_assets: "Fornecedor"
+  chave_cloud: "fornecedor_cloud"
+  tipo: text
+
+# LAST USER (sempre "Ansible")
+- id: 3357
+  name_assets: "Last User"
+  chave_cloud: "last_user_cloud"
+  tipo: text
+
+# GRUPO SOLUCIONADOR - INFRA (fixo por SO)
+- id: 7274
+  name_assets: "Grupo Solucionador - Infra"
+  chave_cloud: "grupo_solucionador_infra_cloud"
+  tipo: text
+
+# SISTEMA (label ef_cmdb -> objectKey GDA-*)
+- id: 9219
+  name_assets: "Sistema"
+  chave_cloud: "sistema_cloud"
+  tipo: text
+
+# STATUS DISCOVERY (fixo Running)
+- id: 3053
+  name_assets: "Status Discovery"
+  chave_cloud: "status_discovery_cloud"
+  tipo: status
+  valor_fixo: "Running"
+  valores:
+  - value: "Running"
+    referencedType: 24
+
+# BOOLEANOS FIXOS
+- id: 9647
+  name_assets: "SOX"
+  chave_cloud: "sox_cloud"
+  tipo: boolean
+  valor_fixo: false
+
+- id: 9648
+  name_assets: "IPE"
+  chave_cloud: "ipe_cloud"
+  tipo: boolean
+  valor_fixo: false
+
+# DISASTER RECOVERY (label ef_recuperacao_de_desastre / ef_dr; fallback false)
+- id: 10677
+  name_assets: "Disaster Recovery"
+  chave_cloud: "disaster_recovery_cloud"
+  tipo: boolean
+  valor_fallback: false
+
+# CAPACIDADE DO DISCO
+- id: 3613
+  name_assets: "Capacidade do Disco"
+  chave_cloud: "capacidade_disco_cloud"
+  tipo: text
+  sufixo: "GB"
+
+# ---------------------------------------------------------------------------
+# NAO POPULADO PELO FILTER (permanece manual/CMDB):
+# - CPU / CPU Platform (id 3527, tipo objeto_lista, Reference 232)
+#   Nota: diferente de CPU Count. Nao ha equivalente em Azure/AWS.
+# ---------------------------------------------------------------------------
+
+# CPU PLATFORM (Object Type 232) - populado via cpu_platform_map lookup
+# host.cpuPlatform (ex.: "Intel Broadwell") -> cpu_platform_map[...] -> objectId
+- id: 3527
+  name_assets: "CPU"
+  chave_cloud: "cpu_platform_cloud"
+  tipo: objeto
+  referencia_object_type_id: 232
+
+- id: 1922
+  name_assets: "Ambiente"
+  chave_cloud: "ambiente_cloud"
+  tipo: objeto
+  referencia_object_type_id: 153
+  valores:
+  - value: "Produção"
+    referencedType: 166234
+  - value: "Pré-Produção"
+    referencedType: 169886
+  - value: "Homologação"
+    referencedType: 166233
+  - value: "Desenvolvimento"
+    referencedType: 166232
+  - value: "Certificação"
+    referencedType: 169398
+  - value: "Teste"
+    referencedType: 169397
+  - value: "Treinamento"
+    referencedType: 169416
+  - value: "Legado"
+    referencedType: 169924
