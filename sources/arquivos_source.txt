@@ -1,0 +1,859 @@
+
+### inventory-source-aws/playbook.yaml
+
+---
+- name: Criar Inventory Sources AWS ausentes
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+
+    controller_host: "https://aap.claro.com.br"
+    controller_verify_ssl: false
+
+    inventory_id: 92
+    credential_id: 174
+    execution_environment_id: 25
+
+    trigger_sync: true
+
+  tasks:
+
+    # VALIDACOES
+    ####################################################################
+
+    - name: Validar token do AAP
+      ansible.builtin.assert:
+        that:
+          - token_aap is defined
+          - token_aap | length > 0
+
+    - name: Descobrir identidade AWS inicial
+      amazon.aws.aws_caller_info:
+      register: aws_identity
+
+    - name: Exibir identidade inicial
+      ansible.builtin.debug:
+        msg:
+          - "Account: {{ aws_identity.account }}"
+          - "ARN: {{ aws_identity.arn }}"
+
+    - name: Assumir role da Management Account
+      amazon.aws.sts_assume_role:
+        role_arn: arn:aws:iam::502379209509:role/EC2InventoryRole
+        role_session_name: aap_inventory_discovery
+      register: management_role
+
+    - name: Validar role assumida
+      amazon.aws.aws_caller_info:
+        access_key: "{{ management_role.sts_creds.access_key }}"
+        secret_key: "{{ management_role.sts_creds.secret_key }}"
+        session_token: "{{ management_role.sts_creds.session_token }}"
+      register: assumed_identity
+
+    - name: Exibir role assumida
+      ansible.builtin.debug:
+        msg:
+          - "Account: {{ assumed_identity.account }}"
+          - "ARN: {{ assumed_identity.arn }}"
+    ####################################################################
+    # AWS ACCOUNTS
+    ####################################################################
+
+    - name: Obter contas AWS Organization
+      ansible.builtin.command:
+        cmd: aws organizations list-accounts --output json
+      register: aws_accounts_raw
+      environment:
+        AWS_ACCESS_KEY_ID: "{{ management_role.sts_creds.access_key }}"
+        AWS_SECRET_ACCESS_KEY: "{{ management_role.sts_creds.secret_key }}"
+        AWS_SESSION_TOKEN: "{{ management_role.sts_creds.session_token }}"
+      changed_when: false
+
+    - name: Processar contas
+      ansible.builtin.set_fact:
+        aws_accounts: >-
+          {{
+            (aws_accounts_raw.stdout | from_json).Accounts
+            | selectattr('Status', 'equalto', 'ACTIVE')
+            | sort(attribute='Name')
+            | list
+          }}
+
+    - name: Total de contas
+      ansible.builtin.debug:
+        msg: "Contas AWS encontradas: {{ aws_accounts | length }}"
+
+    ####################################################################
+    # INVENTORY SOURCES EXISTENTES
+    ####################################################################
+
+    - name: Buscar inventory sources AWS
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/inventory_sources/?inventory={{ inventory_id }}&page_size=1000"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: "{{ controller_verify_ssl }}"
+      register: inventory_sources
+
+    - name: Montar mapa account_id -> inventory source
+      ansible.builtin.set_fact:
+        account_map: >-
+          {{
+            account_map | default({})
+            | combine({
+                account_id: {
+                  'inventory_source_id': item.id,
+                  'name': item.name
+                }
+              })
+          }}
+      vars:
+        account_id: >-
+          {{
+            (
+              item.source_vars
+              | regex_findall(
+                  'arn:aws:iam::([0-9]{12}):role/EC2InventoryRole'
+                )
+              | first
+            )
+          }}
+      loop: "{{ inventory_sources.json.results }}"
+      when:
+        - item.source_vars is defined
+        - item.source_vars is search('EC2InventoryRole')
+
+    - name: Garantir mapa inicializado
+      ansible.builtin.set_fact:
+        account_map: "{{ account_map | default({}) }}"
+
+    ####################################################################
+    # COMPARACAO
+    ####################################################################
+
+    - name: Descobrir contas sem inventory source
+      ansible.builtin.set_fact:
+        missing_accounts: >-
+          {{
+            aws_accounts
+            | rejectattr('Id', 'in', account_map.keys() | list)
+            | list
+          }}
+
+    - name: Mostrar contas faltantes
+      ansible.builtin.debug:
+        msg:
+          - "Inventory Sources atuais: {{ account_map | length }}"
+          - "Contas faltantes: {{ missing_accounts | length }}"
+          - "{{ missing_accounts | map(attribute='Id') | list }}"
+
+    ####################################################################
+    # CRIAR INVENTORY SOURCES
+    ####################################################################
+
+    - name: Criar inventory source AWS
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/inventory_sources/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: "{{ controller_verify_ssl }}"
+        body_format: json
+        status_code:
+          - 201
+
+        body:
+
+          name: "AWS - {{ item.Name }}"
+
+          description: "Conta {{ item.Id }}"
+
+          source: ec2
+
+          inventory: "{{ inventory_id }}"
+
+          credential: "{{ credential_id }}"
+
+          execution_environment: "{{ execution_environment_id }}"
+
+          overwrite: true
+
+          overwrite_vars: true
+
+          update_on_launch: true
+
+          update_cache_timeout: 10
+
+          verbosity: 1
+
+          source_vars: |
+            plugin: amazon.aws.aws_ec2
+            assume_role_arn: arn:aws:iam::{{ item.Id }}:role/EC2InventoryRole
+            strict: false
+            regions:
+              - sa-east-1
+              - us-east-1
+            filters:
+              instance-state-name: running
+            hostnames:
+              - instance-id
+
+            keyed_groups:
+              - key: placement.region
+                prefix: region
+                separator: "_"
+
+              - key: platform_details | default('Linux/UNIX') | regex_replace('[^a-zA-Z0-9]', '_')
+                prefix: os
+                separator: "_"
+
+              - key: instance_type | split('.') | first
+                prefix: family
+                separator: "_"
+
+              - key: tags.ef_ambiente | default('SEM_AMBIENTE') | lower
+                prefix: Ambiente
+                separator: "-"
+
+              - key: tags.ef_cmdb | default('SEM_SISTEMA')
+                prefix: Sistema
+                separator: "-"
+
+              - key: tags.Name | default('unnamed') | regex_replace('[^a-zA-Z0-9_-]', '_')
+                prefix: name
+                separator: "_"
+
+              - key: owner_id | string
+                prefix: account
+                separator: "_"
+
+            compose:
+              ansible_host: private_ip_address | default(public_ip_address) | default(private_dns_name)
+              vm_name: tags.Name | default('unnamed')
+              environment: tags.Environment | default('undefined')
+              availability_zone: placement.availability_zone
+              instance_type: instance_type
+              platform: platform_details | default('Linux/UNIX')
+              private_ip: private_ip_address | default('')
+              public_ip: public_ip_address | default('N/A')
+              region: placement.region
+              account_id: owner_id | string
+              launch_time: launch_time
+              state: state.name
+
+      loop: "{{ missing_accounts }}"
+      loop_control:
+        label: "{{ item.Id }} - {{ item.Name }}"
+      register: created_inventory_sources
+
+    ####################################################################
+    # SYNC OPCIONAL
+    ####################################################################
+
+    - name: Disparar sync dos inventory sources criados
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/inventory_sources/{{ item.json.id }}/update/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: "{{ controller_verify_ssl }}"
+        status_code:
+          - 200
+          - 201
+          - 202
+      loop: "{{ created_inventory_sources.results | default([]) }}"
+      when:
+        - trigger_sync | bool
+        - item.status | default(0) == 201
+
+    ####################################################################
+    # RESUMO
+    ####################################################################
+
+    - name: Inventarios criados
+      ansible.builtin.debug:
+        msg:
+          - "Nome: AWS - {{ item.item.Name }}"
+          - "Conta: {{ item.item.Id }}"
+      loop: "{{ created_inventory_sources.results | default([]) }}"
+      when: item.status | default(0) == 201
+
+    - name: Resumo final
+      ansible.builtin.debug:
+        msg:
+          - "=========================================="
+          - "CONTAS AWS ORGANIZATION : {{ aws_accounts | length }}"
+          - "INVENTORY SOURCES AAP   : {{ account_map | length }}"
+          - "CRIADOS NESTA EXECUCAO  : {{ missing_accounts | length }}"
+          - "INVENTORY ID            : {{ inventory_id }}"
+          - "=========================================="
+### inventory-source-azure/playbook.yaml
+
+---
+- name: Criar Credentials e Inventory Sources Azure ausentes
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+
+    controller_host: "https://aap.claro.com.br"
+
+    inventory_id: 93
+    execution_environment_id: 31
+
+    credential_type_id: 10
+    template_credential_id: 226 #Credential Azure Claro-Management
+
+    proxy_env:
+      http_proxy: "http://10.29.177.37:8080"
+      https_proxy: "http://10.29.177.37:8080"
+      no_proxy: ""
+
+    source_vars: |
+      plugin: azure.azcollection.azure_rm
+      auth_source: auto
+
+      include_vm_resource_groups:
+        - '*'
+
+      plain_host_names: true
+
+      keyed_groups:
+        - key: tags.ef_ambiente | default('SEM_EF_AMBIENTE')
+          prefix: Ambiente
+          separator: "-"
+
+        - key: tags.ef_cmdb | default('SEM_EF_CMDB')
+          prefix: Sistema
+          separator: "-"
+
+        - key: location | default('desconhecida')
+          prefix: Local
+          separator: "-"
+
+      conditional_groups:
+        VMs_Linux: "'linux' in (image.offer | default('') | lower)"
+        VMs_Windows: "'windows' in (image.offer | default('') | lower)"
+
+      compose:
+        inventory_hostname: name ~ '_' ~ private_ipv4_addresses[0] | default('noip') | replace('.', '-')
+        ansible_host: private_ipv4_addresses[0] | default(public_ipv4_addresses[0] | default(''))
+        azure_vm_name: name
+        azure_resource_group: resource_group
+        azure_location: location
+        azure_private_ip: private_ipv4_addresses[0] | default('')
+        azure_public_ip: public_ipv4_addresses[0] | default('')
+
+  tasks:
+
+    ####################################################################
+    # CREDENTIAL GLOBAL
+    ####################################################################
+
+    - name: Obter credential Azure Global
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/credentials/{{ template_credential_id }}/"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: false
+      environment: "{{ proxy_env }}"
+      register: template_credential
+      no_log: true
+
+    ####################################################################
+    # SUBSCRIPTIONS AZURE
+    ####################################################################
+
+    - name: Obter subscriptions Azure
+      azure.azcollection.azure_rm_subscription_info:
+      register: subscriptions_raw
+      environment: "{{ proxy_env }}"
+      no_log: true
+
+    - name: Normalizar subscriptions
+      ansible.builtin.set_fact:
+        subscriptions: "{{ subscriptions | default([]) + [subscription_data] }}"
+      vars:
+        subscription_data:
+          id: "{{ item.subscription_id }}"
+          name: "{{ item.display_name | default(item.name) }}"
+      loop: >-
+        {{
+          subscriptions_raw.subscriptions
+          | selectattr('state', 'equalto', 'Enabled')
+          | list
+        }}
+      no_log: true
+
+    ####################################################################
+    # CREDENTIALS EXISTENTES
+    ####################################################################
+
+    - name: Buscar credentials Azure
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/credentials/?credential_type={{ credential_type_id }}&page_size=1000"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: false
+      environment: "{{ proxy_env }}"
+      register: credentials_result
+      no_log: true
+
+    - name: Montar mapa de credentials
+      ansible.builtin.set_fact:
+        credential_map: >-
+          {{
+            credential_map | default({})
+            | combine({
+                item.inputs.subscription: item.id
+              })
+          }}
+      loop: >-
+        {{
+          credentials_result.json.results
+          | selectattr('inputs.subscription', 'defined')
+          | list
+        }}
+      no_log: true
+
+    - name: Garantir mapa de credentials
+      ansible.builtin.set_fact:
+        credential_map: "{{ credential_map | default({}) }}"
+      no_log: false
+
+    ####################################################################
+    # INVENTORY SOURCES EXISTENTES
+    ####################################################################
+
+    - name: Buscar inventory sources Azure
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/inventory_sources/?inventory={{ inventory_id }}&page_size=1000"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: false
+      environment: "{{ proxy_env }}"
+      register: inventory_sources
+      no_log: true
+
+    - name: Montar lista de inventory sources existentes
+      ansible.builtin.set_fact:
+        existing_inventory_names: >-
+          {{
+            inventory_sources.json.results
+            | map(attribute='name')
+            | map('lower')
+            | list
+          }}
+      no_log: true
+
+    ####################################################################
+    # CREDENTIALS AUSENTES
+    ####################################################################
+
+    - name: Criar credentials Azure faltantes
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/credentials/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+          Content-Type: "application/json"
+        validate_certs: false
+        body_format: json
+        status_code: 201
+
+        body:
+          name: "Azure {{ item.name | upper}}"
+          description: "Conta {{ item.id }}"
+          credential_type: "{{ credential_type_id }}"
+          kind: "azure_rm"
+          kubernetes: "false"
+          cloud: "true"
+          organization: 98
+
+
+          inputs:
+            subscription: "{{ item.id }}"
+            client: "{{ template_credential.json.inputs.client }}"
+            secret: "{{ azure_client_secret }}"
+            tenant: "{{ template_credential.json.inputs.tenant }}"
+            cloud_environment: ""
+
+      environment: "{{ proxy_env }}"
+      loop: "{{ subscriptions }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when:
+        - item.id not in credential_map
+
+      register: created_credentials
+      #no_log: true
+
+    ####################################################################
+    # REFRESH
+    ####################################################################
+
+    - name: Buscar credentials novamente
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/credentials/?credential_type={{ credential_type_id }}&page_size=1000"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: false
+      environment: "{{ proxy_env }}"
+      register: credentials_after
+      no_log: true
+
+    - name: Recriar mapa de credentials
+      ansible.builtin.set_fact:
+        credential_map: >-
+          {{
+            credential_map | default({})
+            | combine({
+                item.inputs.subscription: item.id
+              })
+          }}
+      loop: >-
+        {{
+          credentials_after.json.results
+          | selectattr('inputs.subscription', 'defined')
+          | list
+        }}
+      no_log: true
+
+    ####################################################################
+    # INVENTORY SOURCES AUSENTES
+    ####################################################################
+
+    - name: Criar inventory sources Azure faltantes
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/inventory_sources/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: false
+        body_format: json
+        status_code: 201
+
+        body:
+          name: "Fonte Azure - {{ item.name | lower }}"
+          description: "{{ item.id }}"
+
+          source: azure_rm
+
+          inventory: "{{ inventory_id }}"
+
+          credential: "{{ credential_map[item.id] }}"
+
+          execution_environment: "{{ execution_environment_id }}"
+
+          overwrite: true
+          overwrite_vars: false
+          update_on_launch: true
+          update_cache_timeout: 5
+          verbosity: 1
+
+          source_vars: "{{ source_vars }}"
+
+      environment: "{{ proxy_env }}"
+      loop: "{{ subscriptions }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when:
+        - ("Fonte Azure - " ~ (item.name | lower)) | lower not in existing_inventory_names
+
+      register: created_inventory_sources
+      #no_log: true
+
+    ####################################################################
+    # SYNC
+    ####################################################################
+
+    - name: Atualizar inventory sources criados
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/inventory_sources/{{ item.json.id }}/update/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: false
+        status_code:
+          - 200
+          - 201
+          - 202
+      environment: "{{ proxy_env }}"
+      loop: "{{ created_inventory_sources.results | default([]) }}"
+      when:
+        - item.status | default(0) == 201
+      no_log: true
+
+    ####################################################################
+    # RESUMO
+    ####################################################################
+
+    - name: Resumo final
+      ansible.builtin.debug:
+        msg:
+          - "Subscriptions Azure : {{ subscriptions | length }}"
+          - "Credentials Azure   : {{ credential_map | length }}"
+          - "Inventory Sources   : {{ existing_inventory_names | length }}"
+### inventario-source-gcp/playbook.yml
+
+---
+- name: Update Inventory Source - All Projects with Compute API
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  environment:
+    http_proxy: "http://10.29.177.37:8080"
+    https_proxy: "http://10.29.177.37:8080"
+    HTTP_PROXY: "http://10.29.177.37:8080"
+    HTTPS_PROXY: "http://10.29.177.37:8080"
+    no_proxy: ""
+    NO_PROXY: ""
+
+  vars:
+    inventory_source_id: "652"
+    jt_id: "698"
+
+    controller_host: "https://aap.claro.com.br"
+    controller_verify_ssl: false
+
+    trigger_sync: true
+    exclude_projects: []
+
+    quota_project: "claro-infracloud"
+
+    source_vars_template:
+      plugin: google.cloud.gcp_compute
+      auth_kind: serviceaccount
+      projects: []
+      filters:
+        - status = RUNNING
+      hostnames:
+        - name
+      compose:
+        ansible_host: networkInterfaces[0].accessConfigs[0].natIP | default(networkInterfaces[0].networkIP, true)
+        private_ip: networkInterfaces[0].networkIP
+        public_ip: networkInterfaces[0].accessConfigs[0].natIP | default('N/A', true)
+        machine_type: machineType | basename
+        zone: zone | basename
+        gcp_project: project | basename
+        gcp_labels: labels | default({})
+      keyed_groups:
+        - key: zone | basename
+          prefix: Zona
+          separator: "-"
+        - key: gcp_project
+          prefix: Projeto
+          separator: "-"
+        - key: gcp_labels.ef_ambiente | default('SEM_EF_AMBIENTE')
+          prefix: "Ambiente"
+          separator: "-"
+        - key: gcp_labels.ef_cmdb | default('SEM_EF_CMDB')
+          prefix: "Sistema"
+          separator: "-"
+
+  tasks:
+
+    # ===========================================
+    # VALIDAÇÕES
+    # ===========================================
+
+    - name: Verificar variáveis obrigatórias
+      ansible.builtin.assert:
+        that:
+          - inventory_source_id | length > 0
+          - token_aap | length > 0
+        fail_msg: "Defina inventory_source_id e token_aap"
+
+    - name: Verificar credential do GCP injetada pelo AAP
+      ansible.builtin.stat:
+        path: "{{ lookup('env', 'GOOGLE_APPLICATION_CREDENTIALS') }}"
+      register: gcp_cred_file
+
+    - name: Falhar se credential não existir
+      ansible.builtin.fail:
+        msg: "Credential GCP não foi injetada pelo AAP"
+      when: not gcp_cred_file.stat.exists
+
+    # ===========================================
+    # AUTENTICAÇÃO GCP
+    # ===========================================
+
+    - name: Ativar service account
+      ansible.builtin.command: >
+        gcloud auth activate-service-account
+        --key-file={{ lookup('env', 'GOOGLE_APPLICATION_CREDENTIALS') }}
+        --project={{ quota_project }}
+      changed_when: false
+
+    - name: Configurar quota project
+      ansible.builtin.command: >
+        gcloud config set billing/quota_project {{ quota_project }}
+      changed_when: false
+
+    # ===========================================
+    # LISTAR TODOS OS PROJETOS
+    # ===========================================
+
+    - name: Listar TODOS os projetos
+      ansible.builtin.command: >
+        gcloud projects list --format=value(projectId)
+      register: all_projects_result
+      changed_when: false
+
+    - name: Parsear lista de projetos
+      ansible.builtin.set_fact:
+        all_projects: "{{ all_projects_result.stdout_lines | select() | list }}"
+
+    - name: Mostrar total de projetos encontrados
+      ansible.builtin.debug:
+        msg: "Total de projetos encontrados: {{ all_projects | length }}"
+
+    # ===========================================
+    # FILTRAR COMPUTE API
+    # ===========================================
+
+    - name: Verificar Compute API em cada projeto
+      ansible.builtin.shell: |
+        if gcloud services list \
+          --project={{ item }} \
+          --filter="name:compute.googleapis.com" \
+          --format="value(name)" 2>/dev/null | grep -q compute; then
+          echo ENABLED
+        else
+          echo DISABLED
+        fi
+      loop: "{{ all_projects }}"
+      register: compute_check
+      changed_when: false
+      failed_when: false
+      async: 300
+      poll: 0
+
+    - name: Aguardar verificações
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      loop: "{{ compute_check.results }}"
+      register: compute_results
+      until: compute_results.finished
+      retries: 60
+      delay: 5
+
+    - name: Filtrar projetos com Compute API habilitada
+      ansible.builtin.set_fact:
+        enabled_projects: >-
+          {{
+            compute_results.results
+            | selectattr('stdout', 'defined')
+            | selectattr('stdout', 'search', 'ENABLED')
+            | map(attribute='item.item')
+            | list
+          }}
+
+    - name: Aplicar exclusões
+      ansible.builtin.set_fact:
+        final_projects: "{{ enabled_projects | reject('in', exclude_projects) | list }}"
+
+    - name: Resumo dos projetos
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════"
+          - "Total projetos: {{ all_projects | length }}"
+          - "Com Compute API: {{ enabled_projects | length }}"
+          - "Configurados: {{ final_projects | length }}"
+          - "════════════════════════════════════════"
+
+    # ===========================================
+    # ATUALIZAR INVENTORY SOURCE
+    # ===========================================
+
+    - name: Montar source_vars
+      ansible.builtin.set_fact:
+        new_source_vars: "{{ source_vars_template | combine({'projects': final_projects | sort}) }}"
+
+    - name: Atualizar Inventory Source
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/inventory_sources/{{ inventory_source_id }}/"
+        method: PATCH
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: "{{ controller_verify_ssl }}"
+        body_format: json
+        body:
+          source_vars: "{{ new_source_vars | to_nice_yaml }}"
+        status_code: [200]
+
+    - name: Inventory Source atualizado
+      ansible.builtin.debug:
+        msg: "✅ source_vars atualizado com {{ final_projects | length }} projetos"
+
+    # ===========================================
+    # ATUALIZAR JOB TEMPLATE
+    # ===========================================
+
+    - name: Montar extra_vars
+      ansible.builtin.set_fact:
+        new_extra_vars:
+          sync_mode: full
+          dry_run: false
+          gcp_projects: "{{ final_projects | sort }}"
+
+    - name: Atualizar Job Template
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/job_templates/{{ jt_id }}/"
+        method: PATCH
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: "{{ controller_verify_ssl }}"
+        body_format: json
+        body:
+          extra_vars: "{{ new_extra_vars | to_nice_yaml }}"
+        status_code: [200]
+
+    - name: Extra vars atualizados
+      ansible.builtin.debug:
+        msg: "✅ extra_vars atualizado com {{ final_projects | length }} projetos"
+
+    # ===========================================
+    # DISPARAR SYNC OPCIONAL
+    # ===========================================
+
+    - name: Disparar sync do Inventory Source
+      ansible.builtin.uri:
+        url: "{{ controller_host }}/api/controller/v2/inventory_sources/{{ inventory_source_id }}/update/"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ token_aap }}"
+        validate_certs: "{{ controller_verify_ssl }}"
+        status_code: [200, 201, 202]
+      when: trigger_sync | bool
+      register: sync_result
+
+    - name: Mostrar Job ID
+      ansible.builtin.debug:
+        msg: "✅ Sync disparado. Job ID: {{ sync_result.json.id | default('N/A') }}"
+      when: trigger_sync | bool
+
+    # ===========================================
+    # RESUMO FINAL
+    # ===========================================
+
+    - name: Resumo final
+      ansible.builtin.debug:
+        msg:
+          - "════════════════════════════════════════════════"
+          - "OPERAÇÃO CONCLUÍDA"
+          - "════════════════════════════════════════════════"
+          - "Total projetos listados: {{ all_projects | length }}"
+          - "Projetos com Compute API: {{ enabled_projects | length }}"
+          - "Projetos configurados: {{ final_projects | length }}"
+          - "Inventory Source ID: {{ inventory_source_id }}"
+          - "════════════════════════════════════════════════"
