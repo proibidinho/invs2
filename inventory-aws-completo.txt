@@ -1,6 +1,6 @@
 ]633;E;{   echo "========================================"\x3b   echo "PROJETO: inventory-aws"\x3b   echo "GERADO EM: $(date)"\x3b   echo "========================================"\x3b   echo\x3b    find . -type f     \\( -name "*.yml" -o -name "*.yaml" -o -name "*.py" -o -name "*.md" -o -name "*.cfg" -o -name "*.txt" \\)     | sort     | while read -r file\x3b do         echo\x3b         echo "#################################################################"\x3b         echo "# ARQUIVO: $file"\x3b         echo "#################################################################"\x3b         echo\x3b         cat "$file"\x3b         echo\x3b       done\x3b } > inventory-aws-completo.txt;f7dbfc0e-ea22-43f3-8c17-80b675390eac]633;C========================================
 PROJETO: inventory-aws
-GERADO EM: Thu, Aug 20, 2026 12:04:08 PM
+GERADO EM: Thu, Aug 20, 2026  4:15:10 PM
 ========================================
 
 
@@ -1473,9 +1473,6 @@ class FilterModule(object):
 # ARQUIVO: ./roles/integration_assets_aws/tasks/main.yml
 #################################################################
 
-# =============================================================================
-# Task Principal: Sincronizacao AWS (via AAP) -> CMDB
-# =============================================================================
 ---
 - name: Incluir variaveis de mapeamento AWS
   ansible.builtin.include_vars:
@@ -1724,6 +1721,33 @@ class FilterModule(object):
   ansible.builtin.set_fact:
     aws_instance_names: "{{ cloud_data_list | map(attribute='name_cloud') | list }}"
 
+- name: Inicializar lista de hosts EKS protegidos
+  ansible.builtin.set_fact:
+    aws_protected_cluster_names: []
+
+- name: Identificar hosts EKS no inventario AAP para proteger contra DEACTIVATE
+  ansible.builtin.set_fact:
+    aws_protected_cluster_names: "{{ aws_protected_cluster_names + [host_vars.instance_id] }}"
+  loop: "{{ aap_all_hosts | default([]) }}"
+  loop_control:
+    label: "{{ host_vars.instance_id | default(item.name | default('sem_nome')) }}"
+  vars:
+    host_vars: >-
+      {{
+        (item.variables | from_json)
+        if (item.variables is string)
+        else (item.variables | default({}))
+      }}
+  when:
+    - host_vars.instance_id is defined
+    - host_vars.instance_id | length > 0
+    - host_vars | is_eks_node
+
+- name: Listar hosts EKS protegidos
+  ansible.builtin.debug:
+    msg: "{{ aws_protected_cluster_names }}"
+  when: aws_protected_cluster_names | length > 0
+
 - name: Inicializar lista de reativacao
   ansible.builtin.set_fact:
     servers_to_reactivate: []
@@ -1736,6 +1760,7 @@ class FilterModule(object):
     label: "{{ item.label }}"
   when:
     - item.label in aws_instance_names
+    - item.label not in aws_protected_cluster_names
     - >
       (
         item.attributes
@@ -1777,6 +1802,7 @@ class FilterModule(object):
       {{
         cmdb_servers
         | rejectattr('label', 'in', aws_instance_names)
+        | rejectattr('label', 'in', aws_protected_cluster_names)
         | list
       }}
 
@@ -1787,6 +1813,22 @@ class FilterModule(object):
 - name: Hosts ja existentes no CMDB
   ansible.builtin.debug:
     msg: "{{ servers_to_skip | map(attribute='name_cloud') | list }}"
+
+- name: Listar servidores a reativar
+  ansible.builtin.debug:
+    msg:
+      - "SERVIDORES A REATIVAR:"
+      - "{{ servers_to_reactivate | map(attribute='label') | list }}"
+  when: servers_to_reactivate | length > 0
+
+- name: Listar servidores a desativar
+  ansible.builtin.debug:
+    msg:
+      - "SERVIDORES A DESATIVAR:"
+      - "{{ servers_to_deactivate | map(attribute='label') | list }}"
+  when:
+    - servers_to_deactivate | length > 0
+    - enable_deactivation | default(false) | bool
 
 - name: Resumo da comparacao
   ansible.builtin.debug:
@@ -1799,6 +1841,7 @@ class FilterModule(object):
       - "Total Names globais no CMDB: {{ cmdb_server_names | length }}"
       - "A CRIAR: {{ servers_to_create | length }}"
       - "A REATIVAR: {{ servers_to_reactivate | length }}"
+      - "EKS PROTEGIDOS: {{ aws_protected_cluster_names | length }}"
       - "EXISTENTES (skip): {{ servers_to_skip | length }}"
       - "A DESATIVAR: {{ servers_to_deactivate | length if enable_deactivation else '(desativado)' }}"
       - "════════════════════════════════════════════════════════════════"
@@ -1866,6 +1909,7 @@ class FilterModule(object):
     - servers_to_deactivate | length > 0
     - sync_mode == 'full' or sync_mode == 'deactivate'
     - enable_deactivation | default(false) | bool
+    - server_item.label not in (aws_protected_cluster_names | default([]))
 
 
 
@@ -1894,6 +1938,9 @@ class FilterModule(object):
     - servers_to_create | length > 0
     - sync_log_create | length == 0
     - sync_log_errors | length == servers_to_create | length
+
+
+#################################################################
 
 
 #################################################################
@@ -1976,10 +2023,18 @@ class FilterModule(object):
 # ARQUIVO: ./roles/integration_assets_aws/tasks/reactivate.yml
 #################################################################
 
-# =============================================================================
-# Task: Reativar servidor no CMDB (VM voltou a existir na AWS)
-# =============================================================================
 ---
+# =============================================================================
+# Task: Reativar servidor no CMDB (EC2 voltou a existir na AWS)
+# =============================================================================
+
+- name: Validar que o CI nao pertence a EKS
+  ansible.builtin.assert:
+    that:
+      - server_to_reactivate.label not in (aws_protected_cluster_names | default([]))
+    fail_msg: >-
+      Reativacao bloqueada: '{{ server_to_reactivate.label }}' foi identificado
+      como host EKS e esta fora do escopo desta automacao.
 
 - name: Preparar payload para reativacao
   ansible.builtin.set_fact:
@@ -2020,6 +2075,7 @@ class FilterModule(object):
         sync_log_reactivate | default([])
         + [server_to_reactivate.label]
       }}
+
 
 #################################################################
 # ARQUIVO: ./roles/integration_assets_aws/vars/main.yml
