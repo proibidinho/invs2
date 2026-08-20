@@ -3,6 +3,14 @@
 # Task: Reativar servidor no CMDB (VM voltou a existir no GCP)
 # =============================================================================
 
+- name: Validar que o CI nao pertence a GKE
+  ansible.builtin.assert:
+    that:
+      - server_to_reactivate.label not in (gcp_protected_cluster_names | default([]))
+    fail_msg: >-
+      Reativacao bloqueada: '{{ server_to_reactivate.label }}' foi identificado
+      como host GKE e esta fora do escopo desta automacao.
+
 - name: Preparar payload para reativacao
   ansible.builtin.set_fact:
     data_reactivate:
