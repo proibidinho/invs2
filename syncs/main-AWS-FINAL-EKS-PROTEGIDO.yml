@@ -434,6 +434,7 @@
     - servers_to_deactivate | length > 0
     - sync_mode == 'full' or sync_mode == 'deactivate'
     - enable_deactivation | default(false) | bool
+    - server_item.label not in (aws_protected_cluster_names | default([]))
 
 
 

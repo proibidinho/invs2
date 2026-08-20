@@ -284,13 +284,30 @@
       }}
 
     # DEACTIVATE:
-    # Continua comparando SOMENTE contra os objetos classificados como Azure.
-    servers_to_deactivate: >-
-      {{
-        cmdb_servers
-        | rejectattr('label', 'in', azure_instance_names)
-        | list
-      }}
+    # A lista sera montada abaixo, protegendo explicitamente os CIs AKS.
+    servers_to_deactivate: []
+    aks_protected_servers: []
+
+- name: Identificar CIs AKS protegidos contra desativacao
+  ansible.builtin.set_fact:
+    aks_protected_servers: "{{ aks_protected_servers + [item] }}"
+  loop: "{{ cmdb_servers }}"
+  loop_control:
+    label: "{{ item.label | default('?') }}"
+  when:
+    - item.label is defined
+    - (item.label | string | trim | lower).startswith('aks-')
+
+- name: Selecionar servidores Azure elegiveis para desativacao
+  ansible.builtin.set_fact:
+    servers_to_deactivate: "{{ servers_to_deactivate + [item] }}"
+  loop: "{{ cmdb_servers }}"
+  loop_control:
+    label: "{{ item.label | default('?') }}"
+  when:
+    - item.label is defined
+    - item.label not in azure_instance_names
+    - (item.label | string | trim | lower).startswith('aks-') == false
 
 - name: Resumo da comparacao
   ansible.builtin.debug:
@@ -303,6 +320,7 @@
       - "Total Names globais no CMDB: {{ cmdb_server_names | length }}"
       - "A CRIAR: {{ servers_to_create | length }}"
       - "A REATIVAR: {{ servers_to_reactivate | length }}"
+      - "AKS PROTEGIDOS: {{ aks_protected_servers | length }}"
       - "EXISTENTES (skip): {{ servers_to_skip | length }}"
       - "A DESATIVAR: {{ servers_to_deactivate | length if enable_deactivation else '(desativado)' }}"
       - "════════════════════════════════════════════════════════════════"
@@ -314,6 +332,14 @@
       - "{{ servers_to_reactivate | map(attribute='label') | list }}"
   when:
     - servers_to_reactivate | length > 0
+
+- name: Listar CIs AKS protegidos
+  ansible.builtin.debug:
+    msg:
+      - "CIs AKS PROTEGIDOS:"
+      - "{{ aks_protected_servers | map(attribute='label') | list }}"
+  when:
+    - aks_protected_servers | length > 0
 
 - name: Listar servidores a desativar
   ansible.builtin.debug:
@@ -383,6 +409,7 @@
     - servers_to_deactivate | length > 0
     - sync_mode == 'full' or sync_mode == 'deactivate'
     - enable_deactivation | default(false) | bool
+    - not ((server_item.label | string | trim | lower).startswith('aks-'))
 
 # ---------------------------------------------------------------------------
 # FASE 5: Relatorio final
