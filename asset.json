@@ -1,0 +1,2149 @@
+{
+    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3562960",
+    "id": "3562960",
+    "label": "i-0545082677f5ee5e7",
+    "objectKey": "GDA-3562960",
+    "avatar": {
+        "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/121/icon.png?size=16",
+        "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/121/icon.png?size=48",
+        "url72": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/121/icon.png?size=72",
+        "url144": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/121/icon.png?size=144",
+        "url288": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/121/icon.png?size=288",
+        "objectId": "3562960",
+        "mediaClientConfig": {
+            "clientId": "f1f4d6e0-c8b1-485f-8549-9462f638a2ec",
+            "issuer": null,
+            "mediaBaseUrl": "https://api.media.atlassian.com",
+            "mediaJwtToken": "eyJraWQiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIvYTRtbGtmc2o5dmdoNTZhZiIsImFsZyI6IlJTMjU2In0.eyJhdWQiOiJtZWRpYSIsImNsaWVudElkIjoiZjFmNGQ2ZTAtYzhiMS00ODVmLTg1NDktOTQ2MmY2MzhhMmVjIiwiYWNjZXNzIjp7InVybjpmaWxlc3RvcmU6ZmlsZTo0NWM4MjliNC1iOTYxLTRhMGMtODFhMS03YTAxNmNmNmIxZWEiOlsicmVhZCJdfSwibmJmIjoxNzg3MzE1MDIxLCJpc3MiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIiLCJleHAiOjE3ODczMTg2MjEsImlhdCI6MTc4NzMxNTAyMSwianRpIjoiODVlMTJiNGEtMjEyYi00ODQxLWFkY2UtZjE5MWZmODIzNmQ5In0.m5ub-QwOsZLL2b6aQJmI1LEnlm6L97of0aS7BwB3OFKo9FJKBWcVdVYtkpawdfmBshwaF5dkltGXRtklYRJOSKOxakJnnrejlIkm-tkuuVxI-zNW75FLC33jvc_87_gK8vCIdjgWb804mZATeutIUIN-xk1vzZZZMPPJZYoI4Kbnmrd2oXqqTb2KLKb6bP6xFqi9SCdhps1WnpYY6sVaSuHRpr5yFgN687-O9lGmAhvFmqoIF_NB3Buseqe-xbSROnCUoqaRidMXP8PmUV8xqHSOZH1IHoTm727QZ8t8WCrVS24xM7wwSYctYYOsXfkUDqylFjhBZ5S7LvUCap1vgA",
+            "tokenLifespanInMinutes": 60,
+            "fileId": "45c829b4-b961-4a0c-81a1-7a016cf6b1ea",
+            "collectionId": null
+        },
+        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+    },
+    "objectType": {
+        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:121",
+        "id": "121",
+        "name": "Servidor",
+        "displayName": "Servidor",
+        "type": 0,
+        "description": "",
+        "icon": {
+            "id": "170",
+            "name": "Host",
+            "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/121/icon.png?size=16",
+            "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/121/icon.png?size=48"
+        },
+        "position": 2,
+        "created": "2023-05-24T21:10:46.976Z",
+        "updated": "2025-06-23T17:11:35.034Z",
+        "objectCount": 0,
+        "objectSchemaId": "16",
+        "inherited": false,
+        "abstractObjectType": false,
+        "parentObjectTypeInherited": false,
+        "schemaLabel": "Operações de TI",
+        "schemaDisplayLabel": "Operações de TI"
+    },
+    "created": "2026-08-13T19:25:40.872Z",
+    "updated": "2026-08-13T19:26:27.054Z",
+    "hasAvatar": false,
+    "timestamp": 1786649187054,
+    "attributes": [
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:1104",
+            "id": "1104",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:1104",
+                "id": "1104",
+                "defaultType": {
+                    "id": 0,
+                    "name": "Text"
+                },
+                "description": "Informar Hostname",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": true,
+                "maximumCardinality": 1,
+                "minimumCardinality": 1,
+                "name": "Name",
+                "displayName": "Name",
+                "options": "",
+                "pendingCreation": false,
+                "position": 1,
+                "qlQuery": "",
+                "regexValidation": "",
+                "removable": false,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": true,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "1104",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "i-0545082677f5ee5e7",
+                    "searchValue": "i-0545082677f5ee5e7",
+                    "referencedType": false,
+                    "value": "i-0545082677f5ee5e7"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3343",
+            "id": "3343",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3343",
+                "id": "3343",
+                "defaultType": {
+                    "id": 0,
+                    "name": "Text"
+                },
+                "description": "Dominio",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "FQDN",
+                "displayName": "FQDN",
+                "options": "",
+                "pendingCreation": false,
+                "position": 2,
+                "removable": true,
+                "sortable": true,
+                "summable": false,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "3343",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "ip-10-86-49-152.sa-east-1.compute.internal",
+                    "searchValue": "ip-10-86-49-152.sa-east-1.compute.internal",
+                    "referencedType": false,
+                    "value": "ip-10-86-49-152.sa-east-1.compute.internal"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:6840",
+            "id": "6840",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:6840",
+                "id": "6840",
+                "defaultType": {
+                    "id": 1,
+                    "name": "Integer"
+                },
+                "description": "Quantidade de Memória RAM em Megabyte",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Memória RAM",
+                "displayName": "Memória RAM",
+                "options": "",
+                "pendingCreation": false,
+                "position": 5,
+                "qlQuery": "",
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "Mb",
+                "summable": true,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "6840",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "16384",
+                    "searchValue": "16384",
+                    "referencedType": false,
+                    "value": "16384"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3359",
+            "id": "3359",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3359",
+                "id": "3359",
+                "defaultType": {
+                    "id": 0,
+                    "name": "Text"
+                },
+                "description": "Quantidade de CPU´s alocados",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "CPU Count",
+                "displayName": "CPU Count",
+                "options": "",
+                "pendingCreation": false,
+                "position": 7,
+                "removable": true,
+                "sortable": true,
+                "summable": false,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "3359",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "4",
+                    "searchValue": "4",
+                    "referencedType": false,
+                    "value": "4"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3626",
+            "id": "3626",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3626",
+                "id": "3626",
+                "defaultType": {
+                    "id": 10,
+                    "name": "Select"
+                },
+                "description": "Criticidades de 0 a 4 onde 0 é o mais crítico",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 50,
+                "minimumCardinality": 0,
+                "name": "Criticidade",
+                "displayName": "Criticidade",
+                "options": "0,1,2,3,4",
+                "pendingCreation": false,
+                "position": 12,
+                "qlQuery": "",
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "3626",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "0",
+                    "searchValue": "0",
+                    "referencedType": false,
+                    "value": "0"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:2957",
+            "id": "2957",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:2957",
+                "id": "2957",
+                "description": "Status dos Servidores",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Status",
+                "displayName": "Status",
+                "options": "",
+                "pendingCreation": false,
+                "position": 21,
+                "qlQuery": "",
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 7,
+                "typeValueMulti": [
+                    "16",
+                    "17",
+                    "18",
+                    "14",
+                    "19",
+                    "20",
+                    "21",
+                    "111",
+                    "22",
+                    "333",
+                    "553"
+                ],
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "2957",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "Em uso",
+                    "searchValue": "Em uso",
+                    "referencedType": false,
+                    "status": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:18",
+                        "id": "18",
+                        "name": "Em uso",
+                        "displayName": "Em uso",
+                        "description": "",
+                        "category": 1,
+                        "objectSchemaId": "16"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:10548",
+            "id": "10548",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:10548",
+                "id": "10548",
+                "defaultType": {
+                    "id": 0,
+                    "name": "Text"
+                },
+                "description": "Associar o servidor a conta cloud que ele está relacionado",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Conta Cloud",
+                "displayName": "Conta Cloud",
+                "options": "",
+                "pendingCreation": false,
+                "position": 22,
+                "removable": true,
+                "sortable": true,
+                "summable": false,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "10548",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "042304939843",
+                    "searchValue": "042304939843",
+                    "referencedType": false,
+                    "value": "042304939843"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:7274",
+            "id": "7274",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:7274",
+                "id": "7274",
+                "description": "Equipe que suporta o sistema operacional",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Grupo Solucionador - Infra",
+                "displayName": "Grupo Solucionador - Infra",
+                "options": "",
+                "pendingCreation": false,
+                "position": 24,
+                "qlQuery": "",
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 4,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "7274",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "CLBR-TI-INFRA-CLOUD-PUBLIC",
+                    "searchValue": "CLBR-TI-INFRA-CLOUD-PUBLIC",
+                    "referencedType": false,
+                    "group": {
+                        "avatarUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAMFBMVEX///9wcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHAnFTKsAAAAD3RSTlMAESIzRFVmd4iZqrvM3e5GKvWZAAAAG3RFWHRqaXJhLXN5c3RlbS1pbWFnZS10eXBlAGljb266KjlFAAAAiUlEQVR42mNgYGBg3P9bgIGJgcmJy4FlAQMLQ7aDLgODAwMTU0pIA1CagYlt/f9zDAwHGJj+CTCIH/iTwMDyy0NqDUiOhYX7zfR/Hyc2MEn6/vJgFChlYMq5wDiBgYFTgMmTgV0AaHgCkxzQTCBIYBbfsSoDyOBhZGDIB6ph+MHEwLAGJLWLAQYAKX0dsAFHfu4AAAAASUVORK5CYII=",
+                        "name": "CLBR-TI-INFRA-CLOUD-PUBLIC"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:9222",
+            "id": "9222",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:9222",
+                "id": "9222",
+                "description": "Equipe que suporta os serviços/aplicação",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Grupo Solucionador - Serviço",
+                "displayName": "Grupo Solucionador - Serviço",
+                "options": "",
+                "pendingCreation": false,
+                "position": 25,
+                "qlQuery": "",
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 4,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "9222",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "CLBR-TI-INFRA-SUPORTE CALL CENTER",
+                    "searchValue": "CLBR-TI-INFRA-SUPORTE CALL CENTER",
+                    "referencedType": false,
+                    "group": {
+                        "avatarUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQBAMAAADt3eJSAAAAMFBMVEX///9wcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHAnFTKsAAAAD3RSTlMAESIzRFVmd4iZqrvM3e5GKvWZAAAAG3RFWHRqaXJhLXN5c3RlbS1pbWFnZS10eXBlAGljb266KjlFAAAAiUlEQVR42mNgYGBg3P9bgIGJgcmJy4FlAQMLQ7aDLgODAwMTU0pIA1CagYlt/f9zDAwHGJj+CTCIH/iTwMDyy0NqDUiOhYX7zfR/Hyc2MEn6/vJgFChlYMq5wDiBgYFTgMmTgV0AaHgCkxzQTCBIYBbfsSoDyOBhZGDIB6ph+MHEwLAGJLWLAQYAKX0dsAFHfu4AAAAASUVORK5CYII=",
+                        "name": "CLBR-TI-INFRA-SUPORTE CALL CENTER"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:9647",
+            "id": "9647",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:9647",
+                "id": "9647",
+                "defaultType": {
+                    "id": 2,
+                    "name": "Boolean"
+                },
+                "description": "Atributo para atender a Auditoria CAU6",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "SOX",
+                "displayName": "SOX",
+                "options": "",
+                "pendingCreation": false,
+                "position": 29,
+                "removable": true,
+                "sortable": true,
+                "summable": false,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "9647",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "false",
+                    "searchValue": "false",
+                    "referencedType": false,
+                    "value": "false"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:9648",
+            "id": "9648",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:9648",
+                "id": "9648",
+                "defaultType": {
+                    "id": 2,
+                    "name": "Boolean"
+                },
+                "description": "Atributo para atender a Auditoria CAU6",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "IPE",
+                "displayName": "IPE",
+                "options": "",
+                "pendingCreation": false,
+                "position": 30,
+                "removable": true,
+                "sortable": true,
+                "summable": false,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "9648",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "false",
+                    "searchValue": "false",
+                    "referencedType": false,
+                    "value": "false"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:6829",
+            "id": "6829",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:6829",
+                "id": "6829",
+                "defaultType": {
+                    "id": 0,
+                    "name": "Text"
+                },
+                "description": "Fornecedor da Infraestrutura preenchido pelo Discovery",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Fornecedor",
+                "displayName": "Fornecedor",
+                "options": "",
+                "pendingCreation": false,
+                "position": 35,
+                "removable": true,
+                "sortable": true,
+                "summable": false,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "6829",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "AWS",
+                    "searchValue": "AWS",
+                    "referencedType": false,
+                    "value": "AWS"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3053",
+            "id": "3053",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3053",
+                "id": "3053",
+                "description": "Status preenchido pelo Discovery",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Status Discovery",
+                "displayName": "Status Discovery",
+                "options": "",
+                "pendingCreation": false,
+                "position": 38,
+                "removable": true,
+                "sortable": true,
+                "summable": false,
+                "system": false,
+                "type": 7,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "3053",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "Running",
+                    "searchValue": "Running",
+                    "referencedType": false,
+                    "status": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:24",
+                        "id": "24",
+                        "name": "Running",
+                        "displayName": "Running",
+                        "description": "",
+                        "category": 1,
+                        "objectSchemaId": "16"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3357",
+            "id": "3357",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3357",
+                "id": "3357",
+                "defaultType": {
+                    "id": 0,
+                    "name": "Text"
+                },
+                "description": "Ultimo usuário que estava logado no servidor na hora do Discovery",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Last User",
+                "displayName": "Last User",
+                "options": "",
+                "pendingCreation": false,
+                "position": 41,
+                "removable": true,
+                "sortable": true,
+                "summable": false,
+                "system": false,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "3357",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "Ansible",
+                    "searchValue": "Ansible",
+                    "referencedType": false,
+                    "value": "Ansible"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:1103",
+            "id": "1103",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:1103",
+                "id": "1103",
+                "defaultType": {
+                    "id": 0,
+                    "name": "Text"
+                },
+                "editable": false,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 1,
+                "name": "Key",
+                "displayName": "Key",
+                "options": "",
+                "pendingCreation": false,
+                "position": 0,
+                "removable": false,
+                "sortable": true,
+                "summable": false,
+                "system": true,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "1103",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "GDA-3562960",
+                    "searchValue": "GDA-3562960",
+                    "referencedType": false,
+                    "value": "GDA-3562960"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:1105",
+            "id": "1105",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:1105",
+                "id": "1105",
+                "defaultType": {
+                    "id": 6,
+                    "name": "DateTime"
+                },
+                "editable": false,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 1,
+                "name": "Created",
+                "displayName": "Created",
+                "options": "",
+                "pendingCreation": false,
+                "position": 32,
+                "removable": false,
+                "sortable": true,
+                "summable": false,
+                "system": true,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "1105",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "13/Aug/26 7:25 PM",
+                    "searchValue": "2026-08-13T19:25:40.872Z",
+                    "referencedType": false,
+                    "value": "2026-08-13T19:25:40.872Z"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:1106",
+            "id": "1106",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:1106",
+                "id": "1106",
+                "defaultType": {
+                    "id": 6,
+                    "name": "DateTime"
+                },
+                "editable": false,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 1,
+                "name": "Updated",
+                "displayName": "Updated",
+                "options": "",
+                "pendingCreation": false,
+                "position": 33,
+                "removable": false,
+                "sortable": true,
+                "summable": false,
+                "system": true,
+                "type": 0,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "1106",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "13/Aug/26 7:26 PM",
+                    "searchValue": "2026-08-13T19:26:27.054Z",
+                    "referencedType": false,
+                    "value": "2026-08-13T19:26:27.054Z"
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3358",
+            "id": "3358",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3358",
+                "id": "3358",
+                "description": "Windows | Linux | MacOS | Unix | Mainframe",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": -1,
+                "minimumCardinality": 0,
+                "name": "Sistema Operacional",
+                "displayName": "Sistema Operacional",
+                "options": "",
+                "pendingCreation": false,
+                "position": 3,
+                "qlQuery": "",
+                "referenceType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:42",
+                    "id": "42",
+                    "name": "Sistema Operacional",
+                    "displayName": "Sistema Operacional",
+                    "description": "",
+                    "color": "FF7452",
+                    "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/config/referencetype/42/image.png?size=16",
+                    "objectSchemaId": "16"
+                },
+                "referenceObjectTypeId": "150",
+                "referenceObjectType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:150",
+                    "id": "150",
+                    "name": "Sistema Operacional",
+                    "displayName": "Sistema Operacional",
+                    "type": 0,
+                    "description": "",
+                    "icon": {
+                        "id": "176",
+                        "name": "Operating System",
+                        "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/150/icon.png?size=16",
+                        "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/150/icon.png?size=48"
+                    },
+                    "position": 2,
+                    "created": "2023-05-25T19:44:40.412Z",
+                    "updated": "2026-06-08T14:44:21.255Z",
+                    "objectCount": 0,
+                    "parentObjectTypeId": "121",
+                    "objectSchemaId": "16",
+                    "inherited": false,
+                    "abstractObjectType": false,
+                    "parentObjectTypeInherited": false,
+                    "schemaLabel": "Operações de TI",
+                    "schemaDisplayLabel": "Operações de TI"
+                },
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 1,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "3358",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "Linux",
+                    "searchValue": "GDA-171174",
+                    "referencedType": true,
+                    "referencedObject": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:171174",
+                        "id": "171174",
+                        "label": "Linux",
+                        "objectKey": "GDA-171174",
+                        "avatar": {
+                            "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/171174/avatar_16.png",
+                            "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/171174/avatar_48.png",
+                            "url72": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/171174/avatar_72.png",
+                            "url144": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/171174/avatar_144.png",
+                            "url288": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/171174/avatar_288.png",
+                            "objectId": "171174",
+                            "mediaClientConfig": {
+                                "clientId": "f1f4d6e0-c8b1-485f-8549-9462f638a2ec",
+                                "issuer": null,
+                                "mediaBaseUrl": "https://api.media.atlassian.com",
+                                "mediaJwtToken": "eyJraWQiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIvYTRtbGtmc2o5dmdoNTZhZiIsImFsZyI6IlJTMjU2In0.eyJhdWQiOiJtZWRpYSIsImNsaWVudElkIjoiZjFmNGQ2ZTAtYzhiMS00ODVmLTg1NDktOTQ2MmY2MzhhMmVjIiwiYWNjZXNzIjp7InVybjpmaWxlc3RvcmU6ZmlsZTo5MTRiNDlmNy0yM2M0LTQ1NTktYWNkMS02ZTRjZThlODE2M2IiOlsicmVhZCJdfSwibmJmIjoxNzg3MzE1MDIxLCJpc3MiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIiLCJleHAiOjE3ODczMTg2MjEsImlhdCI6MTc4NzMxNTAyMSwianRpIjoiYmJhY2U3YzUtNDAyYy00YzExLWFhYzgtNzNmODE4YWEwYTA4In0.VTlWPVkia4zM-eVbEni5Y59s89MYsgv9OfwjyVQsBY-IYyfqva5uVaueEwG3bUeAYDa4ARHe4LgjVqxe43W_EZHKuradyavyYqp2kqYDVFAx58yQ1LMMBiYXzxt40RexcA0VFaT-3aru3xPcKNe6xMBhVVRNNDbulO9mtqJHKRhI_p522s6mJTsZOwLwracc5ujbXWNRFcxgAKFYMPLkTd3dhnQZCrDVoVwYrfbx0aLLnz9rJ-hJ549CKrlncRbTTVds5ecj-OS_j9mXEEiHG4QuTdMYSkqubmx0uJ6vjSxzX_VXSZiFfh5V7V1hfjOCywcC0mUzX2ob1gqag-dcwQ",
+                                "tokenLifespanInMinutes": 60,
+                                "fileId": "914b49f7-23c4-4559-acd1-6e4ce8e8163b",
+                                "collectionId": null
+                            },
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+                        },
+                        "objectType": {
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:150",
+                            "id": "150",
+                            "name": "Sistema Operacional",
+                            "displayName": "Sistema Operacional",
+                            "type": 0,
+                            "description": "",
+                            "icon": {
+                                "id": "176",
+                                "name": "Operating System",
+                                "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/150/icon.png?size=16",
+                                "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/150/icon.png?size=48"
+                            },
+                            "position": 2,
+                            "created": "2023-05-25T19:44:40.412Z",
+                            "updated": "2026-06-08T14:44:21.255Z",
+                            "objectCount": 0,
+                            "parentObjectTypeId": "121",
+                            "objectSchemaId": "16",
+                            "inherited": false,
+                            "abstractObjectType": false,
+                            "parentObjectTypeInherited": false,
+                            "schemaLabel": "Operações de TI",
+                            "schemaDisplayLabel": "Operações de TI"
+                        },
+                        "created": "2023-07-11T20:12:59.669Z",
+                        "updated": "2026-04-28T18:21:49.406Z",
+                        "hasAvatar": true,
+                        "timestamp": 1777400509406,
+                        "_links": {
+                            "self": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/171174"
+                        },
+                        "name": "Linux"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3528",
+            "id": "3528",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3528",
+                "id": "3528",
+                "description": "Endereço de IP do servidor",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": -1,
+                "minimumCardinality": 0,
+                "name": "Interface de Rede",
+                "displayName": "Interface de Rede",
+                "options": "",
+                "pendingCreation": false,
+                "position": 8,
+                "qlQuery": "",
+                "referenceType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:9",
+                    "id": "9",
+                    "name": "Network Interface",
+                    "displayName": "Network Interface",
+                    "description": "",
+                    "color": "2684FF",
+                    "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/config/referencetype/9/image.png?size=16",
+                    "objectSchemaId": "16"
+                },
+                "referenceObjectTypeId": "230",
+                "referenceObjectType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:230",
+                    "id": "230",
+                    "name": "Interface de Rede",
+                    "displayName": "Interface de Rede",
+                    "type": 0,
+                    "description": "",
+                    "icon": {
+                        "id": "175",
+                        "name": "Network Interface",
+                        "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/230/icon.png?size=16",
+                        "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/230/icon.png?size=48"
+                    },
+                    "position": 8,
+                    "created": "2023-06-22T20:02:42.096Z",
+                    "updated": "2026-02-04T17:17:15.291Z",
+                    "objectCount": 0,
+                    "objectSchemaId": "16",
+                    "inherited": false,
+                    "abstractObjectType": false,
+                    "parentObjectTypeInherited": false,
+                    "schemaLabel": "Operações de TI",
+                    "schemaDisplayLabel": "Operações de TI"
+                },
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 1,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "3528",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "10.86.49.152",
+                    "searchValue": "GDA-3553503",
+                    "referencedType": true,
+                    "referencedObject": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3553503",
+                        "id": "3553503",
+                        "label": "10.86.49.152",
+                        "objectKey": "GDA-3553503",
+                        "avatar": {
+                            "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/230/icon.png?size=16",
+                            "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/230/icon.png?size=48",
+                            "url72": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/230/icon.png?size=72",
+                            "url144": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/230/icon.png?size=144",
+                            "url288": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/230/icon.png?size=288",
+                            "objectId": "3553503",
+                            "mediaClientConfig": {
+                                "clientId": "f1f4d6e0-c8b1-485f-8549-9462f638a2ec",
+                                "issuer": null,
+                                "mediaBaseUrl": "https://api.media.atlassian.com",
+                                "mediaJwtToken": "eyJraWQiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIvYTRtbGtmc2o5dmdoNTZhZiIsImFsZyI6IlJTMjU2In0.eyJhdWQiOiJtZWRpYSIsImNsaWVudElkIjoiZjFmNGQ2ZTAtYzhiMS00ODVmLTg1NDktOTQ2MmY2MzhhMmVjIiwiYWNjZXNzIjp7InVybjpmaWxlc3RvcmU6ZmlsZTpkNGYxOWM1MS1jNGQ3LTQ1NjMtOTM3NC03MjliZmM4ODA5ZGIiOlsicmVhZCJdfSwibmJmIjoxNzg3MzE1MDIxLCJpc3MiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIiLCJleHAiOjE3ODczMTg2MjEsImlhdCI6MTc4NzMxNTAyMSwianRpIjoiZjU3MGFkN2YtNWExOS00MWEyLTgyYmUtMzczYzNhNzFhMDA5In0.L2JlAGM-jLjDaxUE_Sts9deScGybmF746b5HfYvF2WrcyJg2SpuaUAnprr06TAmDGQfV9fSEBFF48fWJ84tJUHBjBEosIPTN0gO2dA4GWCDFOej7_J28J8Y5lwB6_-GjjcMr3st_5vSEJFNDonidNwzc98dwxLYYP87bAa_gc3zr0MSTe0iGyQrTKDecUB5quuWHD05wlOtdP_XErABLknaI8QMwQJyO2mhSUxcqSXKfje7Rlon5FAqRUPiX-URbzNmOpSX4cM6FQYO_Hrwy-TH7pbN-DOujK8c5-MN1FL4Dg2J0FpZBi2GAKo_48S9iJLjQIxHWg2zHTKHFpx8HvQ",
+                                "tokenLifespanInMinutes": 60,
+                                "fileId": "d4f19c51-c4d7-4563-9374-729bfc8809db",
+                                "collectionId": null
+                            },
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+                        },
+                        "objectType": {
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:230",
+                            "id": "230",
+                            "name": "Interface de Rede",
+                            "displayName": "Interface de Rede",
+                            "type": 0,
+                            "description": "",
+                            "icon": {
+                                "id": "175",
+                                "name": "Network Interface",
+                                "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/230/icon.png?size=16",
+                                "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/230/icon.png?size=48"
+                            },
+                            "position": 8,
+                            "created": "2023-06-22T20:02:42.096Z",
+                            "updated": "2026-02-04T17:17:15.291Z",
+                            "objectCount": 0,
+                            "objectSchemaId": "16",
+                            "inherited": false,
+                            "abstractObjectType": false,
+                            "parentObjectTypeInherited": false,
+                            "schemaLabel": "Operações de TI",
+                            "schemaDisplayLabel": "Operações de TI"
+                        },
+                        "created": "2026-07-30T15:31:16.535Z",
+                        "updated": "2026-07-30T15:31:16.535Z",
+                        "hasAvatar": false,
+                        "timestamp": 1785425476535,
+                        "_links": {
+                            "self": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/3553503"
+                        },
+                        "name": "10.86.49.152"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:15656",
+            "id": "15656",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:15656",
+                "id": "15656",
+                "description": "VMWare | Dell | HP | AWS | Azure | GCP",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Modelo de Servidor",
+                "displayName": "Modelo de Servidor",
+                "options": "",
+                "pendingCreation": false,
+                "position": 13,
+                "referenceType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:5",
+                    "id": "5",
+                    "name": "Technical",
+                    "displayName": "Technical",
+                    "description": "Technical",
+                    "color": "f51844",
+                    "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/config/referencetype/5/image.png?size=16"
+                },
+                "referenceObjectTypeId": "406",
+                "referenceObjectType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:406",
+                    "id": "406",
+                    "name": "Modelo de Servidor",
+                    "displayName": "Modelo de Servidor",
+                    "type": 0,
+                    "description": "",
+                    "icon": {
+                        "id": "59",
+                        "name": "Integrated Circuit",
+                        "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/406/icon.png?size=16",
+                        "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/406/icon.png?size=48"
+                    },
+                    "position": 10,
+                    "created": "2023-08-18T19:24:27.345Z",
+                    "updated": "2026-06-08T14:44:21.255Z",
+                    "objectCount": 0,
+                    "parentObjectTypeId": "121",
+                    "objectSchemaId": "16",
+                    "inherited": false,
+                    "abstractObjectType": false,
+                    "parentObjectTypeInherited": false,
+                    "schemaLabel": "Operações de TI",
+                    "schemaDisplayLabel": "Operações de TI"
+                },
+                "removable": true,
+                "sortable": true,
+                "summable": false,
+                "system": false,
+                "type": 1,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "15656",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "m6i.xlarge",
+                    "searchValue": "GDA-3223765",
+                    "referencedType": true,
+                    "referencedObject": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3223765",
+                        "id": "3223765",
+                        "label": "m6i.xlarge",
+                        "objectKey": "GDA-3223765",
+                        "avatar": {
+                            "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/406/icon.png?size=16",
+                            "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/406/icon.png?size=48",
+                            "url72": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/406/icon.png?size=72",
+                            "url144": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/406/icon.png?size=144",
+                            "url288": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/406/icon.png?size=288",
+                            "objectId": "3223765",
+                            "mediaClientConfig": {
+                                "clientId": "f1f4d6e0-c8b1-485f-8549-9462f638a2ec",
+                                "issuer": null,
+                                "mediaBaseUrl": "https://api.media.atlassian.com",
+                                "mediaJwtToken": "eyJraWQiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIvYTRtbGtmc2o5dmdoNTZhZiIsImFsZyI6IlJTMjU2In0.eyJhdWQiOiJtZWRpYSIsImNsaWVudElkIjoiZjFmNGQ2ZTAtYzhiMS00ODVmLTg1NDktOTQ2MmY2MzhhMmVjIiwiYWNjZXNzIjp7InVybjpmaWxlc3RvcmU6ZmlsZTpmYzZiYmU0MS05MzQ5LTQ5MmUtODVhZS0wMTk0MGI0ODAxZDkiOlsicmVhZCJdfSwibmJmIjoxNzg3MzE1MDIxLCJpc3MiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIiLCJleHAiOjE3ODczMTg2MjEsImlhdCI6MTc4NzMxNTAyMSwianRpIjoiOGMxNzlkMzQtMjI3OC00MGEwLThiZmEtMjYwNjg2NjVlZDhkIn0.ef377LJUVvKbVsoPxER4WrQhmDUYb9k1wV8-JiBbcAMvhVzhR0SF3wBHo-py0LiV9AkAlHhc6unyIYsSiVlx1xQDrwmGjjYSa_EmrM8zbnBcUiQIy5_AepB5HOwzxIjtx5XqXK8m6xoG4-ak7A_--0J6zshA9055B_YGKG79mDVfyGrpDxDkiQ-nQEIJemp7b0yK5dWHDPJA9sdTtPPflQsepombvs_PdhZyodSCFk8qB-AAA8KDMPMNrDxF12eevTr-ZSB_qQ7ql9Igkyq_gnrrXz0qYgrrcyc0UzxrjYYlKiw-1xSNMoSCIuhNTMDOIC-6DNa7I5WSKDQVcmNE4g",
+                                "tokenLifespanInMinutes": 60,
+                                "fileId": "fc6bbe41-9349-492e-85ae-01940b4801d9",
+                                "collectionId": null
+                            },
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+                        },
+                        "objectType": {
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:406",
+                            "id": "406",
+                            "name": "Modelo de Servidor",
+                            "displayName": "Modelo de Servidor",
+                            "type": 0,
+                            "description": "",
+                            "icon": {
+                                "id": "59",
+                                "name": "Integrated Circuit",
+                                "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/406/icon.png?size=16",
+                                "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/406/icon.png?size=48"
+                            },
+                            "position": 10,
+                            "created": "2023-08-18T19:24:27.345Z",
+                            "updated": "2026-06-08T14:44:21.255Z",
+                            "objectCount": 0,
+                            "parentObjectTypeId": "121",
+                            "objectSchemaId": "16",
+                            "inherited": false,
+                            "abstractObjectType": false,
+                            "parentObjectTypeInherited": false,
+                            "schemaLabel": "Operações de TI",
+                            "schemaDisplayLabel": "Operações de TI"
+                        },
+                        "created": "2026-04-16T17:03:21.348Z",
+                        "updated": "2026-04-16T17:03:21.348Z",
+                        "hasAvatar": false,
+                        "timestamp": 1776359001348,
+                        "_links": {
+                            "self": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/3223765"
+                        },
+                        "name": "m6i.xlarge"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:9948",
+            "id": "9948",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:9948",
+                "id": "9948",
+                "description": "Informar qual o tipo de infraestrutura o servidor está  instalado",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Tipo de Infraestrutura",
+                "displayName": "Tipo de Infraestrutura",
+                "options": "",
+                "pendingCreation": false,
+                "position": 17,
+                "qlQuery": "",
+                "referenceType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:b87cc335-137e-4ba3-8f97-794cf03cbefb",
+                    "id": "b87cc335-137e-4ba3-8f97-794cf03cbefb",
+                    "name": "Tipo de Infraestrura",
+                    "displayName": "Tipo de Infraestrura",
+                    "description": "",
+                    "color": "1F845A",
+                    "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/config/referencetype/b87cc335-137e-4ba3-8f97-794cf03cbefb/image.png?size=16",
+                    "objectSchemaId": "16"
+                },
+                "referenceObjectTypeId": "119",
+                "referenceObjectType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:119",
+                    "id": "119",
+                    "name": "Ambientes de Infraestrutura",
+                    "displayName": "Ambientes de Infraestrutura",
+                    "type": 0,
+                    "description": "",
+                    "icon": {
+                        "id": "118",
+                        "name": "Stack",
+                        "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/119/icon.png?size=16",
+                        "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/119/icon.png?size=48"
+                    },
+                    "position": 6,
+                    "created": "2023-05-24T21:09:21.305Z",
+                    "updated": "2025-11-07T18:52:08.478Z",
+                    "objectCount": 0,
+                    "parentObjectTypeId": "113",
+                    "objectSchemaId": "16",
+                    "inherited": false,
+                    "abstractObjectType": false,
+                    "parentObjectTypeInherited": false,
+                    "schemaLabel": "Operações de TI",
+                    "schemaDisplayLabel": "Operações de TI"
+                },
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 1,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "9948",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "CLOUD PUBLICA",
+                    "searchValue": "GDA-223965",
+                    "referencedType": true,
+                    "referencedObject": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:223965",
+                        "id": "223965",
+                        "label": "CLOUD PUBLICA",
+                        "objectKey": "GDA-223965",
+                        "avatar": {
+                            "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/119/icon.png?size=16",
+                            "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/119/icon.png?size=48",
+                            "url72": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/119/icon.png?size=72",
+                            "url144": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/119/icon.png?size=144",
+                            "url288": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/119/icon.png?size=288",
+                            "objectId": "223965",
+                            "mediaClientConfig": {
+                                "clientId": "f1f4d6e0-c8b1-485f-8549-9462f638a2ec",
+                                "issuer": null,
+                                "mediaBaseUrl": "https://api.media.atlassian.com",
+                                "mediaJwtToken": "eyJraWQiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIvYTRtbGtmc2o5dmdoNTZhZiIsImFsZyI6IlJTMjU2In0.eyJhdWQiOiJtZWRpYSIsImNsaWVudElkIjoiZjFmNGQ2ZTAtYzhiMS00ODVmLTg1NDktOTQ2MmY2MzhhMmVjIiwiYWNjZXNzIjp7InVybjpmaWxlc3RvcmU6ZmlsZTo1ODIzZDBmOS0xNDA3LTRjZDEtYTY5NS0xMDQzMWIwODNmNDEiOlsicmVhZCJdfSwibmJmIjoxNzg3MzE1MDIxLCJpc3MiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIiLCJleHAiOjE3ODczMTg2MjEsImlhdCI6MTc4NzMxNTAyMSwianRpIjoiZTdjYjQwMTAtNWU0Ny00MzhjLTk5NDMtNGFmZGJlMDg0YWU5In0.blNS0_OPWRQo8K8EOhOvOYn6Quf6kEJrkSyLIQojIO03Y7zYqr_UblU7LLaPpQRjErbHscxncbR81j_ESlwX3fLNrUkINfqgDKqIhctLQbeUlKKDLjOlfyvNcZ587tl-7Yyb5DmapbM4664WnScZVnOQNgzl4DDyc4_pftDxLe3h8rvpmU5lUnXVMEE_Wt4O5WAcik32-yEguBEoYO3zNzcUaqNj_TUFCoxFHAbcn6YgLGur9ubBWpbGYKme0Ur-VzkDQ1XIYS4PGcXLrrxVbfUTTOTj8X3CCnOSxWb1H0gWEWmdWJm5ruz5dIBtIAbH1tiQxmUMLanBW3CtAmEdZw",
+                                "tokenLifespanInMinutes": 60,
+                                "fileId": "5823d0f9-1407-4cd1-a695-10431b083f41",
+                                "collectionId": null
+                            },
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+                        },
+                        "objectType": {
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:119",
+                            "id": "119",
+                            "name": "Ambientes de Infraestrutura",
+                            "displayName": "Ambientes de Infraestrutura",
+                            "type": 0,
+                            "description": "",
+                            "icon": {
+                                "id": "118",
+                                "name": "Stack",
+                                "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/119/icon.png?size=16",
+                                "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/119/icon.png?size=48"
+                            },
+                            "position": 6,
+                            "created": "2023-05-24T21:09:21.305Z",
+                            "updated": "2025-11-07T18:52:08.478Z",
+                            "objectCount": 0,
+                            "parentObjectTypeId": "113",
+                            "objectSchemaId": "16",
+                            "inherited": false,
+                            "abstractObjectType": false,
+                            "parentObjectTypeInherited": false,
+                            "schemaLabel": "Operações de TI",
+                            "schemaDisplayLabel": "Operações de TI"
+                        },
+                        "created": "2023-07-14T19:55:19.519Z",
+                        "updated": "2023-07-14T20:05:19.519Z",
+                        "hasAvatar": false,
+                        "timestamp": 1689365119519,
+                        "_links": {
+                            "self": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/223965"
+                        },
+                        "name": "CLOUD PUBLICA"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:9219",
+            "id": "9219",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:9219",
+                "id": "9219",
+                "description": "Atributo CMDB",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": -1,
+                "minimumCardinality": 0,
+                "name": "Sistema",
+                "displayName": "Sistema",
+                "options": "",
+                "pendingCreation": false,
+                "position": 18,
+                "qlQuery": "Origem not in (\"Diario de Bordo\", \"Gestão de Acessos\") and status NOT IN (Desativado)",
+                "referenceType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:41",
+                    "id": "41",
+                    "name": "Servidor",
+                    "displayName": "Servidor",
+                    "description": "",
+                    "color": "8777D9",
+                    "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/config/referencetype/41/image.png?size=16",
+                    "objectSchemaId": "16"
+                },
+                "referenceObjectTypeId": "113",
+                "referenceObjectType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:113",
+                    "id": "113",
+                    "name": "Sistemas",
+                    "displayName": "Sistemas",
+                    "type": 0,
+                    "description": "",
+                    "icon": {
+                        "id": "9",
+                        "name": "Application Shield",
+                        "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/113/icon.png?size=16",
+                        "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/113/icon.png?size=48"
+                    },
+                    "position": 0,
+                    "created": "2023-05-24T21:06:42.063Z",
+                    "updated": "2025-03-24T18:14:36.584Z",
+                    "objectCount": 0,
+                    "objectSchemaId": "16",
+                    "inherited": false,
+                    "abstractObjectType": false,
+                    "parentObjectTypeInherited": false,
+                    "schemaLabel": "Operações de TI",
+                    "schemaDisplayLabel": "Operações de TI"
+                },
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 1,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "9219",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "NICE",
+                    "searchValue": "GDA-415603",
+                    "referencedType": true,
+                    "referencedObject": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:415603",
+                        "id": "415603",
+                        "label": "NICE",
+                        "objectKey": "GDA-415603",
+                        "avatar": {
+                            "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/113/icon.png?size=16",
+                            "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/113/icon.png?size=48",
+                            "url72": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/113/icon.png?size=72",
+                            "url144": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/113/icon.png?size=144",
+                            "url288": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/113/icon.png?size=288",
+                            "objectId": "415603",
+                            "mediaClientConfig": {
+                                "clientId": "f1f4d6e0-c8b1-485f-8549-9462f638a2ec",
+                                "issuer": null,
+                                "mediaBaseUrl": "https://api.media.atlassian.com",
+                                "mediaJwtToken": "eyJraWQiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIvYTRtbGtmc2o5dmdoNTZhZiIsImFsZyI6IlJTMjU2In0.eyJhdWQiOiJtZWRpYSIsImNsaWVudElkIjoiZjFmNGQ2ZTAtYzhiMS00ODVmLTg1NDktOTQ2MmY2MzhhMmVjIiwiYWNjZXNzIjp7InVybjpmaWxlc3RvcmU6ZmlsZTozMDQ2NTU4ZS03MTBlLTQ5YWYtODU1Zi1lYzhiNjY1YTE5MDEiOlsicmVhZCJdfSwibmJmIjoxNzg3MzE1MDIxLCJpc3MiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIiLCJleHAiOjE3ODczMTg2MjEsImlhdCI6MTc4NzMxNTAyMSwianRpIjoiZmE2MTA3YmQtZjgwMy00NjZmLTg5Y2QtNmNhZmM5NTY5MWI3In0.p77vOTRZC1al1bxBQzCn21ngJhJx6xx03bSe9CpsOrKaB1nXABSHE7kJ1m0uVtymX3720YnD4LUHtAGlJqdGPK5ZsuWtVM8iE96yqxsSHg-eRmXVjzfA2a2QGXKIzx1cMxqAbZkVdJkZFwV1Ykuya3DkAC3D7oJaYo4DaJF7jXcvh-68Ii1IJEtILFtEwL4QPFUygGhnOrADCTfIRI6q4atlPe3nx7ysjlTnkAdzPEtzY6xWQDMzjvGNtOY0i0n5-cc5kMPbNmy09VYKY106LiHtp12I1GJknOefPv4cqyeRhpdlvdvNcub5xessX1xPgtW55yiGCLY7uD1uTeFkag",
+                                "tokenLifespanInMinutes": 60,
+                                "fileId": "3046558e-710e-49af-855f-ec8b665a1901",
+                                "collectionId": null
+                            },
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+                        },
+                        "objectType": {
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:113",
+                            "id": "113",
+                            "name": "Sistemas",
+                            "displayName": "Sistemas",
+                            "type": 0,
+                            "description": "",
+                            "icon": {
+                                "id": "9",
+                                "name": "Application Shield",
+                                "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/113/icon.png?size=16",
+                                "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/113/icon.png?size=48"
+                            },
+                            "position": 0,
+                            "created": "2023-05-24T21:06:42.063Z",
+                            "updated": "2025-03-24T18:14:36.584Z",
+                            "objectCount": 0,
+                            "objectSchemaId": "16",
+                            "inherited": false,
+                            "abstractObjectType": false,
+                            "parentObjectTypeInherited": false,
+                            "schemaLabel": "Operações de TI",
+                            "schemaDisplayLabel": "Operações de TI"
+                        },
+                        "created": "2024-03-01T13:46:13.688Z",
+                        "updated": "2026-08-19T17:55:45.289Z",
+                        "hasAvatar": false,
+                        "timestamp": 1787162145289,
+                        "_links": {
+                            "self": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/415603"
+                        },
+                        "name": "NICE"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:1922",
+            "id": "1922",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:1922",
+                "id": "1922",
+                "description": "Produção | Desenvolvimento | Homologação | Teste | Disaster Recovery | Pré Prod",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Ambiente",
+                "displayName": "Ambiente",
+                "options": "",
+                "pendingCreation": false,
+                "position": 20,
+                "qlQuery": "",
+                "referenceType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:57",
+                    "id": "57",
+                    "name": "Ambiente",
+                    "displayName": "Ambiente",
+                    "description": "",
+                    "color": "00C7E6",
+                    "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/config/referencetype/57/image.png?size=16",
+                    "objectSchemaId": "16"
+                },
+                "referenceObjectTypeId": "153",
+                "referenceObjectType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:153",
+                    "id": "153",
+                    "name": "Ambiente",
+                    "displayName": "Ambiente",
+                    "type": 0,
+                    "description": "",
+                    "icon": {
+                        "id": "22",
+                        "name": "Collect",
+                        "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/153/icon.png?size=16",
+                        "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/153/icon.png?size=48"
+                    },
+                    "position": 2,
+                    "created": "2023-05-25T19:48:03.604Z",
+                    "updated": "2025-11-07T18:52:08.478Z",
+                    "objectCount": 0,
+                    "parentObjectTypeId": "113",
+                    "objectSchemaId": "16",
+                    "inherited": false,
+                    "abstractObjectType": false,
+                    "parentObjectTypeInherited": false,
+                    "schemaLabel": "Operações de TI",
+                    "schemaDisplayLabel": "Operações de TI"
+                },
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 1,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "1922",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "Desenvolvimento",
+                    "searchValue": "GDA-166232",
+                    "referencedType": true,
+                    "referencedObject": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:166232",
+                        "id": "166232",
+                        "label": "Desenvolvimento",
+                        "objectKey": "GDA-166232",
+                        "avatar": {
+                            "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/153/icon.png?size=16",
+                            "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/153/icon.png?size=48",
+                            "url72": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/153/icon.png?size=72",
+                            "url144": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/153/icon.png?size=144",
+                            "url288": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/153/icon.png?size=288",
+                            "objectId": "166232",
+                            "mediaClientConfig": {
+                                "clientId": "f1f4d6e0-c8b1-485f-8549-9462f638a2ec",
+                                "issuer": null,
+                                "mediaBaseUrl": "https://api.media.atlassian.com",
+                                "mediaJwtToken": "eyJraWQiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIvYTRtbGtmc2o5dmdoNTZhZiIsImFsZyI6IlJTMjU2In0.eyJhdWQiOiJtZWRpYSIsImNsaWVudElkIjoiZjFmNGQ2ZTAtYzhiMS00ODVmLTg1NDktOTQ2MmY2MzhhMmVjIiwiYWNjZXNzIjp7InVybjpmaWxlc3RvcmU6ZmlsZTo0NDYwODdjMy04ZDgzLTQ2OGItOWEzYi04MWM0NWM4ZDU2NmYiOlsicmVhZCJdfSwibmJmIjoxNzg3MzE1MDIxLCJpc3MiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIiLCJleHAiOjE3ODczMTg2MjEsImlhdCI6MTc4NzMxNTAyMSwianRpIjoiMjFkMWRkNGYtOTBhMi00MjYzLTg0MDYtMjYyNDk4MDZkYjdmIn0.TGIo1y2N6hymZzk1KauRmvYOoELEKiT2ZJ9bvD99ZOSUfiqV04t_ecBAAusjdIo_GikoYhyS_mck1T6vbFFJ4_LFpxfavrWPy-Xn-Mph2BlfqyyPnaN6UMG3R-JOpCBP3kyBe_1BWCmeWgtP_P1OJPBw2pcTJzCHfMr1qphUN8BZ_NfOnOdJEBhk4pvjSUe7FqbfXPa1jMUz2qnCTzu8gpcilurLjg6QzC65He-nIlSFMgx5_4nfmTmm_jn0Xsl5_1Mwfh7pGwTAh0RRSWyIn6N_y9ChNWZuTMt2z0AYq7mE0z3tDaMoR7XhYKGqMMvbfSYPvnjY0vegM9Df1TKzFg",
+                                "tokenLifespanInMinutes": 60,
+                                "fileId": "446087c3-8d83-468b-9a3b-81c45c8d566f",
+                                "collectionId": null
+                            },
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+                        },
+                        "objectType": {
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:153",
+                            "id": "153",
+                            "name": "Ambiente",
+                            "displayName": "Ambiente",
+                            "type": 0,
+                            "description": "",
+                            "icon": {
+                                "id": "22",
+                                "name": "Collect",
+                                "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/153/icon.png?size=16",
+                                "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/153/icon.png?size=48"
+                            },
+                            "position": 2,
+                            "created": "2023-05-25T19:48:03.604Z",
+                            "updated": "2025-11-07T18:52:08.478Z",
+                            "objectCount": 0,
+                            "parentObjectTypeId": "113",
+                            "objectSchemaId": "16",
+                            "inherited": false,
+                            "abstractObjectType": false,
+                            "parentObjectTypeInherited": false,
+                            "schemaLabel": "Operações de TI",
+                            "schemaDisplayLabel": "Operações de TI"
+                        },
+                        "created": "2023-05-25T19:48:14.093Z",
+                        "updated": "2023-05-25T19:48:14.093Z",
+                        "hasAvatar": false,
+                        "timestamp": 1685044094093,
+                        "_links": {
+                            "self": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/166232"
+                        },
+                        "name": "Desenvolvimento"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3381",
+            "id": "3381",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3381",
+                "id": "3381",
+                "description": "",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Owner",
+                "displayName": "Owner",
+                "options": "",
+                "pendingCreation": false,
+                "position": 23,
+                "qlQuery": "Status = Ativo",
+                "referenceType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:90201b0f-561c-4894-a8b5-9d447f4c2037",
+                    "id": "90201b0f-561c-4894-a8b5-9d447f4c2037",
+                    "name": "Owner",
+                    "displayName": "Owner",
+                    "description": "",
+                    "color": "8C8F97",
+                    "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/config/referencetype/90201b0f-561c-4894-a8b5-9d447f4c2037/image.png?size=16",
+                    "objectSchemaId": "16"
+                },
+                "referenceObjectTypeId": "91",
+                "referenceObjectType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:91",
+                    "id": "91",
+                    "name": "Users",
+                    "displayName": "Users",
+                    "type": 0,
+                    "icon": {
+                        "id": "132",
+                        "name": "Users",
+                        "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/91/icon.png?size=16",
+                        "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/91/icon.png?size=48"
+                    },
+                    "position": 0,
+                    "created": "2023-03-01T22:52:24.084Z",
+                    "updated": "2025-10-03T20:06:18.754Z",
+                    "objectCount": 0,
+                    "objectSchemaId": "15",
+                    "inherited": false,
+                    "abstractObjectType": false,
+                    "parentObjectTypeInherited": false,
+                    "schemaLabel": "JIRA_ITSM_USERS2",
+                    "schemaDisplayLabel": "JIRA_ITSM_USERS2"
+                },
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 1,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "3381",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "BERNARDO GOULART DE FARIA",
+                    "searchValue": "USR-129988",
+                    "referencedType": true,
+                    "referencedObject": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:129988",
+                        "id": "129988",
+                        "label": "BERNARDO GOULART DE FARIA",
+                        "objectKey": "USR-129988",
+                        "avatar": {
+                            "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/91/icon.png?size=16",
+                            "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/91/icon.png?size=48",
+                            "url72": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/91/icon.png?size=72",
+                            "url144": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/91/icon.png?size=144",
+                            "url288": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/91/icon.png?size=288",
+                            "objectId": "129988",
+                            "mediaClientConfig": {
+                                "clientId": "f1f4d6e0-c8b1-485f-8549-9462f638a2ec",
+                                "issuer": null,
+                                "mediaBaseUrl": "https://api.media.atlassian.com",
+                                "mediaJwtToken": "eyJraWQiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIvYTRtbGtmc2o5dmdoNTZhZiIsImFsZyI6IlJTMjU2In0.eyJhdWQiOiJtZWRpYSIsImNsaWVudElkIjoiZjFmNGQ2ZTAtYzhiMS00ODVmLTg1NDktOTQ2MmY2MzhhMmVjIiwiYWNjZXNzIjp7InVybjpmaWxlc3RvcmU6ZmlsZTo4ZGJkZDBhMy05ZDYzLTQ1ZmYtOGUyZS03NjJhNjE0MDAyMzgiOlsicmVhZCJdfSwibmJmIjoxNzg3MzE1MDIxLCJpc3MiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIiLCJleHAiOjE3ODczMTg2MjEsImlhdCI6MTc4NzMxNTAyMSwianRpIjoiNGQ1MGE2NTEtZjlmYy00Yjk5LTkyY2EtNzFhNmUwZTQzYjg3In0.uQ8rgXlVTUHnM_lIdrD9Pny3Jn21zvwMp1kBn0sxZlkBSC70S3O9KtiTU4uwaSAkGICyywIhuvnMfQwt3ENNOLzBVMXhMZlImZfBtzxlFeVut-jedngLeJwWN2owR5ln6UMTaYAZVBWPBFiWFVv96RfaUXgGtew-XX239L5_CyypujH4-ryC8Sa659ccFRsJoPhuQOEACi5Pj7MCBvKYgGCZUfYjD6IqMevxZXQX8y60POjx13oWcIssu1nelFM8WlckO_eeYtwZnfMpRRaIE5zvwTpebmGcztGSca_A0Kc2ra5LY-FO0rwdcVDM80tun_f_5dNTKrhTL477F4SNog",
+                                "tokenLifespanInMinutes": 60,
+                                "fileId": "8dbdd0a3-9d63-45ff-8e2e-762a61400238",
+                                "collectionId": null
+                            },
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+                        },
+                        "objectType": {
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:91",
+                            "id": "91",
+                            "name": "Users",
+                            "displayName": "Users",
+                            "type": 0,
+                            "icon": {
+                                "id": "132",
+                                "name": "Users",
+                                "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/91/icon.png?size=16",
+                                "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/91/icon.png?size=48"
+                            },
+                            "position": 0,
+                            "created": "2023-03-01T22:52:24.084Z",
+                            "updated": "2025-10-03T20:06:18.754Z",
+                            "objectCount": 0,
+                            "objectSchemaId": "15",
+                            "inherited": false,
+                            "abstractObjectType": false,
+                            "parentObjectTypeInherited": false,
+                            "schemaLabel": "JIRA_ITSM_USERS2",
+                            "schemaDisplayLabel": "JIRA_ITSM_USERS2"
+                        },
+                        "created": "2023-03-02T23:10:59.150Z",
+                        "updated": "2026-07-22T23:53:35.059Z",
+                        "hasAvatar": false,
+                        "timestamp": 1784764415059,
+                        "_links": {
+                            "self": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/129988"
+                        },
+                        "name": "BERNARDO GOULART DE FARIA"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3296",
+            "id": "3296",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:3296",
+                "id": "3296",
+                "description": "Site onde o servidor está localizado",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": 1,
+                "minimumCardinality": 0,
+                "name": "Datacenter",
+                "displayName": "Datacenter",
+                "options": "",
+                "pendingCreation": false,
+                "position": 26,
+                "qlQuery": "",
+                "referenceType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:56",
+                    "id": "56",
+                    "name": "Data Center",
+                    "displayName": "Data Center",
+                    "description": "",
+                    "color": "8777D9",
+                    "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/config/referencetype/56/image.png?size=16",
+                    "objectSchemaId": "16"
+                },
+                "referenceObjectTypeId": "152",
+                "referenceObjectType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:152",
+                    "id": "152",
+                    "name": "Datacenter",
+                    "displayName": "Datacenter",
+                    "type": 0,
+                    "description": "",
+                    "icon": {
+                        "id": "13",
+                        "name": "Building",
+                        "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/152/icon.png?size=16",
+                        "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/152/icon.png?size=48"
+                    },
+                    "position": 9,
+                    "created": "2023-05-25T19:47:34.019Z",
+                    "updated": "2026-02-04T17:17:15.291Z",
+                    "objectCount": 0,
+                    "objectSchemaId": "16",
+                    "inherited": false,
+                    "abstractObjectType": false,
+                    "parentObjectTypeInherited": false,
+                    "schemaLabel": "Operações de TI",
+                    "schemaDisplayLabel": "Operações de TI"
+                },
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 1,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "3296",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "AWS",
+                    "searchValue": "GDA-872214",
+                    "referencedType": true,
+                    "referencedObject": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:872214",
+                        "id": "872214",
+                        "label": "AWS",
+                        "objectKey": "GDA-872214",
+                        "avatar": {
+                            "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/152/icon.png?size=16",
+                            "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/152/icon.png?size=48",
+                            "url72": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/152/icon.png?size=72",
+                            "url144": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/152/icon.png?size=144",
+                            "url288": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/152/icon.png?size=288",
+                            "objectId": "872214",
+                            "mediaClientConfig": {
+                                "clientId": "f1f4d6e0-c8b1-485f-8549-9462f638a2ec",
+                                "issuer": null,
+                                "mediaBaseUrl": "https://api.media.atlassian.com",
+                                "mediaJwtToken": "eyJraWQiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIvYTRtbGtmc2o5dmdoNTZhZiIsImFsZyI6IlJTMjU2In0.eyJhdWQiOiJtZWRpYSIsImNsaWVudElkIjoiZjFmNGQ2ZTAtYzhiMS00ODVmLTg1NDktOTQ2MmY2MzhhMmVjIiwiYWNjZXNzIjp7InVybjpmaWxlc3RvcmU6ZmlsZToyMTYzMTI5NS1iNWE3LTQwMmUtOTMyYi1jMDJiZmY1YTM2MzMiOlsicmVhZCJdfSwibmJmIjoxNzg3MzE1MDIxLCJpc3MiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIiLCJleHAiOjE3ODczMTg2MjEsImlhdCI6MTc4NzMxNTAyMSwianRpIjoiMGZiNWUzZTgtMjU3NS00ZDk1LWIzM2UtMzE1ZDc5NDdmMDZkIn0.VHCm1nF9FPPKl9FoCy5tBNdu2QcZQOeXuke2Uzj1y8VNYeLy1O2IwaaY2G0lrT8ENv9j14wTBKzhBOJQqXQaf-SK40SV9bWrnCe2NCH_8D41gBap8xvtGE87kNjne0aXoKIjacPqHdyxoqR_SnkPRCRDMSJ_5SW4z40fbAKIZfUqrBYOVd_bA7HXmvsgtubX5tm27eYg7whK1757CKdOxmyBjVgTfFGb6E2cv4FZT766IxFqaZ7u92NdbbodPix7efLPbx5PtOnlNSsIXsWZ0M7QBEu5lUEiIVV1dVMuBU3rRUEyens2--kduReYEdKbX-adLXhCLu5QBgr0y4o0Xg",
+                                "tokenLifespanInMinutes": 60,
+                                "fileId": "21631295-b5a7-402e-932b-c02bff5a3633",
+                                "collectionId": null
+                            },
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+                        },
+                        "objectType": {
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:152",
+                            "id": "152",
+                            "name": "Datacenter",
+                            "displayName": "Datacenter",
+                            "type": 0,
+                            "description": "",
+                            "icon": {
+                                "id": "13",
+                                "name": "Building",
+                                "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/152/icon.png?size=16",
+                                "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/152/icon.png?size=48"
+                            },
+                            "position": 9,
+                            "created": "2023-05-25T19:47:34.019Z",
+                            "updated": "2026-02-04T17:17:15.291Z",
+                            "objectCount": 0,
+                            "objectSchemaId": "16",
+                            "inherited": false,
+                            "abstractObjectType": false,
+                            "parentObjectTypeInherited": false,
+                            "schemaLabel": "Operações de TI",
+                            "schemaDisplayLabel": "Operações de TI"
+                        },
+                        "created": "2024-06-07T13:57:00.098Z",
+                        "updated": "2024-10-11T14:32:15.914Z",
+                        "hasAvatar": false,
+                        "timestamp": 1728657135914,
+                        "_links": {
+                            "self": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/872214"
+                        },
+                        "name": "AWS"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        },
+        {
+            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:2010",
+            "id": "2010",
+            "objectTypeAttribute": {
+                "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:2010",
+                "id": "2010",
+                "description": "Empresarial | Pessoal | Residencial | Corporativo | Claro Pat",
+                "editable": true,
+                "hidden": false,
+                "includeChildObjectTypes": false,
+                "indexed": true,
+                "label": false,
+                "maximumCardinality": -1,
+                "minimumCardinality": 0,
+                "name": "Unidade de Negócio",
+                "displayName": "Unidade de Negócio",
+                "options": "",
+                "pendingCreation": false,
+                "position": 27,
+                "qlQuery": "",
+                "referenceType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:53",
+                    "id": "53",
+                    "name": "Unidade de Negócio",
+                    "displayName": "Unidade de Negócio",
+                    "description": "",
+                    "color": "FF991F",
+                    "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/config/referencetype/53/image.png?size=16",
+                    "objectSchemaId": "16"
+                },
+                "referenceObjectTypeId": "131",
+                "referenceObjectType": {
+                    "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                    "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:131",
+                    "id": "131",
+                    "name": "Unidade de Negócio",
+                    "displayName": "Unidade de Negócio",
+                    "type": 0,
+                    "description": "",
+                    "icon": {
+                        "id": "43",
+                        "name": "Factory",
+                        "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=16",
+                        "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=48"
+                    },
+                    "position": 7,
+                    "created": "2023-05-24T21:21:02.471Z",
+                    "updated": "2026-02-04T17:17:15.291Z",
+                    "objectCount": 0,
+                    "objectSchemaId": "16",
+                    "inherited": false,
+                    "abstractObjectType": false,
+                    "parentObjectTypeInherited": false,
+                    "schemaLabel": "Operações de TI",
+                    "schemaDisplayLabel": "Operações de TI"
+                },
+                "regexValidation": "",
+                "removable": true,
+                "sortable": true,
+                "suffix": "",
+                "summable": false,
+                "system": false,
+                "type": 1,
+                "uniqueAttribute": false,
+                "lockedConfiguration": false
+            },
+            "objectTypeAttributeId": "2010",
+            "objectAttributeValues": [
+                {
+                    "displayValue": "Consumo Pessoal",
+                    "searchValue": "GDA-169565",
+                    "referencedType": true,
+                    "referencedObject": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:169565",
+                        "id": "169565",
+                        "label": "Consumo Pessoal",
+                        "objectKey": "GDA-169565",
+                        "avatar": {
+                            "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=16",
+                            "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=48",
+                            "url72": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=72",
+                            "url144": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=144",
+                            "url288": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=288",
+                            "objectId": "169565",
+                            "mediaClientConfig": {
+                                "clientId": "f1f4d6e0-c8b1-485f-8549-9462f638a2ec",
+                                "issuer": null,
+                                "mediaBaseUrl": "https://api.media.atlassian.com",
+                                "mediaJwtToken": "eyJraWQiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIvYTRtbGtmc2o5dmdoNTZhZiIsImFsZyI6IlJTMjU2In0.eyJhdWQiOiJtZWRpYSIsImNsaWVudElkIjoiZjFmNGQ2ZTAtYzhiMS00ODVmLTg1NDktOTQ2MmY2MzhhMmVjIiwiYWNjZXNzIjp7InVybjpmaWxlc3RvcmU6ZmlsZTo2YTUyOTU5ZS01NGNmLTRhMzMtYWMwYS04N2UyM2Y3ZDA2ZjciOlsicmVhZCJdfSwibmJmIjoxNzg3MzE1MDIxLCJpc3MiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIiLCJleHAiOjE3ODczMTg2MjEsImlhdCI6MTc4NzMxNTAyMSwianRpIjoiZjQ3YTc5OWYtNjVkZC00ZTQxLTljMmMtMzI5N2U3NjRkZTZmIn0.Ud0W7als7GX0YjIgIEjF5An18BpuJi7WYHpvUX1kMNWxeDkN6nZvrp1Lbuy0OT03TsfaXSIpIpzBOOYUyE15QXMDWJN0vXpkPgXJVSCdIePdMMmHlyP65FR5JuKUwWpBwgu8LX-SsoSYa3I5NLpIK1I9hcwVDVoDRh5-vDt2m5uvEO-Ja3CCAvwt_g9pS6kktlWM79Kyp0tzREzoLzy-6iAiS0x4md2epkMtjV-f9S1pCIzEM6jfpchi_6BGDcJfOyQatWJVaAo-2-kPN-MONKtilQoDlNKbjtLVQu8tgv61IP8QvX_dpv2ELYNGteHqHJU3f1YRuL5R0_lqFQmULQ",
+                                "tokenLifespanInMinutes": 60,
+                                "fileId": "6a52959e-54cf-4a33-ac0a-87e23f7d06f7",
+                                "collectionId": null
+                            },
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+                        },
+                        "objectType": {
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:131",
+                            "id": "131",
+                            "name": "Unidade de Negócio",
+                            "displayName": "Unidade de Negócio",
+                            "type": 0,
+                            "description": "",
+                            "icon": {
+                                "id": "43",
+                                "name": "Factory",
+                                "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=16",
+                                "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=48"
+                            },
+                            "position": 7,
+                            "created": "2023-05-24T21:21:02.471Z",
+                            "updated": "2026-02-04T17:17:15.291Z",
+                            "objectCount": 0,
+                            "objectSchemaId": "16",
+                            "inherited": false,
+                            "abstractObjectType": false,
+                            "parentObjectTypeInherited": false,
+                            "schemaLabel": "Operações de TI",
+                            "schemaDisplayLabel": "Operações de TI"
+                        },
+                        "created": "2023-06-23T17:07:58.622Z",
+                        "updated": "2026-04-27T11:42:24.406Z",
+                        "hasAvatar": false,
+                        "timestamp": 1777290144406,
+                        "_links": {
+                            "self": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/169565"
+                        },
+                        "name": "Consumo Pessoal"
+                    }
+                },
+                {
+                    "displayValue": "Empresarial",
+                    "searchValue": "GDA-166195",
+                    "referencedType": true,
+                    "referencedObject": {
+                        "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                        "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:166195",
+                        "id": "166195",
+                        "label": "Empresarial",
+                        "objectKey": "GDA-166195",
+                        "avatar": {
+                            "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=16",
+                            "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=48",
+                            "url72": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=72",
+                            "url144": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=144",
+                            "url288": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=288",
+                            "objectId": "166195",
+                            "mediaClientConfig": {
+                                "clientId": "f1f4d6e0-c8b1-485f-8549-9462f638a2ec",
+                                "issuer": null,
+                                "mediaBaseUrl": "https://api.media.atlassian.com",
+                                "mediaJwtToken": "eyJraWQiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIvYTRtbGtmc2o5dmdoNTZhZiIsImFsZyI6IlJTMjU2In0.eyJhdWQiOiJtZWRpYSIsImNsaWVudElkIjoiZjFmNGQ2ZTAtYzhiMS00ODVmLTg1NDktOTQ2MmY2MzhhMmVjIiwiYWNjZXNzIjp7InVybjpmaWxlc3RvcmU6ZmlsZTo2YTUyOTU5ZS01NGNmLTRhMzMtYWMwYS04N2UyM2Y3ZDA2ZjciOlsicmVhZCJdfSwibmJmIjoxNzg3MzE1MDIxLCJpc3MiOiJtaWNyb3MtZ3JvdXAvanNtLWNtZGIiLCJleHAiOjE3ODczMTg2MjEsImlhdCI6MTc4NzMxNTAyMSwianRpIjoiOTkxMGNlYWYtN2UzZi00YTU5LTliMWUtYzIwNzc3NzFmYWUwIn0.iKhMydho36ikLFibraLRJdNdKjnj4Jfc62bUAiMLXz31tB5YL6itCk2LpN7FP8SIIwRKk66SxwUVInZY_4-szNTKeegi1fPcmkU0lNpZx7nEaeh2WG9kmjVdsnGMosa6t92Ivtw9njY6fnbywaUA8Et-rdT2YX2iE3-L4f6B1ojoYR1D4IyFjIV8MFqSFKvXKppyHyMQaia7ifUJjPaAswX9hidDu0bL5tFJZSKP-czR4Iopye8rm3wddqiGNOGwkBdhVWqd7cZt-EHetHAF98bfz16wzZk8mKICxtaPzKOgK3qTOFGB-a0u3xC3LSAY5qSGv-CtgaMZkGJJWSP4vw",
+                                "tokenLifespanInMinutes": 60,
+                                "fileId": "6a52959e-54cf-4a33-ac0a-87e23f7d06f7",
+                                "collectionId": null
+                            },
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9"
+                        },
+                        "objectType": {
+                            "workspaceId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9",
+                            "globalId": "76827f8b-4d96-46a6-abf2-f592d6b4b2d9:131",
+                            "id": "131",
+                            "name": "Unidade de Negócio",
+                            "displayName": "Unidade de Negócio",
+                            "type": 0,
+                            "description": "",
+                            "icon": {
+                                "id": "43",
+                                "name": "Factory",
+                                "url16": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=16",
+                                "url48": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/objecttype/131/icon.png?size=48"
+                            },
+                            "position": 7,
+                            "created": "2023-05-24T21:21:02.471Z",
+                            "updated": "2026-02-04T17:17:15.291Z",
+                            "objectCount": 0,
+                            "objectSchemaId": "16",
+                            "inherited": false,
+                            "abstractObjectType": false,
+                            "parentObjectTypeInherited": false,
+                            "schemaLabel": "Operações de TI",
+                            "schemaDisplayLabel": "Operações de TI"
+                        },
+                        "created": "2023-05-24T21:21:11.697Z",
+                        "updated": "2026-04-27T11:42:46.546Z",
+                        "hasAvatar": false,
+                        "timestamp": 1777290166546,
+                        "_links": {
+                            "self": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/166195"
+                        },
+                        "name": "Empresarial"
+                    }
+                }
+            ],
+            "objectId": "3562960"
+        }
+    ],
+    "extendedInfo": {
+        "openIssuesExists": true,
+        "attachmentsExists": false
+ 
+
+
+    },
+    "_links": {
+        "self": "https://api.atlassian.com/jsm/assets/workspace/76827f8b-4d96-46a6-abf2-f592d6b4b2d9/v1/object/3562960"
+    },
+    "name": "i-0545082677f5ee5e7"
+}
