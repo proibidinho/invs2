@@ -1,7 +1,11 @@
 ---
-- name: Incluir variaveis de mapeamento AWS
+- name: Incluir variaveis de mapeamento GCP
   ansible.builtin.include_vars:
-    file: "{{ role_path }}/vars/mapeamento_aws_cmdb.yml"
+    file: "{{ role_path }}/vars/mapeamento_gcp_cmdb.yml"
+
+- name: Incluir modelo_servidor_map / gcp_machine_specs / owner_ids / cpu_platform_map
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/vars/modelo_servidor_map_gcp.yml"
 
 - name: Inicializar logs de sincronizacao
   ansible.builtin.set_fact:
@@ -9,44 +13,101 @@
     sync_log_skip: []
     sync_log_deactivate: []
     sync_log_reactivate: []
+    sync_log_update: []
     sync_log_errors: []
 
-
 # ---------------------------------------------------------------------------
-# FASE 1: Coletar hosts do AAP (paginado)
+# FASE 1: Coletar hosts do AAP
 # ---------------------------------------------------------------------------
-- name: "FASE 1 - Coletar hosts do inventario AWS no AAP (paginado)"
+- name: "FASE 1 - Coletar hosts do inventario GCP no AAP"
   ansible.builtin.debug:
     msg: "════════════════════════════════════════════════════════════════"
 
-- name: Coletar todos os hosts (paginacao real)
-  ansible.builtin.include_tasks: fetch_all_hosts.yml
+- name: Buscar hosts do inventario GCP no AAP
+  ansible.builtin.uri:
+    url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=500"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ aap_token }}"
+      Content-Type: "application/json"
+    validate_certs: "{{ aap_verify_ssl | default(false) }}"
+    return_content: yes
+    status_code: [200]
+  register: aap_hosts_result
+  environment:
+    http_proxy: "http://10.29.177.37:8080" #Lapa
+    https_proxy: "http://10.29.177.37:8080" #Lapa
+    no_proxy: ""
 
-- name: Transformar hosts AWS para formato cloud_data (batch - com skip EKS + ef_cmdb)
+- name: Debug - Total de hosts encontrados
+  ansible.builtin.debug:
+    msg: "Encontrados {{ aap_hosts_result.json.count }} hosts no inventario GCP"
+
+# Buscar variables de cada host (mesmo padrao Azure)
+- name: Buscar variaveis de cada host
+  ansible.builtin.uri:
+    url: "{{ aap_host }}/api/controller/v2/hosts/{{ item.id }}/variable_data/"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ aap_token }}"
+    validate_certs: "{{ aap_verify_ssl | default(false) }}"
+  register: host_vars_results
+  loop: "{{ aap_hosts_result.json.results }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Consolidar variaveis dos hosts
+  ansible.builtin.set_fact:
+    all_host_vars: "{{ host_vars_results.results | map(attribute='json') | list }}"
+
+- name: Inicializar lista de hosts GKE protegidos
+  ansible.builtin.set_fact:
+    gcp_protected_cluster_names: []
+
+- name: Identificar hosts GKE no inventario AAP para proteger contra DEACTIVATE
+  ansible.builtin.set_fact:
+    gcp_protected_cluster_names: "{{ gcp_protected_cluster_names + [item.name] }}"
+  loop: "{{ all_host_vars }}"
+  loop_control:
+    label: "{{ item.name | default('sem_nome') }}"
+  when:
+    - item.name is defined
+    - item.name | length > 0
+    - item | is_gke_node
+
+- name: Listar hosts GKE protegidos
+  ansible.builtin.debug:
+    msg:
+      - "GKE PROTEGIDOS:"
+      - "{{ gcp_protected_cluster_names }}"
+  when:
+    - gcp_protected_cluster_names | length > 0
+
+- name: Transformar hosts GCP para formato cloud_data (batch - com skip GKE + ef_cmdb)
   ansible.builtin.set_fact:
     cloud_data_list: >-
-      {{ aap_all_hosts | batch_transform_aws_hosts(
+      {{ all_host_vars | batch_transform_gcp_hosts(
            modelo_servidor_map | default({}),
-           aws_vm_specs        | default({}),
-           owner_ids           | default({})
+           gcp_machine_specs   | default({}),
+           owner_ids           | default({}),
+           cpu_platform_map    | default({})
          ) }}
 
 - name: Debug - Hosts transformados
   ansible.builtin.debug:
-    msg: "{{ aap_all_hosts | length }} hosts coletados | {{ cloud_data_list | length }} elegiveis | {{ aap_all_hosts | length - cloud_data_list | length }} ignorados"
-
-- name: Resumo dos hosts do AAP
-  ansible.builtin.debug:
-    msg:
-      - "Total no AAP: {{ aap_all_hosts | length }}"
-      - "{{ aap_all_hosts | map(attribute='name') | list }}"
+    msg: "{{ cloud_data_list | length }} hosts transformados"
 
 - name: Listar hosts elegiveis
   ansible.builtin.debug:
     msg: >-
       {{
-        cloud_data_list
-        | map(attribute='name_cloud')
+        all_host_vars
+        | selectattr(
+            'name',
+            'in',
+            cloud_data_list | map(attribute='name_cloud') | list
+          )
+        | map(attribute='name')
         | list
       }}
 
@@ -54,37 +115,37 @@
   ansible.builtin.debug:
     msg: >-
       {{
-        (
-          aap_all_hosts
-          | map(attribute='name')
-          | list
-        )
-        |
-        difference(
-          cloud_data_list
-          | map(attribute='name_cloud')
-          | list
-        )
+        all_host_vars
+        | rejectattr(
+            'name',
+            'in',
+            cloud_data_list | map(attribute='name_cloud') | list
+          )
+        | map(attribute='name')
+        | list
       }}
 
 # ---------------------------------------------------------------------------
 # FASE 2: Coletar dados do CMDB
 # ---------------------------------------------------------------------------
-- name: "FASE 2 - Coletar servidores AWS do CMDB"
+- name: "FASE 2 - Coletar servidores GCP do CMDB"
   ansible.builtin.debug:
     msg: "════════════════════════════════════════════════════════════════"
 
 # ---------------------------------------------------------------------------
-# Consulta especifica AWS
+# Consulta especifica GCP
 #
-# Esta consulta continua filtrada por Datacenter = "AWS".
+# IMPORTANTE:
+# Esta consulta continua filtrada por Datacenter = "Google Cloud".
 #
-# Ela e usada para montar cmdb_servers, que posteriormente participa
+# Ela NAO e utilizada para decidir CREATE/SKIP.
+#
+# Ela e utilizada para montar cmdb_servers, que posteriormente participa
 # exclusivamente da identificacao dos servidores que podem ser DESATIVADOS.
 #
 # NAO remover o filtro de Datacenter desta consulta.
 # ---------------------------------------------------------------------------
-- name: Buscar servidores AWS existentes no CMDB
+- name: Buscar servidores GCP existentes no CMDB
   ansible.builtin.uri:
     url: "{{ jira_url }}/object/aql?startAt=0&maxResults=1000"
     method: POST
@@ -96,37 +157,31 @@
     user: "{{ jira_user }}"
     password: "{{ jira_password }}"
     body:
-      qlQuery: 'objectTypeId = {{ object_type_id_servidor }} AND Datacenter = "AWS"'
+      qlQuery: 'objectTypeId = {{ object_type_id_servidor }} AND Datacenter = "Google Cloud"'
     status_code: [200]
     timeout: 60
   register: cmdb_servers_result
-  environment: "{{ proxy_env | default({}) }}"
+  environment:
+    http_proxy: "http://10.29.177.37:8080" #Lapa
+    https_proxy: "http://10.29.177.37:8080" #Lapa
+    no_proxy: ""
   retries: 3
   delay: 5
   until: cmdb_servers_result.status == 200
 
-- name: Parsear servidores AWS do CMDB
+- name: Parsear servidores GCP do CMDB
   ansible.builtin.set_fact:
     cmdb_servers: "{{ cmdb_servers_result.json['values'] | default([]) }}"
 
-- name: Debug servidor com Last User do CMDB
+- name: Debug - Servidores GCP encontrados no CMDB
   ansible.builtin.debug:
-    msg: >-
-      {{
-        cmdb_servers
-        | selectattr('id', 'equalto', '3562960')
-        | list
-      }}
-
-- name: Debug - Servidores AWS encontrados no CMDB
-  ansible.builtin.debug:
-    msg: "Encontrados {{ cmdb_servers | length }} servidores AWS no CMDB"
+    msg: "Encontrados {{ cmdb_servers | length }} servidores GCP no CMDB"
 
 # ---------------------------------------------------------------------------
 # Consulta GLOBAL direcionada para verificacao de Name
 #
 # Em vez de carregar 20.000+ objetos do CMDB, consultamos somente os Names
-# que realmente existem no inventario desta cloud.
+# que realmente existem no inventario GCP.
 #
 # A consulta NAO possui filtro de Datacenter porque o atributo Name precisa
 # ser verificado globalmente no Object Type Servidor.
@@ -136,7 +191,7 @@
 # paginacao global do CMDB.
 #
 # Esta lista e usada SOMENTE para CREATE/SKIP.
-# A consulta anterior, filtrada por Datacenter, continua sendo usada para
+# A consulta anterior, filtrada por Google Cloud, continua sendo usada para
 # DEACTIVATE.
 # ---------------------------------------------------------------------------
 - name: Extrair Names da cloud para consulta no CMDB
@@ -217,6 +272,7 @@
 #       -> SKIP
 #
 # Isso evita:
+#
 #   "The attribute 'Name' has duplicated values"
 #
 #
@@ -228,8 +284,8 @@
 #
 #   1. verificar se Name existe globalmente;
 #   2. verificar se pertence ao mesmo Datacenter;
-#   3. se existir fora de AWS:
-#        trocar temporariamente name_cloud por _aws_instance_id;
+#   3. se existir fora de Google Cloud:
+#        trocar temporariamente name_cloud por _gcp_instance_id;
 #   4. criar o novo CI;
 #   5. posteriormente o time de CMDB realiza a reconciliacao.
 #
@@ -238,8 +294,10 @@
 #   Name existente:
 #       servidor01
 #
-#   Novo CI AWS:
-#       i-0123456789abcdef0
+#   Novo CI GCP:
+#       <gcp_instance_id>
+#
+# O _gcp_instance_id ja existe no cloud_data gerado pelo filtro GCP.
 #
 # NAO IMPLEMENTADO/ATIVO enquanto nao houver definicao do time de CMDB.
 # ---------------------------------------------------------------------------
@@ -247,50 +305,22 @@
 # ---------------------------------------------------------------------------
 # FASE 3: Comparar
 # ---------------------------------------------------------------------------
-- name: Extrair nomes das instancias AWS
+- name: Extrair nomes das instancias GCP
   ansible.builtin.set_fact:
-    aws_instance_names: "{{ cloud_data_list | map(attribute='name_cloud') | list }}"
-
-- name: Inicializar lista de hosts EKS protegidos
-  ansible.builtin.set_fact:
-    aws_protected_cluster_names: []
-
-- name: Identificar hosts EKS no inventario AAP para proteger contra DEACTIVATE
-  ansible.builtin.set_fact:
-    aws_protected_cluster_names: "{{ aws_protected_cluster_names + [host_vars.instance_id] }}"
-  loop: "{{ aap_all_hosts | default([]) }}"
-  loop_control:
-    label: "{{ host_vars.instance_id | default(item.name | default('sem_nome')) }}"
-  vars:
-    host_vars: >-
-      {{
-        (item.variables | from_json)
-        if (item.variables is string)
-        else (item.variables | default({}))
-      }}
-  when:
-    - host_vars.instance_id is defined
-    - host_vars.instance_id | length > 0
-    - host_vars | is_eks_node
-
-- name: Listar hosts EKS protegidos
-  ansible.builtin.debug:
-    msg: "{{ aws_protected_cluster_names }}"
-  when: aws_protected_cluster_names | length > 0
+    gcp_instance_names: "{{ cloud_data_list | map(attribute='name_cloud') | list }}"
 
 - name: Inicializar lista de reativacao
   ansible.builtin.set_fact:
     servers_to_reactivate: []
 
-- name: Identificar servidores desativados no CMDB que voltaram a aparecer na AWS
+- name: Identificar servidores desativados no CMDB que voltaram a aparecer no GCP
   ansible.builtin.set_fact:
     servers_to_reactivate: "{{ servers_to_reactivate + [item] }}"
   loop: "{{ cmdb_servers }}"
   loop_control:
     label: "{{ item.label }}"
   when:
-    - item.label in aws_instance_names
-    - item.label not in aws_protected_cluster_names
+    - item.label in gcp_instance_names
     - >
       (
         item.attributes
@@ -315,7 +345,81 @@
   when:
     - servers_to_reactivate | length > 0
 
-- name: Determinar acoes
+
+- name: Identificar servidores com modelo alterado no CMDB
+  ansible.builtin.set_fact:
+    servers_to_update: []
+
+- name: Selecionar servidores cujo modelo mudou
+  ansible.builtin.set_fact:
+    servers_to_update: >-
+      {{
+        servers_to_update + [
+          item | combine({
+            '_cmdb_id': cmdb_match.id,
+            '_cmdb_model': cmdb_model,
+            '_new_model': item.modelo_servidor_cloud
+          })
+        ]
+      }}
+  loop: "{{ cloud_data_list }}"
+  loop_control:
+    label: "{{ item.name_cloud }}"
+  vars:
+    cmdb_match: >-
+      {{
+        (
+          cmdb_servers
+          | selectattr('label', 'equalto', item.name_cloud)
+          | list
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model_attr: >-
+      {{
+        (
+          cmdb_match.attributes | default([])
+          | selectattr('objectTypeAttributeId', 'equalto', '15656')
+          | list
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model_value: >-
+      {{
+        (
+          cmdb_model_attr.objectAttributeValues | default([])
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model: >-
+      {{
+        cmdb_model_value.referencedObject.objectKey
+        | default(cmdb_model_value.value | default(''), true)
+      }}
+  when:
+    - cmdb_match.id is defined
+    - item.modelo_servidor_cloud is defined
+    - item.modelo_servidor_cloud | string | length > 0
+    - cmdb_model | string | length > 0
+    - cmdb_model | string != item.modelo_servidor_cloud | string
+    - >
+      (
+        cmdb_match.attributes | default([])
+        | selectattr('objectTypeAttributeId', 'equalto', '3357')
+        | map(attribute='objectAttributeValues')
+        | flatten
+        | selectattr('value', 'equalto', 'Ansible')
+        | list
+        | length
+      ) > 0
+
+- name: Listar servidores com modelo alterado
+  ansible.builtin.debug:
+    msg:
+      - "SERVIDORES A ATUALIZAR:"
+      - "{{ servers_to_update | map(attribute='name_cloud') | list }}"
+
+- name: Determinar servidores a criar / skip / desativar
   ansible.builtin.set_fact:
 
     # CREATE:
@@ -334,14 +438,30 @@
       {{
         cloud_data_list
         | selectattr('name_cloud', 'in', cmdb_server_names)
+        | rejectattr(
+            'name_cloud',
+            'in',
+            servers_to_update | map(attribute='name_cloud') | list
+          )
         | list
       }}
 
     # DEACTIVATE:
-    # A lista sera montada abaixo, considerando somente CIs criados pelo Ansible.
+    # A lista sera montada abaixo, protegendo explicitamente os CIs AKS.
     servers_to_deactivate: []
+    gke_protected_servers: []
 
-- name: Selecionar servidores AWS criados pelo Ansible para desativacao
+- name: Identificar CIs GKE protegidos contra desativacao
+  ansible.builtin.set_fact:
+    gke_protected_servers: "{{ gke_protected_servers + [item] }}"
+  loop: "{{ cmdb_servers }}"
+  loop_control:
+    label: "{{ item.label | default('?') }}"
+  when:
+    - item.label is defined
+    - (item.label | string | trim | lower).startswith('gke-')
+
+- name: Selecionar servidores GCP elegiveis para desativacao
   ansible.builtin.set_fact:
     servers_to_deactivate: "{{ servers_to_deactivate + [item] }}"
   loop: "{{ cmdb_servers }}"
@@ -349,8 +469,8 @@
     label: "{{ item.label | default('?') }}"
   when:
     - item.label is defined
-    - item.label not in aws_instance_names
-    - item.label not in aws_protected_cluster_names
+    - item.label not in gcp_instance_names
+    - (item.label | string | trim | lower).startswith('gke-') == false
     - >
       (
         item.attributes
@@ -362,20 +482,38 @@
         | length
       ) > 0
 
-- name: Hosts a criar
+- name: Resumo da comparacao
   ansible.builtin.debug:
-    msg: "{{ servers_to_create | map(attribute='name_cloud') | list }}"
+    msg:
+      - "════════════════════════════════════════════════════════════════"
+      - "                    RESUMO DA SINCRONIZACAO"
+      - "════════════════════════════════════════════════════════════════"
+      - "Total instancias GCP: {{ cloud_data_list | length }}"
+      - "Total servidores GCP no CMDB: {{ cmdb_servers | length }}"
+      - "Total Names globais no CMDB: {{ cmdb_server_names | length }}"
+      - "A CRIAR: {{ servers_to_create | length }}"
+      - "A REATIVAR: {{ servers_to_reactivate | length }}"
+      - "GKE PROTEGIDOS: {{ gcp_protected_cluster_names | length }}"
+      - "EXISTENTES (skip): {{ servers_to_skip | length }}"
+      - "A DESATIVAR: {{ servers_to_deactivate | length if enable_deactivation else '(desativado)' }}"
+      - "════════════════════════════════════════════════════════════════"
 
-- name: Hosts ja existentes no CMDB
-  ansible.builtin.debug:
-    msg: "{{ servers_to_skip | map(attribute='name_cloud') | list }}"
 
 - name: Listar servidores a reativar
   ansible.builtin.debug:
     msg:
       - "SERVIDORES A REATIVAR:"
       - "{{ servers_to_reactivate | map(attribute='label') | list }}"
-  when: servers_to_reactivate | length > 0
+  when:
+    - servers_to_reactivate | length > 0
+
+- name: Listar hosts GKE protegidos
+  ansible.builtin.debug:
+    msg:
+      - "GKE PROTEGIDOS:"
+      - "{{ gcp_protected_cluster_names }}"
+  when:
+    - gcp_protected_cluster_names | length > 0
 
 - name: Listar servidores a desativar
   ansible.builtin.debug:
@@ -386,22 +524,6 @@
     - servers_to_deactivate | length > 0
     - enable_deactivation | default(false) | bool
 
-- name: Resumo da comparacao
-  ansible.builtin.debug:
-    msg:
-      - "════════════════════════════════════════════════════════════════"
-      - "                    RESUMO DA SINCRONIZACAO"
-      - "════════════════════════════════════════════════════════════════"
-      - "Total instancias AWS: {{ cloud_data_list | length }}"
-      - "Total servidores AWS no CMDB: {{ cmdb_servers | length }}"
-      - "Total Names globais no CMDB: {{ cmdb_server_names | length }}"
-      - "A CRIAR: {{ servers_to_create | length }}"
-      - "A REATIVAR: {{ servers_to_reactivate | length }}"
-      - "EKS PROTEGIDOS: {{ aws_protected_cluster_names | length }}"
-      - "EXISTENTES (skip): {{ servers_to_skip | length }}"
-      - "A DESATIVAR: {{ servers_to_deactivate | length if enable_deactivation else '(desativado)' }}"
-      - "════════════════════════════════════════════════════════════════"
-
 # ---------------------------------------------------------------------------
 # DRY RUN - encerrar aqui
 # ---------------------------------------------------------------------------
@@ -409,14 +531,11 @@
   ansible.builtin.meta: end_play
   when: dry_run | default(false) | bool
 
+
 # ---------------------------------------------------------------------------
 # FASE 4: Executar sincronizacao
 # ---------------------------------------------------------------------------
-- name: "FASE 4 - Executar sincronizacao"
-  ansible.builtin.debug:
-    msg: "════════════════════════════════════════════════════════════════"
-
-- name: Reativar servidores que voltaram para AWS
+- name: Reativar servidores que voltaram para GCP
   ansible.builtin.include_tasks: reactivate.yml
   vars:
     server_to_reactivate: "{{ server_item }}"
@@ -430,6 +549,48 @@
     - sync_mode == 'full' or sync_mode == 'deactivate'
     - enable_deactivation | default(false) | bool
 
+
+- name: Atualizar modelo dos servidores no CMDB
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/{{ server_item._cmdb_id }}"
+    method: PUT
+    force_basic_auth: yes
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      objectTypeId: "{{ object_type_id_servidor }}"
+      attributes:
+        - objectTypeAttributeId: "15656"
+          objectAttributeValues:
+            - value: "{{ server_item._new_model }}"
+    body_format: json
+    return_content: yes
+    status_code: [200]
+  register: resultado_update
+  environment: "{{ proxy_env | default({}) }}"
+  loop: "{{ servers_to_update }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+    pause: "{{ jira_create_delay_seconds | default(0.3) }}"
+  when:
+    - servers_to_update | length > 0
+    - sync_mode == 'full'
+
+- name: Registrar servidores atualizados
+  ansible.builtin.set_fact:
+    sync_log_update: "{{ sync_log_update + [server_item.name_cloud] }}"
+  loop: "{{ servers_to_update }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+  when:
+    - servers_to_update | length > 0
+    - sync_mode == 'full'
+
 - name: Criar novos servidores no CMDB
   ansible.builtin.include_tasks: create.yml
   vars:
@@ -438,7 +599,6 @@
   loop_control:
     loop_var: server_item
     label: "{{ server_item.name_cloud }}"
-    pause: "{{ jira_create_delay_seconds | default(0.3) }}"
   when:
     - servers_to_create | length > 0
     - sync_mode == 'full' or sync_mode == 'create'
@@ -452,7 +612,7 @@
     label: "{{ server_item.name_cloud }}"
   when: servers_to_skip | length > 0
 
-- name: Desativar servidores removidos da AWS
+- name: Desativar servidores removidos do GCP
   ansible.builtin.include_tasks: deactivate.yml
   vars:
     server_to_deactivate: "{{ server_item }}"
@@ -460,14 +620,11 @@
   loop_control:
     loop_var: server_item
     label: "{{ server_item.label }}"
-    pause: "{{ jira_create_delay_seconds | default(0.3) }}"
   when:
     - servers_to_deactivate | length > 0
     - sync_mode == 'full' or sync_mode == 'deactivate'
     - enable_deactivation | default(false) | bool
-    - server_item.label not in (aws_protected_cluster_names | default([]))
-
-
+    - server_item.label not in (gcp_protected_cluster_names | default([]))
 
 # ---------------------------------------------------------------------------
 # FASE 5: Relatorio final
@@ -479,9 +636,10 @@
       - "                    SINCRONIZACAO CONCLUIDA"
       - "════════════════════════════════════════════════════════════════"
       - "Criados com sucesso: {{ sync_log_create | length }}"
+      - "Atualizados: {{ sync_log_update | length }}"
       - "Ignorados (ja existentes): {{ sync_log_skip | length }}"
-      - "Desativados: {{ sync_log_deactivate | length }}"
       - "Reativados: {{ sync_log_reactivate | length }}"
+      - "Desativados: {{ sync_log_deactivate | length }}"
       - "ERROS: {{ sync_log_errors | length }}"
       - "────────────────────────────────────────────────────────────────"
       - "{% for e in sync_log_errors %}- {{ e.name }} | status={{ e.status }} | {{ e.msg }}\n{% endfor %}"
@@ -494,6 +652,3 @@
     - servers_to_create | length > 0
     - sync_log_create | length == 0
     - sync_log_errors | length == servers_to_create | length
-
-
-#################################################################

@@ -9,6 +9,7 @@
     sync_log_skip: []
     sync_log_deactivate: []
     sync_log_reactivate: []
+    sync_log_update: []
     sync_log_errors: []
 
 # ---------------------------------------------------------------------------
@@ -272,6 +273,80 @@
   when:
     - servers_to_reactivate | length > 0
 
+
+- name: Identificar servidores com modelo alterado no CMDB
+  ansible.builtin.set_fact:
+    servers_to_update: []
+
+- name: Selecionar servidores cujo modelo mudou
+  ansible.builtin.set_fact:
+    servers_to_update: >-
+      {{
+        servers_to_update + [
+          item | combine({
+            '_cmdb_id': cmdb_match.id,
+            '_cmdb_model': cmdb_model,
+            '_new_model': item.modelo_servidor_cloud
+          })
+        ]
+      }}
+  loop: "{{ cloud_data_list }}"
+  loop_control:
+    label: "{{ item.name_cloud }}"
+  vars:
+    cmdb_match: >-
+      {{
+        (
+          cmdb_servers
+          | selectattr('label', 'equalto', item.name_cloud)
+          | list
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model_attr: >-
+      {{
+        (
+          cmdb_match.attributes | default([])
+          | selectattr('objectTypeAttributeId', 'equalto', '15656')
+          | list
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model_value: >-
+      {{
+        (
+          cmdb_model_attr.objectAttributeValues | default([])
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model: >-
+      {{
+        cmdb_model_value.referencedObject.objectKey
+        | default(cmdb_model_value.value | default(''), true)
+      }}
+  when:
+    - cmdb_match.id is defined
+    - item.modelo_servidor_cloud is defined
+    - item.modelo_servidor_cloud | string | length > 0
+    - cmdb_model | string | length > 0
+    - cmdb_model | string != item.modelo_servidor_cloud | string
+    - >
+      (
+        cmdb_match.attributes | default([])
+        | selectattr('objectTypeAttributeId', 'equalto', '3357')
+        | map(attribute='objectAttributeValues')
+        | flatten
+        | selectattr('value', 'equalto', 'Ansible')
+        | list
+        | length
+      ) > 0
+
+- name: Listar servidores com modelo alterado
+  ansible.builtin.debug:
+    msg:
+      - "SERVIDORES A ATUALIZAR:"
+      - "{{ servers_to_update | map(attribute='name_cloud') | list }}"
+
 - name: Determinar acoes
   ansible.builtin.set_fact:
 
@@ -291,6 +366,11 @@
       {{
         cloud_data_list
         | selectattr('name_cloud', 'in', cmdb_server_names)
+        | rejectattr(
+            'name_cloud',
+            'in',
+            servers_to_update | map(attribute='name_cloud') | list
+          )
         | list
       }}
 
@@ -395,6 +475,48 @@
     - sync_mode == 'full' or sync_mode == 'deactivate'
     - enable_deactivation | default(false) | bool
 
+
+- name: Atualizar modelo dos servidores no CMDB
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/{{ server_item._cmdb_id }}"
+    method: PUT
+    force_basic_auth: yes
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      objectTypeId: "{{ object_type_id_servidor }}"
+      attributes:
+        - objectTypeAttributeId: "15656"
+          objectAttributeValues:
+            - value: "{{ server_item._new_model }}"
+    body_format: json
+    return_content: yes
+    status_code: [200]
+  register: resultado_update
+  environment: "{{ proxy_env | default({}) }}"
+  loop: "{{ servers_to_update }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+    pause: "{{ jira_create_delay_seconds | default(0.3) }}"
+  when:
+    - servers_to_update | length > 0
+    - sync_mode == 'full'
+
+- name: Registrar servidores atualizados
+  ansible.builtin.set_fact:
+    sync_log_update: "{{ sync_log_update + [server_item.name_cloud] }}"
+  loop: "{{ servers_to_update }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+  when:
+    - servers_to_update | length > 0
+    - sync_mode == 'full'
+
 - name: Criar novos servidores no CMDB
   ansible.builtin.include_tasks: create.yml
   vars:
@@ -442,6 +564,7 @@
       - "                    SINCRONIZACAO CONCLUIDA"
       - "════════════════════════════════════════════════════════════════"
       - "Criados com sucesso: {{ sync_log_create | length }}"
+      - "Atualizados: {{ sync_log_update | length }}"
       - "Ignorados (ja existentes): {{ sync_log_skip | length }}"
       - "Reativados: {{ sync_log_reactivate | length }}"
       - "Desativados: {{ sync_log_deactivate | length }}"
