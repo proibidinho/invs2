@@ -1,38 +1,6 @@
-]633;E;{   echo "========================================"\x3b   echo "PROJETO: inventory-aws"\x3b   echo "GERADO EM: $(date)"\x3b   echo "========================================"\x3b   echo\x3b    find . -type f     \\( -name "*.yml" -o -name "*.yaml" -o -name "*.py" -o -name "*.md" -o -name "*.cfg" -o -name "*.txt" \\)     | sort     | while read -r file\x3b do         echo\x3b         echo "#################################################################"\x3b         echo "# ARQUIVO: $file"\x3b         echo "#################################################################"\x3b         echo\x3b         cat "$file"\x3b         echo\x3b       done\x3b } > inventory-aws-completo.txt;f7dbfc0e-ea22-43f3-8c17-80b675390eac]633;C========================================
-PROJETO: inventory-aws
-GERADO EM: Thu, Aug 20, 2026  4:15:10 PM
-========================================
-
-
-#################################################################
-# ARQUIVO: ./ansible.cfg
-#################################################################
-
-#Arquivo default de configuração do Ansible para o AAP, adicione aqui suas configurações personalizadas
-
-[defaults]
-filter_plugins = ./roles/integration_assets_aws/filter_plugins:./roles/integration_assets/filter_plugins
-timeout=120
-show_custom_stats=true
-host_key_checking=false
-callbacks_enabled=timer, profile_tasks, profile_roles
-roles_path = ./roles
-
-[ssh_connection]
-retries=30
-ssh_args=-o ControlMaster=auto -o ControlPersist=60s
-pipelining=True
-
-#################################################################
-# ARQUIVO: ./inventory-aws-completo.txt
-#################################################################
-
-
-
-#################################################################
-# ARQUIVO: ./playbooks/sync_aws_cmdb.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/playbooks/sync_aws_cmdb.yml
+################################################################################
 # =============================================================================
 # Playbook: Sincronizacao AWS (via AAP) -> Jira Assets (CMDB)
 # =============================================================================
@@ -99,10 +67,9 @@ pipelining=True
           - "════════════════════════════════════════════════════════════════"
           - "Timestamp: {{ ansible_date_time.iso8601 }}"
 
-#################################################################
-# ARQUIVO: ./playbooks/sync_single_aws.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/playbooks/sync_single_aws.yml
+################################################################################
 # =============================================================================
 # Playbook: Testar sincronizacao AWS com servidores selecionados
 # =============================================================================
@@ -375,365 +342,9 @@ pipelining=True
           - "════════════════════════════════════════════════════════════════"
 
 
-#################################################################
-# ARQUIVO: ./README-inventory-aws.md
-#################################################################
-
-# ☁️ AWS — Inventory → CMDB
-
-## 🧭 Em uma frase
-
-Este projeto pega os servidores que já foram descobertos no **AAP Inventory 92**, transforma os dados AWS e envia os objetos para o **Jira Assets**.
-
-```text
-AWS
- ↓
-Inventory Source
- ↓
-AAP Inventory 92
- ↓
-transformação
- ↓
-Jira Assets
-```
-
-> 💡 **Para entender o projeto, comece por:** `playbooks/sync_aws_cmdb.yml` → `roles/integration_assets_aws/tasks/main.yml`.
-
----
-
-## 1. 🔑 Onde está cada acesso?
-
-| O quê | Onde |
-|---|---|
-| AAP | `https://aap.claro.com.br` |
-| Inventory | `92` |
-| AWS Credential do Inventory Source | `174` |
-| Execution Environment | `25` |
-| AAP token | Vault (`aap_token`) |
-| Jira usuário | `JIRA_USER` |
-| Jira senha | `JIRA_PASSWORD` |
-
-No código, a configuração do projeto segue este padrão:
-
-```yaml
-aap_host: "https://aap.claro.com.br"
-aap_inventory_id: "92"
-aap_verify_ssl: false
-
-aap_token: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  ...
-```
-
-E o Jira é obtido do ambiente:
-
-```yaml
-jira_user: "{{ lookup('env', 'JIRA_USER') }}"
-jira_password: "{{ lookup('env', 'JIRA_PASSWORD') }}"
-```
-
-🔐 **Não coloque o valor real dessas credenciais no README/Git.**
-
----
-
-## 2. 📥 De onde vêm os servidores?
-
-O projeto **não consulta diretamente a AWS para montar o CMDB**.
-
-Ele consulta o Inventory do AAP:
-
-```text
-AAP
-└── Inventory 92
-    └── Hosts AWS
-```
-
-A coleta é feita pela API:
-
-```yaml
-url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=500"
-method: GET
-headers:
-  Authorization: "Bearer {{ aap_token }}"
-```
-
-### O que isso significa?
-
-Se uma VM não estiver no **Inventory 92**, ela não chega nessa etapa do projeto.
-
----
-
-## 3. 🔄 O caminho dos dados
-
-```text
-┌─────────────┐
-│ AAP #92     │
-└──────┬──────┘
-       │ hosts
-       ▼
-┌─────────────────────┐
-│ coleta/paginação    │
-└──────┬──────────────┘
-       │
-       ▼
-┌─────────────────────┐
-│ transformação AWS   │
-│ host → cloud_data   │
-└──────┬──────────────┘
-       │
-       ▼
-┌─────────────────────┐
-│ modelo + specs      │
-│ owner + tags        │
-└──────┬──────────────┘
-       │
-       ▼
-┌─────────────────────┐
-│ Jira Assets         │
-└─────────────────────┘
-```
-
----
-
-## 4. 🧩 Onde os dados são transformados?
-
-Os mapas ficam em:
-
-```text
-roles/integration_assets_aws/vars/
-├── main.yml
-├── mapeamento_aws_cmdb.yml
-└── modelo_servidor_map_aws.yml
-```
-
-A ideia é:
-
-```text
-AWS host
-  ↓
-instance_type / tags / IP / etc.
-  ↓
-modelo_servidor_map_aws.yml
-  ↓
-cloud_data
-  ↓
-Jira
-```
-
-### Exemplo de código
-
-O projeto usa o `instance_type` para descobrir informações adicionais:
-
-```yaml
-instance_type: instance_type
-platform: platform_details | default('Linux/UNIX')
-private_ip: private_ip_address | default('')
-public_ip: public_ip_address | default('N/A')
-region: placement.region
-account_id: owner_id | string
-```
-
----
-
-## 5. 🖥️ CPU, RAM e Modelo
-
-Existe uma separação importante:
-
-```text
-modelo_servidor_map_aws.yml
-        │
-        ├── modelo do servidor
-        ├── aws_vm_specs
-        └── owner_ids
-```
-
-Então, se aparecer um novo tipo:
-
-```text
-m5.4xlarge
-```
-
-não saia alterando a lógica principal.
-
-Primeiro procure:
-
-```text
-modelo_servidor_map_aws.yml
-```
-
----
-
-## 6. 👤 Owner
-
-A regra de Owner está no mapa do projeto.
-
-A forma simples de pensar é:
-
-```text
-Ambiente
-   +
-Sistema Operacional
-   ↓
-owner_ids
-   ↓
-USR-...
-```
-
-Os IDs atualmente documentados no projeto são:
-
-```text
-Produção + Linux    → USR-149372
-Produção + Windows  → USR-146496
-Não Produção        → USR-129988
-```
-
----
-
-## 7. 🏷️ Tags AWS são importantes
-
-O Inventory Source cria grupos a partir de tags.
-
-Exemplo real:
-
-```yaml
-- key: tags.ef_ambiente | default('SEM_AMBIENTE') | lower
-  prefix: Ambiente
-  separator: "-"
-
-- key: tags.ef_cmdb | default('SEM_SISTEMA')
-  prefix: Sistema
-  separator: "-"
-```
-
-Portanto:
-
-```text
-tag ef_ambiente = prd
-        ↓
-Ambiente-prd
-```
-
-E:
-
-```text
-tag ef_cmdb = GDA-123
-        ↓
-Sistema-GDA-123
-```
-
----
-
-## 8. 🌐 Qual IP vira `ansible_host`?
-
-Está explícito no Inventory Source:
-
-```yaml
-ansible_host: private_ip_address
-  | default(public_ip_address)
-  | default(private_dns_name)
-```
-
-Ou seja:
-
-```text
-Private IP
-   ↓ se não existir
-Public IP
-   ↓ se não existir
-Private DNS
-```
-
----
-
-## 9. ➕ CREATE / ⏭️ SKIP / ⛔ DEACTIVATE
-
-A lógica do projeto pode ser entendida assim:
-
-```text
-Host AAP
-   ↓
-já existe no Assets?
-   ├── NÃO → CREATE
-   └── SIM → SKIP
-```
-
-Para objetos que desapareceram da origem existe também a lógica de `DEACTIVATE`.
-
-O default atual é:
-
-```yaml
-enable_deactivation: false
-```
-
-Portanto, **não presuma que desativação está ligada só porque existe `deactivate.yml`**.
-
----
-
-## 10. 🧪 Como testar sem pegar tudo?
-
-Existe um playbook específico:
-
-```text
-playbooks/sync_single_aws.yml
-```
-
-O padrão do projeto permite:
-
-```bash
-ansible-playbook playbooks/sync_single_aws.yml \
-  -e "test_limit=5" \
-  -e "dry_run=true"
-```
-
-Ou uma lista:
-
-```bash
-ansible-playbook playbooks/sync_single_aws.yml \
-  -e 'test_servers=["srv01","srv02"]'
-```
-
----
-
-## 🗺️ Mapa rápido para manutenção
-
-| Quero mudar... | Olhe primeiro... |
-|---|---|
-| Campo enviado ao CMDB | `mapeamento_aws_cmdb.yml` |
-| Modelo | `modelo_servidor_map_aws.yml` |
-| CPU/RAM | `aws_vm_specs` |
-| Owner | `owner_ids` |
-| Coleta do AAP | `fetch_all_hosts.yml` |
-| Transformação | `main.yml` / filtro de transformação |
-| CREATE | `create.yml` |
-| DEACTIVATE | `deactivate.yml` |
-| Rede | `manage_network_interface.yml` |
-| Teste | `sync_single_aws.yml` |
-
----
-
-## 🧠 Resumo para o próximo analista
-
-```text
-NÃO começa pela AWS.
-
-Começa aqui:
-        ↓
-AAP Inventory #92
-        ↓
-transformação
-        ↓
-vars/modelo_servidor_map_aws.yml
-        ↓
-cloud_data
-        ↓
-Jira Assets
-```
-
-
-#################################################################
-# ARQUIVO: ./roles/integration_assets_aws/filter_plugins/aws_cmdb_filters.py
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/roles/integration_assets_aws/filter_plugins/aws_cmdb_filters.py
+################################################################################
 # =============================================================================
 # Filter Plugin: Transformação AWS → Jira Assets
 # =============================================================================
@@ -1242,10 +853,9 @@ class FilterModule(object):
             'search_attribute': search_attribute,
         }
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_aws/tasks/_fetch_one_page.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/roles/integration_assets_aws/tasks/_fetch_one_page.yml
+################################################################################
 # =============================================================================
 # Task auxiliar: buscar UMA pagina do AAP e acumular
 # =============================================================================
@@ -1302,10 +912,9 @@ class FilterModule(object):
     - aap_page_result is defined
     - aap_page_result.json is defined
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_aws/tasks/create.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/roles/integration_assets_aws/tasks/create.yml
+################################################################################
 # =============================================================================
 # Task: Criar objeto no Jira Assets (AWS)
 # =============================================================================
@@ -1395,10 +1004,9 @@ class FilterModule(object):
          if resultado_create.status in [200, 201]
          else 'ERRO: ' ~ current_cloud_data.name_cloud ~ ' status=' ~ (resultado_create.status | string) }}
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_aws/tasks/deactivate.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/roles/integration_assets_aws/tasks/deactivate.yml
+################################################################################
 # =============================================================================
 # Task: Desativar servidor no CMDB (VM não existe mais na AWS)
 # =============================================================================
@@ -1438,10 +1046,9 @@ class FilterModule(object):
     sync_log_deactivate: "{{ sync_log_deactivate | default([]) + [server_to_deactivate.label] }}"
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_aws/tasks/fetch_all_hosts.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/roles/integration_assets_aws/tasks/fetch_all_hosts.yml
+################################################################################
 # =============================================================================
 # Task: Coleta paginada de hosts do AAP (segue .next ate acabar)
 # =============================================================================
@@ -1469,10 +1076,9 @@ class FilterModule(object):
   ansible.builtin.debug:
     msg: "Total de hosts coletados do AAP: {{ aap_all_hosts | length }} em {{ aap_page_num }} pagina(s)"
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_aws/tasks/main.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/roles/integration_assets_aws/tasks/main.yml
+################################################################################
 ---
 - name: Incluir variaveis de mapeamento AWS
   ansible.builtin.include_vars:
@@ -1484,6 +1090,7 @@ class FilterModule(object):
     sync_log_skip: []
     sync_log_deactivate: []
     sync_log_reactivate: []
+    sync_log_update: []
     sync_log_errors: []
 
 
@@ -1584,9 +1191,14 @@ class FilterModule(object):
   ansible.builtin.set_fact:
     cmdb_servers: "{{ cmdb_servers_result.json['values'] | default([]) }}"
 
-# - name: Debug primeiro servidore do CMDB
-#   ansible.builtin.debug:
-#     msg: "{{ cmdb_servers[0:1] | to_nice_json }}"
+- name: Debug servidor com Last User do CMDB
+  ansible.builtin.debug:
+    msg: >-
+      {{
+        cmdb_servers
+        | selectattr('id', 'equalto', '3562960')
+        | list
+      }}
 
 - name: Debug - Servidores AWS encontrados no CMDB
   ansible.builtin.debug:
@@ -1768,11 +1380,96 @@ class FilterModule(object):
         | first
       ).objectAttributeValues[0].status.id == '19'
 
+    - >
+      (
+        item.attributes
+        | selectattr('objectTypeAttributeId', 'equalto', '3357')
+        | map(attribute='objectAttributeValues')
+        | flatten
+        | selectattr('value', 'equalto', 'Ansible')
+        | list
+        | length
+      ) > 0
+
 - name: Hosts a reativar
   ansible.builtin.debug:
     msg: "{{ servers_to_reactivate | map(attribute='label') | list }}"
   when:
     - servers_to_reactivate | length > 0
+
+
+- name: Identificar servidores com modelo alterado no CMDB
+  ansible.builtin.set_fact:
+    servers_to_update: []
+
+- name: Selecionar servidores cujo modelo mudou
+  ansible.builtin.set_fact:
+    servers_to_update: >-
+      {{
+        servers_to_update + [
+          item | combine({
+            '_cmdb_id': cmdb_match.id,
+            '_cmdb_model': cmdb_model,
+            '_new_model': item.modelo_servidor_cloud
+          })
+        ]
+      }}
+  loop: "{{ cloud_data_list }}"
+  loop_control:
+    label: "{{ item.name_cloud }}"
+  vars:
+    cmdb_match: >-
+      {{
+        (
+          cmdb_servers
+          | selectattr('label', 'equalto', item.name_cloud)
+          | list
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model_attr: >-
+      {{
+        (
+          cmdb_match.attributes | default([])
+          | selectattr('objectTypeAttributeId', 'equalto', '15656')
+          | list
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model_value: >-
+      {{
+        (
+          cmdb_model_attr.objectAttributeValues | default([])
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model: >-
+      {{
+        cmdb_model_value.referencedObject.objectKey
+        | default(cmdb_model_value.value | default(''), true)
+      }}
+  when:
+    - cmdb_match.id is defined
+    - item.modelo_servidor_cloud is defined
+    - item.modelo_servidor_cloud | string | length > 0
+    - cmdb_model | string | length > 0
+    - cmdb_model | string != item.modelo_servidor_cloud | string
+    - >
+      (
+        cmdb_match.attributes | default([])
+        | selectattr('objectTypeAttributeId', 'equalto', '3357')
+        | map(attribute='objectAttributeValues')
+        | flatten
+        | selectattr('value', 'equalto', 'Ansible')
+        | list
+        | length
+      ) > 0
+
+- name: Listar servidores com modelo alterado
+  ansible.builtin.debug:
+    msg:
+      - "SERVIDORES A ATUALIZAR:"
+      - "{{ servers_to_update | map(attribute='name_cloud') | list }}"
 
 - name: Determinar acoes
   ansible.builtin.set_fact:
@@ -1793,18 +1490,38 @@ class FilterModule(object):
       {{
         cloud_data_list
         | selectattr('name_cloud', 'in', cmdb_server_names)
+        | rejectattr(
+            'name_cloud',
+            'in',
+            servers_to_update | map(attribute='name_cloud') | list
+          )
         | list
       }}
 
     # DEACTIVATE:
-    # Continua comparando SOMENTE contra os objetos classificados como AWS.
-    servers_to_deactivate: >-
-      {{
-        cmdb_servers
-        | rejectattr('label', 'in', aws_instance_names)
-        | rejectattr('label', 'in', aws_protected_cluster_names)
+    # A lista sera montada abaixo, considerando somente CIs criados pelo Ansible.
+    servers_to_deactivate: []
+
+- name: Selecionar servidores AWS criados pelo Ansible para desativacao
+  ansible.builtin.set_fact:
+    servers_to_deactivate: "{{ servers_to_deactivate + [item] }}"
+  loop: "{{ cmdb_servers }}"
+  loop_control:
+    label: "{{ item.label | default('?') }}"
+  when:
+    - item.label is defined
+    - item.label not in aws_instance_names
+    - item.label not in aws_protected_cluster_names
+    - >
+      (
+        item.attributes
+        | selectattr('objectTypeAttributeId', 'equalto', '3357')
+        | map(attribute='objectAttributeValues')
+        | flatten
+        | selectattr('value', 'equalto', 'Ansible')
         | list
-      }}
+        | length
+      ) > 0
 
 - name: Hosts a criar
   ansible.builtin.debug:
@@ -1874,6 +1591,48 @@ class FilterModule(object):
     - sync_mode == 'full' or sync_mode == 'deactivate'
     - enable_deactivation | default(false) | bool
 
+
+- name: Atualizar modelo dos servidores no CMDB
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/{{ server_item._cmdb_id }}"
+    method: PUT
+    force_basic_auth: yes
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      objectTypeId: "{{ object_type_id_servidor }}"
+      attributes:
+        - objectTypeAttributeId: "15656"
+          objectAttributeValues:
+            - value: "{{ server_item._new_model }}"
+    body_format: json
+    return_content: yes
+    status_code: [200]
+  register: resultado_update
+  environment: "{{ proxy_env | default({}) }}"
+  loop: "{{ servers_to_update }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+    pause: "{{ jira_create_delay_seconds | default(0.3) }}"
+  when:
+    - servers_to_update | length > 0
+    - sync_mode == 'full'
+
+- name: Registrar servidores atualizados
+  ansible.builtin.set_fact:
+    sync_log_update: "{{ sync_log_update + [server_item.name_cloud] }}"
+  loop: "{{ servers_to_update }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+  when:
+    - servers_to_update | length > 0
+    - sync_mode == 'full'
+
 - name: Criar novos servidores no CMDB
   ansible.builtin.include_tasks: create.yml
   vars:
@@ -1923,6 +1682,7 @@ class FilterModule(object):
       - "                    SINCRONIZACAO CONCLUIDA"
       - "════════════════════════════════════════════════════════════════"
       - "Criados com sucesso: {{ sync_log_create | length }}"
+      - "Atualizados: {{ sync_log_update | length }}"
       - "Ignorados (ja existentes): {{ sync_log_skip | length }}"
       - "Desativados: {{ sync_log_deactivate | length }}"
       - "Reativados: {{ sync_log_reactivate | length }}"
@@ -1943,10 +1703,9 @@ class FilterModule(object):
 #################################################################
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_aws/tasks/manage_network_interface.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/roles/integration_assets_aws/tasks/manage_network_interface.yml
+################################################################################
 # =============================================================================
 # Task: Gerenciar Interface de Rede (criar se não existir)
 # =============================================================================
@@ -2019,10 +1778,9 @@ class FilterModule(object):
     msg: "Interface de Rede '{{ ip_info.ip }}': {{ 'Existente' if nic_exists else 'Criada' }} (ID: {{ nic_id }})"
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_aws/tasks/reactivate.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/roles/integration_assets_aws/tasks/reactivate.yml
+################################################################################
 ---
 # =============================================================================
 # Task: Reativar servidor no CMDB (EC2 voltou a existir na AWS)
@@ -2077,10 +1835,9 @@ class FilterModule(object):
       }}
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_aws/vars/main.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/roles/integration_assets_aws/vars/main.yml
+################################################################################
 # # =============================================================================
 # # Variáveis principais da role integration_assets_aws
 # # =============================================================================
@@ -2157,10 +1914,9 @@ proxy_env:
 # Serve para evitar rate limit em batches grandes.
 jira_create_delay_seconds: 0.3
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_aws/vars/mapeamento_aws_cmdb.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/roles/integration_assets_aws/vars/mapeamento_aws_cmdb.yml
+################################################################################
 # =============================================================================
 # MAPEAMENTO: AWS → Jira Assets (CMDB)
 # =============================================================================
@@ -2368,10 +2124,9 @@ object_attribute_map:
   tipo: boolean
   valor_fixo: false
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_aws/vars/modelo_servidor_map_aws.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/roles/integration_assets_aws/vars/modelo_servidor_map_aws.yml
+################################################################################
 # =============================================================================
 # vars/modelo_servidor_map_aws.yml
 # =============================================================================
@@ -2780,10 +2535,9 @@ owner_ids:
   prod_windows: "146496"   # USR-146496  Carlos Henrique Barboza
   nao_producao: "129988"   #USR-129988 Bernardo Goulart
 
-#################################################################
-# ARQUIVO: ./scripts/coleta_aws.py
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/scripts/coleta_aws.py
+################################################################################
 #!/usr/bin/env python3
 
 import json
@@ -2938,10 +2692,9 @@ with open("aws_instance_specs.yml", "w") as f:
 print(f"Modelos encontrados: {len(resultado)}")
 print("Arquivo gerado: aws_instance_specs.yml")
 
-#################################################################
-# ARQUIVO: ./scripts/discover_attribute_ids.py
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-aws/scripts/discover_attribute_ids.py
+################################################################################
 #!/usr/bin/env python3
 # =============================================================================
 # Script: Descobrir IDs de atributos no Jira Assets
@@ -3042,4 +2795,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 

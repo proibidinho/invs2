@@ -1,38 +1,6 @@
-]633;E;{   echo "========================================"\x3b   echo "PROJETO: inventory-aws"\x3b   echo "GERADO EM: $(date)"\x3b   echo "========================================"\x3b   echo\x3b    find . -type f     \\( -name "*.yml" -o -name "*.yaml" -o -name "*.py" -o -name "*.md" -o -name "*.cfg" -o -name "*.txt" \\)     | sort     | while read -r file\x3b do         echo\x3b         echo "#################################################################"\x3b         echo "# ARQUIVO: $file"\x3b         echo "#################################################################"\x3b         echo\x3b         cat "$file"\x3b         echo\x3b       done\x3b } > inventory-azure-completo.txt;f7dbfc0e-ea22-43f3-8c17-80b675390eac]633;C========================================
-PROJETO: inventory-aws
-GERADO EM: Thu, Aug 20, 2026  4:14:51 PM
-========================================
-
-
-#################################################################
-# ARQUIVO: ./ansible.cfg
-#################################################################
-
-#Arquivo default de configuração do Ansible para o AAP, adicione aqui suas configurações personalizadas
-[defaults]
-roles_path = ./roles
-filter_plugins = ./roles/integration_assets_azure/filter_plugins:./roles/integration_assets/filter_plugins
-timeout=120
-show_custom_stats=true
-host_key_checking=false
-inventory=files/inventory
-callbacks_enabled=timer, profile_tasks, profile_roles
-
-[ssh_connection]
-retries=30
-ssh_args=-o ControlMaster=auto -o ControlPersist=60s
-pipelining=True
-
-#################################################################
-# ARQUIVO: ./inventory-azure-completo.txt
-#################################################################
-
-
-
-#################################################################
-# ARQUIVO: ./playbooks/sync_azure_cmdb.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/playbooks/sync_azure_cmdb.yml
+################################################################################
 # =============================================================================
 # Playbook: Sincronizacao Azure (via AAP) -> Jira Assets (CMDB)
 # =============================================================================
@@ -90,10 +58,9 @@ pipelining=True
         azure_vm_specs: "{{ azure_vm_specs }}"
         owner_ids: "{{ owner_ids }}"
 
-#################################################################
-# ARQUIVO: ./playbooks/sync_single_azure.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/playbooks/sync_single_azure.yml
+################################################################################
 # =============================================================================
 # Playbook: Testar sincronizacao Azure com servidores selecionados
 # =============================================================================
@@ -382,448 +349,9 @@ pipelining=True
           - "════════════════════════════════════════════════════════════════"
 
 
-#################################################################
-# ARQUIVO: ./README-inventory-azure.md
-#################################################################
-
-# ☁️ Azure — Inventory → CMDB
-
-## 🧭 Em uma frase
-
-Este projeto pega as VMs do **AAP Inventory 93**, transforma os dados Azure e sincroniza os servidores no **Jira Assets**.
-
-```text
-Azure
- ↓
-Inventory Source Azure
- ↓
-AAP Inventory 93
- ↓
-transformação
- ↓
-Jira Assets
-```
-
-> 💡 Comece por `playbooks/sync_azure_cmdb.yml` e depois vá para `roles/integration_assets_azure/tasks/main.yml`.
-
----
-
-## 1. 🔑 Acessos
-
-| O quê | Valor/Origem |
-|---|---|
-| AAP | `https://aap.claro.com.br` |
-| Inventory | `93` |
-| Credential global Azure | `226` |
-| Nome da Credential | `Credential Azure Claro-Management` |
-| Credential Type | `10` |
-| Execution Environment | `31` |
-| AAP token | Vault |
-| Jira | `JIRA_USER` / `JIRA_PASSWORD` |
-
-O código mostra:
-
-```yaml
-controller_host: "https://aap.claro.com.br"
-
-inventory_id: 93
-execution_environment_id: 31
-
-credential_type_id: 10
-template_credential_id: 226 #Credential Azure Claro-Management
-```
-
----
-
-## 2. 📥 De onde vêm as VMs?
-
-O projeto consulta o Inventory do AAP:
-
-```text
-AAP Inventory 93
-      ↓
-Hosts Azure
-```
-
-Depois busca as variáveis de cada host.
-
-A ideia é simples:
-
-```text
-AAP
- ↓
-nome da VM
- ↓
-IP
- ↓
-tags
- ↓
-resource group
- ↓
-location
- ↓
-transformação
-```
-
----
-
-## 3. 🪪 Como o Azure chega ao AAP?
-
-Aqui está uma diferença importante em relação ao AWS.
-
-No Azure existe:
-
-```text
-Credential Global #226
-        ↓
-descobre subscriptions
-        ↓
-Credential AAP por subscription
-        ↓
-Inventory Source por subscription
-```
-
-O código realmente faz:
-
-```yaml
-azure.azcollection.azure_rm_subscription_info:
-```
-
-Depois filtra:
-
-```yaml
-selectattr('state', 'equalto', 'Enabled')
-```
-
-Portanto:
-
-> somente subscriptions Azure **Enabled** entram no processo.
-
----
-
-## 4. 🔐 Credential por subscription
-
-O código cria a credential assim:
-
-```yaml
-inputs:
-  subscription: "{{ item.id }}"
-  client: "{{ template_credential.json.inputs.client }}"
-  secret: "{{ azure_client_secret }}"
-  tenant: "{{ template_credential.json.inputs.tenant }}"
-  cloud_environment: ""
-```
-
-Leia isso como:
-
-```text
-Subscription atual
-       +
-Client da Credential Global
-       +
-Secret do runtime
-       +
-Tenant da Credential Global
-       ↓
-Credential Azure no AAP
-```
-
-🔐 O secret real não deve aparecer no README.
-
----
-
-## 5. 📦 Inventory Source Azure
-
-Cada subscription pode ter seu próprio source.
-
-O código cria:
-
-```yaml
-name: "Fonte Azure - {{ item.name | lower }}"
-description: "{{ item.id }}"
-
-source: azure_rm
-inventory: "{{ inventory_id }}"
-credential: "{{ credential_map[item.id] }}"
-execution_environment: "{{ execution_environment_id }}"
-```
-
-Então:
-
-```text
-Subscription A
-   ↓
-Credential A
-   ↓
-Fonte Azure - A
-
-Subscription B
-   ↓
-Credential B
-   ↓
-Fonte Azure - B
-```
-
----
-
-## 6. 🔎 O que o Inventory Source busca?
-
-O plugin é:
-
-```yaml
-plugin: azure.azcollection.azure_rm
-auth_source: auto
-
-include_vm_resource_groups:
-  - '*'
-```
-
-Ou seja:
-
-```text
-Azure Subscription
-      ↓
-todos os Resource Groups
-      ↓
-VMs
-      ↓
-AAP Inventory
-```
-
----
-
-## 7. 🏷️ Tags viram grupos
-
-O código diz:
-
-```yaml
-- key: tags.ef_ambiente | default('SEM_EF_AMBIENTE')
-  prefix: Ambiente
-  separator: "-"
-
-- key: tags.ef_cmdb | default('SEM_EF_CMDB')
-  prefix: Sistema
-  separator: "-"
-```
-
-Então:
-
-```text
-ef_ambiente = prd
-      ↓
-Ambiente-prd
-```
-
-e:
-
-```text
-ef_cmdb = GDA-123
-      ↓
-Sistema-GDA-123
-```
-
-Também existe:
-
-```yaml
-- key: location | default('desconhecida')
-  prefix: Local
-```
-
----
-
-## 8. 🐧 Linux x 🪟 Windows
-
-O próprio Inventory Source cria grupos:
-
-```yaml
-conditional_groups:
-  VMs_Linux: "'linux' in (image.offer | default('') | lower)"
-  VMs_Windows: "'windows' in (image.offer | default('') | lower)"
-```
-
-Então:
-
-```text
-image.offer contém "linux"
-        ↓
-VMs_Linux
-```
-
-ou:
-
-```text
-image.offer contém "windows"
-        ↓
-VMs_Windows
-```
-
----
-
-## 9. 🌐 Qual IP vira `ansible_host`?
-
-O código:
-
-```yaml
-ansible_host: private_ipv4_addresses[0]
-  | default(public_ipv4_addresses[0] | default(''))
-```
-
-Prioridade:
-
-```text
-Private IP
-   ↓
-Public IP
-```
-
-Também são criados:
-
-```yaml
-azure_vm_name: name
-azure_resource_group: resource_group
-azure_location: location
-azure_private_ip: private_ipv4_addresses[0]
-azure_public_ip: public_ipv4_addresses[0]
-```
-
----
-
-## 10. 🖥️ Modelo + CPU + RAM
-
-Quando o projeto encontra:
-
-```text
-vm_size
-```
-
-procure:
-
-```text
-vars/modelo_servidor_map_azure.yml
-```
-
-A ideia é:
-
-```text
-Standard_D4s_v3
-       ↓
-modelo_servidor_map
-       ↓
-Modelo do Servidor
-
-Standard_D4s_v3
-       ↓
-azure_vm_specs
-       ↓
-CPU + RAM
-```
-
----
-
-## 11. 👤 Owner
-
-A lógica é:
-
-```text
-Ambiente + SO
-      ↓
-owner_ids
-      ↓
-USR-...
-```
-
-Atualmente:
-
-```text
-Produção + Linux    → USR-149372
-Produção + Windows  → USR-146496
-Não Produção        → USR-129988
-```
-
----
-
-## 12. ➕ CREATE / ⏭️ SKIP / ⛔ DEACTIVATE
-
-Pense assim:
-
-```text
-VM do AAP
-   ↓
-Name já existe?
-   ├── NÃO → CREATE
-   └── SIM → SKIP
-```
-
-A desativação existe separadamente.
-
-Configuração padrão:
-
-```yaml
-sync_mode: "full"
-enable_deactivation: false
-```
-
----
-
-## 13. 🧪 Teste
-
-```bash
-ansible-playbook playbooks/sync_single_azure.yml \
-  -e "test_limit=5" \
-  -e "dry_run=true"
-```
-
-Ou:
-
-```bash
-ansible-playbook playbooks/sync_single_azure.yml \
-  -e 'test_servers=["vm01","vm02"]'
-```
-
----
-
-## 🗺️ Onde mexer?
-
-| Quero mudar... | Arquivo |
-|---|---|
-| Campos CMDB | `mapeamento_azure_cmdb.yml` |
-| Modelo | `modelo_servidor_map_azure.yml` |
-| CPU/RAM | `azure_vm_specs` |
-| Owner | `owner_ids` |
-| Coleta | `fetch_all_hosts.yml` |
-| Transformação | `main.yml` |
-| CREATE | `create.yml` |
-| DEACTIVATE | `deactivate.yml` |
-| Rede | `manage_network_interface.yml` |
-| Teste | `sync_single_azure.yml` |
-
----
-
-## 🧠 Resumo
-
-```text
-Azure
- ↓
-Subscriptions Enabled
- ↓
-Inventory Source por subscription
- ↓
-AAP Inventory #93
- ↓
-VM + tags + IP + vm_size
- ↓
-mapeamentos
- ↓
-cloud_data
- ↓
-Jira Assets
-```
-
-
-#################################################################
-# ARQUIVO: ./roles/integration_assets_azure/filter_plugins/azure_cmdb_filters.py
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/roles/integration_assets_azure/filter_plugins/azure_cmdb_filters.py
+################################################################################
 # =============================================================================
 # Filter Plugin: Transformacao Azure -> Jira Assets
 # =============================================================================
@@ -1422,10 +950,9 @@ class FilterModule(object):
             'search_attribute_azure': search_attribute,
         }
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_azure/tasks/_fetch_one_page.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/roles/integration_assets_azure/tasks/_fetch_one_page.yml
+################################################################################
 # =============================================================================
 # Task auxiliar: buscar UMA pagina do AAP e acumular
 # =============================================================================
@@ -1462,10 +989,9 @@ class FilterModule(object):
     - aap_page_result is defined
     - aap_page_result.json is defined
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_azure/tasks/create.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/roles/integration_assets_azure/tasks/create.yml
+################################################################################
 # =============================================================================
 # Task: Criar objeto no Jira Assets (Azure)
 # =============================================================================
@@ -1555,10 +1081,9 @@ class FilterModule(object):
          if resultado_create.status in [200, 201]
          else 'ERRO: ' ~ current_cloud_data.name_cloud ~ ' status=' ~ (resultado_create.status | string) }}
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_azure/tasks/deactivate.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/roles/integration_assets_azure/tasks/deactivate.yml
+################################################################################
 # =============================================================================
 # Task: Desativar servidor no CMDB (VM nao existe mais na Azure)
 # =============================================================================
@@ -1598,10 +1123,9 @@ class FilterModule(object):
     sync_log_deactivate: "{{ sync_log_deactivate | default([]) + [server_to_deactivate.label] }}"
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_azure/tasks/fetch_all_hosts.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/roles/integration_assets_azure/tasks/fetch_all_hosts.yml
+################################################################################
 # =============================================================================
 # Task: Coleta paginada de hosts do AAP (segue .next ate acabar)
 # =============================================================================
@@ -1629,10 +1153,9 @@ class FilterModule(object):
   ansible.builtin.debug:
     msg: "Total de hosts coletados do AAP: {{ aap_all_hosts | length }} em {{ aap_page_num }} pagina(s)"
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_azure/tasks/main.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/roles/integration_assets_azure/tasks/main.yml
+################################################################################
 ---
 - name: Incluir variaveis de mapeamento Azure
   ansible.builtin.include_vars:
@@ -1644,6 +1167,7 @@ class FilterModule(object):
     sync_log_skip: []
     sync_log_deactivate: []
     sync_log_reactivate: []
+    sync_log_update: []
     sync_log_errors: []
 
 # ---------------------------------------------------------------------------
@@ -1890,11 +1414,96 @@ class FilterModule(object):
         | first
       ).objectAttributeValues[0].status.id == '19'
 
+    - >
+      (
+        item.attributes
+        | selectattr('objectTypeAttributeId', 'equalto', '3357')
+        | map(attribute='objectAttributeValues')
+        | flatten
+        | selectattr('value', 'equalto', 'Ansible')
+        | list
+        | length
+      ) > 0
+
 - name: Hosts a reativar
   ansible.builtin.debug:
     msg: "{{ servers_to_reactivate | map(attribute='label') | list }}"
   when:
     - servers_to_reactivate | length > 0
+
+
+- name: Identificar servidores com modelo alterado no CMDB
+  ansible.builtin.set_fact:
+    servers_to_update: []
+
+- name: Selecionar servidores cujo modelo mudou
+  ansible.builtin.set_fact:
+    servers_to_update: >-
+      {{
+        servers_to_update + [
+          item | combine({
+            '_cmdb_id': cmdb_match.id,
+            '_cmdb_model': cmdb_model,
+            '_new_model': item.modelo_servidor_cloud
+          })
+        ]
+      }}
+  loop: "{{ cloud_data_list }}"
+  loop_control:
+    label: "{{ item.name_cloud }}"
+  vars:
+    cmdb_match: >-
+      {{
+        (
+          cmdb_servers
+          | selectattr('label', 'equalto', item.name_cloud)
+          | list
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model_attr: >-
+      {{
+        (
+          cmdb_match.attributes | default([])
+          | selectattr('objectTypeAttributeId', 'equalto', '15656')
+          | list
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model_value: >-
+      {{
+        (
+          cmdb_model_attr.objectAttributeValues | default([])
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model: >-
+      {{
+        cmdb_model_value.referencedObject.objectKey
+        | default(cmdb_model_value.value | default(''), true)
+      }}
+  when:
+    - cmdb_match.id is defined
+    - item.modelo_servidor_cloud is defined
+    - item.modelo_servidor_cloud | string | length > 0
+    - cmdb_model | string | length > 0
+    - cmdb_model | string != item.modelo_servidor_cloud | string
+    - >
+      (
+        cmdb_match.attributes | default([])
+        | selectattr('objectTypeAttributeId', 'equalto', '3357')
+        | map(attribute='objectAttributeValues')
+        | flatten
+        | selectattr('value', 'equalto', 'Ansible')
+        | list
+        | length
+      ) > 0
+
+- name: Listar servidores com modelo alterado
+  ansible.builtin.debug:
+    msg:
+      - "SERVIDORES A ATUALIZAR:"
+      - "{{ servers_to_update | map(attribute='name_cloud') | list }}"
 
 - name: Determinar acoes
   ansible.builtin.set_fact:
@@ -1915,6 +1524,11 @@ class FilterModule(object):
       {{
         cloud_data_list
         | selectattr('name_cloud', 'in', cmdb_server_names)
+        | rejectattr(
+            'name_cloud',
+            'in',
+            servers_to_update | map(attribute='name_cloud') | list
+          )
         | list
       }}
 
@@ -1943,6 +1557,16 @@ class FilterModule(object):
     - item.label is defined
     - item.label not in azure_instance_names
     - (item.label | string | trim | lower).startswith('aks-') == false
+    - >
+      (
+        item.attributes
+        | selectattr('objectTypeAttributeId', 'equalto', '3357')
+        | map(attribute='objectAttributeValues')
+        | flatten
+        | selectattr('value', 'equalto', 'Ansible')
+        | list
+        | length
+      ) > 0
 
 - name: Resumo da comparacao
   ansible.builtin.debug:
@@ -2009,6 +1633,48 @@ class FilterModule(object):
     - sync_mode == 'full' or sync_mode == 'deactivate'
     - enable_deactivation | default(false) | bool
 
+
+- name: Atualizar modelo dos servidores no CMDB
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/{{ server_item._cmdb_id }}"
+    method: PUT
+    force_basic_auth: yes
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      objectTypeId: "{{ object_type_id_servidor }}"
+      attributes:
+        - objectTypeAttributeId: "15656"
+          objectAttributeValues:
+            - value: "{{ server_item._new_model }}"
+    body_format: json
+    return_content: yes
+    status_code: [200]
+  register: resultado_update
+  environment: "{{ proxy_env | default({}) }}"
+  loop: "{{ servers_to_update }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+    pause: "{{ jira_create_delay_seconds | default(0.3) }}"
+  when:
+    - servers_to_update | length > 0
+    - sync_mode == 'full'
+
+- name: Registrar servidores atualizados
+  ansible.builtin.set_fact:
+    sync_log_update: "{{ sync_log_update + [server_item.name_cloud] }}"
+  loop: "{{ servers_to_update }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+  when:
+    - servers_to_update | length > 0
+    - sync_mode == 'full'
+
 - name: Criar novos servidores no CMDB
   ansible.builtin.include_tasks: create.yml
   vars:
@@ -2056,6 +1722,7 @@ class FilterModule(object):
       - "                    SINCRONIZACAO CONCLUIDA"
       - "════════════════════════════════════════════════════════════════"
       - "Criados com sucesso: {{ sync_log_create | length }}"
+      - "Atualizados: {{ sync_log_update | length }}"
       - "Ignorados (ja existentes): {{ sync_log_skip | length }}"
       - "Reativados: {{ sync_log_reactivate | length }}"
       - "Desativados: {{ sync_log_deactivate | length }}"
@@ -2073,10 +1740,9 @@ class FilterModule(object):
     - sync_log_errors | length == servers_to_create | length
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_azure/tasks/manage_network_interface.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/roles/integration_assets_azure/tasks/manage_network_interface.yml
+################################################################################
 # ---
 # - name: Buscar interface de rede no CMDB
 #   ansible.builtin.uri:
@@ -2197,10 +1863,9 @@ class FilterModule(object):
     msg: "Interface de Rede '{{ ip_info.ip }}': {{ 'Existente' if nic_exists else 'Criada' }} (ID: {{ nic_id }})"
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_azure/tasks/reactivate.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/roles/integration_assets_azure/tasks/reactivate.yml
+################################################################################
 ---
 # =============================================================================
 # Task: Reativar servidor no CMDB (VM voltou a existir no Azure)
@@ -2255,10 +1920,9 @@ class FilterModule(object):
       }}
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_azure/vars/main.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/roles/integration_assets_azure/vars/main.yml
+################################################################################
 # =============================================================================
 # VARIAVEIS PRINCIPAIS - CONFIGURACAO AZURE
 # =============================================================================
@@ -2304,10 +1968,9 @@ proxy_env:
 # Serve para evitar rate limit em batches grandes.
 jira_create_delay_seconds: 0.3
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_azure/vars/mapeamento_azure_cmdb.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/roles/integration_assets_azure/vars/mapeamento_azure_cmdb.yml
+################################################################################
 # =============================================================================
 # MAPEAMENTO: Azure -> Jira Assets (CMDB)
 # =============================================================================
@@ -2640,10 +2303,9 @@ object_attribute_map:
 # se ha um atributo direto no Servidor para isso, OU se essa relacao deve ser
 # criada via API de relacionamentos do Jira Assets (fora desta integracao).
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_azure/vars/modelo_servidor_map_azure.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/roles/integration_assets_azure/vars/modelo_servidor_map_azure.yml
+################################################################################
 # =============================================================================
 # vars/modelo_servidor_map_azure.yml
 # =============================================================================
@@ -2778,10 +2440,9 @@ owner_ids:
   prod_windows: "146496"   # USR-146496  Carlos Henrique Barboza
   nao_producao: "129988"   #USR-129988 Bernardo Goulart
 
-#################################################################
-# ARQUIVO: ./scripts/coleta_azure.py
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventario-azure/scripts/coleta_azure.py
+################################################################################
 #!/usr/bin/env python3
 
 import argparse
@@ -2879,4 +2540,5 @@ if nao_encontrados:
     print("Modelos nao encontrados nesta regiao:")
     for nome in nao_encontrados:
         print(f"  - {nome}")
+
 

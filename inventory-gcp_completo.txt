@@ -1,44 +1,6 @@
-]633;E;{   echo "========================================"\x3b   echo "PROJETO: inventory-aws"\x3b   echo "GERADO EM: $(date)"\x3b   echo "========================================"\x3b   echo\x3b    find . -type f     \\( -name "*.yml" -o -name "*.yaml" -o -name "*.py" -o -name "*.md" -o -name "*.cfg" -o -name "*.txt" \\)     | sort     | while read -r file\x3b do         echo\x3b         echo "#################################################################"\x3b         echo "# ARQUIVO: $file"\x3b         echo "#################################################################"\x3b         echo\x3b         cat "$file"\x3b         echo\x3b       done\x3b } > inventory-gcp-completo.txt;f7dbfc0e-ea22-43f3-8c17-80b675390eac]633;C========================================
-PROJETO: inventory-aws
-GERADO EM: Thu, Aug 20, 2026  4:14:36 PM
-========================================
-
-
-#################################################################
-# ARQUIVO: ./ansible.cfg
-#################################################################
-
-[defaults]
-# Caminho para os filter plugins customizados
-filter_plugins = ./roles/integration_assets_gcp/filter_plugins
-
-# Caminho para as roles
-roles_path = ./roles
-
-# Desabilitar verificação de host key SSH (localhost)
-host_key_checking = False
-
-# Timeout para conexões
-timeout = 30
-
-# Formato de output mais legível
-stdout_callback = yaml
-
-# Não criar arquivos .retry
-retry_files_enabled = False
-
-callbacks_enabled=timer, profile_tasks, profile_roles
-
-#################################################################
-# ARQUIVO: ./inventory-gcp-completo.txt
-#################################################################
-
-
-
-#################################################################
-# ARQUIVO: ./playbooks/setup_webhook.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/playbooks/setup_webhook.yml
+################################################################################
 # =============================================================================
 # Playbook: Configurar Webhook GCP → AAP (OPCIONAL)
 # =============================================================================
@@ -360,10 +322,9 @@ callbacks_enabled=timer, profile_tasks, profile_roles
           - "════════════════════════════════════════════════════════════════"
 
 
-#################################################################
-# ARQUIVO: ./playbooks/sync_gcp_cmdb.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/playbooks/sync_gcp_cmdb.yml
+################################################################################
 # =============================================================================
 # Playbook: Sincronizacao GCP (via AAP) -> Jira Assets (CMDB)
 # =============================================================================
@@ -422,10 +383,9 @@ callbacks_enabled=timer, profile_tasks, profile_roles
         owner_ids: "{{ owner_ids }}"
         cpu_platform_map: "{{ cpu_platform_map | default({}) }}"
 
-#################################################################
-# ARQUIVO: ./playbooks/sync_single_gcp.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/playbooks/sync_single_gcp.yml
+################################################################################
 # =============================================================================
 # Playbook: Testar sincronizacao GCP com servidores selecionados
 # =============================================================================
@@ -717,345 +677,9 @@ callbacks_enabled=timer, profile_tasks, profile_roles
         label: "{{ item.name | default('N/A') }}"
       when: sync_log_errors | length > 0
 
-#################################################################
-# ARQUIVO: ./README-inventory-gcp.md
-#################################################################
-
-# ☁️ GCP — Inventory → CMDB
-
-## 🧭 Em uma frase
-
-Este projeto pega as VMs do **AAP Inventory 91**, transforma os dados GCP e sincroniza os servidores no **Jira Assets**.
-
-```text
-GCP
- ↓
-Inventory Source
- ↓
-AAP Inventory 91
- ↓
-transformação
- ↓
-Jira Assets
-```
-
----
-
-## 1. 🔑 Acessos
-
-| O quê | Valor/Origem |
-|---|---|
-| AAP | `https://aap.claro.com.br` |
-| Inventory | `91` |
-| GCP Credential | injetada pelo AAP |
-| variável da credential | `GOOGLE_APPLICATION_CREDENTIALS` |
-| Quota Project | `claro-infracloud` |
-| Jira | `JIRA_USER` / `JIRA_PASSWORD` |
-
-O código mostra:
-
-```yaml
-aap_host: "https://aap.claro.com.br"
-aap_inventory_id: "91"
-aap_verify_ssl: false
-
-aap_token: !vault |
-  $ANSIBLE_VAULT;1.1;AES256
-  ...
-```
-
-E:
-
-```yaml
-jira_user: "{{ lookup('env', 'JIRA_USER') }}"
-jira_password: "{{ lookup('env', 'JIRA_PASSWORD') }}"
-```
-
----
-
-## 2. 📥 De onde vêm as VMs?
-
-A origem é:
-
-```text
-AAP Inventory 91
-```
-
-O código consulta:
-
-```yaml
-url: "{{ aap_host }}/api/controller/v2/inventories/{{ aap_inventory_id }}/hosts/?page_size=500"
-method: GET
-```
-
-Depois busca as variáveis dos hosts:
-
-```yaml
-url: "{{ aap_host }}/api/controller/v2/hosts/{{ item.id }}/variable_data/"
-```
-
----
-
-## 3. 🔄 Transformação
-
-Esse é um dos trechos mais importantes:
-
-```yaml
-cloud_data_list: >-
-  {{ all_host_vars | batch_transform_gcp_hosts(
-       modelo_servidor_map | default({}),
-       gcp_machine_specs   | default({}),
-       owner_ids           | default({}),
-       cpu_platform_map    | default({})
-     ) }}
-```
-
-Leia assim:
-
-```text
-host do AAP
-    │
-    ├── modelo
-    ├── CPU/RAM
-    ├── owner
-    └── CPU platform
-    │
-    ▼
-cloud_data
-```
-
----
-
-## 4. 🖥️ Modelo + CPU + RAM
-
-Arquivo:
-
-```text
-vars/modelo_servidor_map_gcp.yml
-```
-
-O `machine_type` é a chave.
-
-Exemplo conceitual:
-
-```text
-n2-standard-2
-      ↓
-gcp_machine_specs
-      ↓
-CPU = 2
-RAM = 8 GB
-```
-
-O projeto converte a RAM para MB:
-
-```text
-8 × 1024
-=
-8192 MB
-```
-
----
-
-## 5. 👤 Owner
-
-Mesma ideia dos outros projetos:
-
-```text
-Ambiente + SO
-      ↓
-owner_ids
-      ↓
-USR-...
-```
-
-Atualmente:
-
-```text
-Produção + Linux    → USR-149372
-Produção + Windows  → USR-146496
-Não Produção        → USR-129988
-```
-
----
-
-## 6. 🏷️ Labels GCP
-
-O Inventory Source usa:
-
-```yaml
-- key: gcp_labels.ef_ambiente | default('SEM_EF_AMBIENTE')
-  prefix: "Ambiente"
-
-- key: gcp_labels.ef_cmdb | default('SEM_EF_CMDB')
-  prefix: "Sistema"
-```
-
-Então:
-
-```text
-label ef_ambiente = prd
-        ↓
-Ambiente-prd
-```
-
----
-
-## 7. 🌐 Qual IP vira `ansible_host`?
-
-Código real:
-
-```yaml
-ansible_host: networkInterfaces[0].accessConfigs[0].natIP
-  | default(networkInterfaces[0].networkIP, true)
-```
-
-Prioridade:
-
-```text
-NAT / Public IP
-      ↓
-Private IP
-```
-
-Também são montados:
-
-```yaml
-private_ip: networkInterfaces[0].networkIP
-public_ip: networkInterfaces[0].accessConfigs[0].natIP
-machine_type: machineType | basename
-zone: zone | basename
-gcp_project: project | basename
-gcp_labels: labels | default({})
-```
-
----
-
-## 8. ➕ CREATE / ⏭️ SKIP / ⛔ DEACTIVATE
-
-A ideia:
-
-```text
-Host GCP
-   ↓
-Name já existe no Assets?
-   ├── NÃO → CREATE
-   └── SIM → SKIP
-```
-
-Existe também:
-
-```text
-VM desapareceu do GCP
-        ↓
-DEACTIVATE
-```
-
-Mas a configuração padrão é:
-
-```yaml
-enable_deactivation: false
-```
-
----
-
-## 9. 🧪 Teste
-
-O próprio playbook documenta três formas:
-
-```bash
-# lista
-ansible-playbook playbooks/sync_single_gcp.yml \
-  -e 'test_servers=["apigee-mig-prod-us-east-4-h29c"]'
-
-# quantidade
-ansible-playbook playbooks/sync_single_gcp.yml \
-  -e "test_limit=3"
-
-# dry-run
-ansible-playbook playbooks/sync_single_gcp.yml \
-  -e "test_limit=5" \
-  -e "dry_run=true"
-```
-
----
-
-## 10. 🔔 Webhook
-
-O projeto também possui:
-
-```text
-playbooks/setup_webhook.yml
-```
-
-Fluxo:
-
-```text
-Compute Engine
- ↓
-Cloud Logging
- ↓
-Pub/Sub
- ↓
-Cloud Function
- ↓
-AAP
- ↓
-CMDB
-```
-
-Eventos tratados no desenho do projeto incluem:
-
-```text
-insert
-delete
-start
-stop
-```
-
----
-
-## 🗺️ Onde mexer?
-
-| Quero mudar... | Arquivo |
-|---|---|
-| Campos CMDB | `mapeamento_gcp_cmdb.yml` |
-| Modelo | `modelo_servidor_map_gcp.yml` |
-| CPU/RAM | `gcp_machine_specs` |
-| Owner | `owner_ids` |
-| CPU Platform | `cpu_platform_map` |
-| Coleta | `fetch_all_hosts.yml` |
-| Transformação | `main.yml` |
-| CREATE | `create.yml` |
-| DEACTIVATE | `deactivate.yml` |
-| Rede | `manage_network_interface.yml` |
-| Teste | `sync_single_gcp.yml` |
-
----
-
-## 🧠 Resumo
-
-```text
-GCP
- ↓
-Inventory Source
- ↓
-AAP Inventory #91
- ↓
-host variables
- ↓
-batch_transform_gcp_hosts(...)
- ↓
-cloud_data
- ↓
-Jira Assets
-```
-
-
-#################################################################
-# ARQUIVO: ./roles/integration_assets_gcp/filter_plugins/gcp_cmdb_filters.py
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/roles/integration_assets_gcp/filter_plugins/gcp_cmdb_filters.py
+################################################################################
 # =============================================================================
 # Filter Plugin: Transformação GCP → Jira Assets
 # =============================================================================
@@ -1604,10 +1228,9 @@ class FilterModule(object):
             "search_attribute_gcp": search_attribute,
         }
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_gcp/tasks/_fetch_one_page.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/roles/integration_assets_gcp/tasks/_fetch_one_page.yml
+################################################################################
 # =============================================================================
 # Task auxiliar: buscar UMA pagina do AAP e acumular
 # =============================================================================
@@ -1644,10 +1267,9 @@ class FilterModule(object):
     - aap_page_result is defined
     - aap_page_result.json is defined
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_gcp/tasks/create.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/roles/integration_assets_gcp/tasks/create.yml
+################################################################################
 # =============================================================================
 # Task: Criar objeto no Jira Assets (GCP)
 # =============================================================================
@@ -1836,10 +1458,9 @@ class FilterModule(object):
          if resultado_create.status in [200, 201]
          else 'ERRO: ' ~ current_cloud_data.name_cloud ~ ' status=' ~ (resultado_create.status | string) }}
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_gcp/tasks/deactivate.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/roles/integration_assets_gcp/tasks/deactivate.yml
+################################################################################
 # =============================================================================
 # Task: Desativar servidor no CMDB (VM não existe mais no GCP)
 # =============================================================================
@@ -1879,10 +1500,9 @@ class FilterModule(object):
     sync_log_deactivate: "{{ sync_log_deactivate | default([]) + [server_to_deactivate.label] }}"
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_gcp/tasks/fetch_all_hosts.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/roles/integration_assets_gcp/tasks/fetch_all_hosts.yml
+################################################################################
 # =============================================================================
 # Task: Coleta paginada de hosts do AAP (segue .next ate acabar)
 # =============================================================================
@@ -1910,10 +1530,9 @@ class FilterModule(object):
   ansible.builtin.debug:
     msg: "Total de hosts coletados do AAP: {{ aap_all_hosts | length }} em {{ aap_page_num }} pagina(s)"
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_gcp/tasks/main.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/roles/integration_assets_gcp/tasks/main.yml
+################################################################################
 ---
 - name: Incluir variaveis de mapeamento GCP
   ansible.builtin.include_vars:
@@ -1929,6 +1548,7 @@ class FilterModule(object):
     sync_log_skip: []
     sync_log_deactivate: []
     sync_log_reactivate: []
+    sync_log_update: []
     sync_log_errors: []
 
 # ---------------------------------------------------------------------------
@@ -2243,11 +1863,96 @@ class FilterModule(object):
         | first
       ).objectAttributeValues[0].status.id == '19'
 
+    - >
+      (
+        item.attributes
+        | selectattr('objectTypeAttributeId', 'equalto', '3357')
+        | map(attribute='objectAttributeValues')
+        | flatten
+        | selectattr('value', 'equalto', 'Ansible')
+        | list
+        | length
+      ) > 0
+
 - name: Hosts a reativar
   ansible.builtin.debug:
     msg: "{{ servers_to_reactivate | map(attribute='label') | list }}"
   when:
     - servers_to_reactivate | length > 0
+
+
+- name: Identificar servidores com modelo alterado no CMDB
+  ansible.builtin.set_fact:
+    servers_to_update: []
+
+- name: Selecionar servidores cujo modelo mudou
+  ansible.builtin.set_fact:
+    servers_to_update: >-
+      {{
+        servers_to_update + [
+          item | combine({
+            '_cmdb_id': cmdb_match.id,
+            '_cmdb_model': cmdb_model,
+            '_new_model': item.modelo_servidor_cloud
+          })
+        ]
+      }}
+  loop: "{{ cloud_data_list }}"
+  loop_control:
+    label: "{{ item.name_cloud }}"
+  vars:
+    cmdb_match: >-
+      {{
+        (
+          cmdb_servers
+          | selectattr('label', 'equalto', item.name_cloud)
+          | list
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model_attr: >-
+      {{
+        (
+          cmdb_match.attributes | default([])
+          | selectattr('objectTypeAttributeId', 'equalto', '15656')
+          | list
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model_value: >-
+      {{
+        (
+          cmdb_model_attr.objectAttributeValues | default([])
+          | first
+        ) | default({}, true)
+      }}
+    cmdb_model: >-
+      {{
+        cmdb_model_value.referencedObject.objectKey
+        | default(cmdb_model_value.value | default(''), true)
+      }}
+  when:
+    - cmdb_match.id is defined
+    - item.modelo_servidor_cloud is defined
+    - item.modelo_servidor_cloud | string | length > 0
+    - cmdb_model | string | length > 0
+    - cmdb_model | string != item.modelo_servidor_cloud | string
+    - >
+      (
+        cmdb_match.attributes | default([])
+        | selectattr('objectTypeAttributeId', 'equalto', '3357')
+        | map(attribute='objectAttributeValues')
+        | flatten
+        | selectattr('value', 'equalto', 'Ansible')
+        | list
+        | length
+      ) > 0
+
+- name: Listar servidores com modelo alterado
+  ansible.builtin.debug:
+    msg:
+      - "SERVIDORES A ATUALIZAR:"
+      - "{{ servers_to_update | map(attribute='name_cloud') | list }}"
 
 - name: Determinar servidores a criar / skip / desativar
   ansible.builtin.set_fact:
@@ -2268,6 +1973,11 @@ class FilterModule(object):
       {{
         cloud_data_list
         | selectattr('name_cloud', 'in', cmdb_server_names)
+        | rejectattr(
+            'name_cloud',
+            'in',
+            servers_to_update | map(attribute='name_cloud') | list
+          )
         | list
       }}
 
@@ -2296,7 +2006,16 @@ class FilterModule(object):
     - item.label is defined
     - item.label not in gcp_instance_names
     - (item.label | string | trim | lower).startswith('gke-') == false
-
+    - >
+      (
+        item.attributes
+        | selectattr('objectTypeAttributeId', 'equalto', '3357')
+        | map(attribute='objectAttributeValues')
+        | flatten
+        | selectattr('value', 'equalto', 'Ansible')
+        | list
+        | length
+      ) > 0
 
 - name: Resumo da comparacao
   ansible.builtin.debug:
@@ -2365,6 +2084,48 @@ class FilterModule(object):
     - sync_mode == 'full' or sync_mode == 'deactivate'
     - enable_deactivation | default(false) | bool
 
+
+- name: Atualizar modelo dos servidores no CMDB
+  ansible.builtin.uri:
+    url: "{{ jira_url }}/object/{{ server_item._cmdb_id }}"
+    method: PUT
+    force_basic_auth: yes
+    headers:
+      Content-Type: "application/json"
+      Accept: "application/json"
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    body:
+      objectTypeId: "{{ object_type_id_servidor }}"
+      attributes:
+        - objectTypeAttributeId: "15656"
+          objectAttributeValues:
+            - value: "{{ server_item._new_model }}"
+    body_format: json
+    return_content: yes
+    status_code: [200]
+  register: resultado_update
+  environment: "{{ proxy_env | default({}) }}"
+  loop: "{{ servers_to_update }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+    pause: "{{ jira_create_delay_seconds | default(0.3) }}"
+  when:
+    - servers_to_update | length > 0
+    - sync_mode == 'full'
+
+- name: Registrar servidores atualizados
+  ansible.builtin.set_fact:
+    sync_log_update: "{{ sync_log_update + [server_item.name_cloud] }}"
+  loop: "{{ servers_to_update }}"
+  loop_control:
+    loop_var: server_item
+    label: "{{ server_item.name_cloud }}"
+  when:
+    - servers_to_update | length > 0
+    - sync_mode == 'full'
+
 - name: Criar novos servidores no CMDB
   ansible.builtin.include_tasks: create.yml
   vars:
@@ -2410,6 +2171,7 @@ class FilterModule(object):
       - "                    SINCRONIZACAO CONCLUIDA"
       - "════════════════════════════════════════════════════════════════"
       - "Criados com sucesso: {{ sync_log_create | length }}"
+      - "Atualizados: {{ sync_log_update | length }}"
       - "Ignorados (ja existentes): {{ sync_log_skip | length }}"
       - "Reativados: {{ sync_log_reactivate | length }}"
       - "Desativados: {{ sync_log_deactivate | length }}"
@@ -2427,10 +2189,9 @@ class FilterModule(object):
     - sync_log_errors | length == servers_to_create | length
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_gcp/tasks/manage_network_interface.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/roles/integration_assets_gcp/tasks/manage_network_interface.yml
+################################################################################
 # =============================================================================
 # Task: Gerenciar Interface de Rede (criar se não existir)
 # =============================================================================
@@ -2503,10 +2264,9 @@ class FilterModule(object):
     msg: "Interface de Rede '{{ ip_info.ip }}': {{ 'Existente' if nic_exists else 'Criada' }} (ID: {{ nic_id }})"
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_gcp/tasks/reactivate.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/roles/integration_assets_gcp/tasks/reactivate.yml
+################################################################################
 ---
 # =============================================================================
 # Task: Reativar servidor no CMDB (VM voltou a existir no GCP)
@@ -2561,10 +2321,9 @@ class FilterModule(object):
       }}
 
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_gcp/vars/main.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/roles/integration_assets_gcp/vars/main.yml
+################################################################################
 # =============================================================================
 # VARIAVEIS PRINCIPAIS - CONFIGURACAO GCP
 # =============================================================================
@@ -2616,10 +2375,9 @@ gcp_projects: []
 # Serve para evitar rate limit em batches grandes.
 jira_create_delay_seconds: 0.3
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_gcp/vars/mapeamento_gcp_cmdb.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/roles/integration_assets_gcp/vars/mapeamento_gcp_cmdb.yml
+################################################################################
 # =============================================================================
 # MAPEAMENTO: GCP → Jira Assets (CMDB)
 # =============================================================================
@@ -2833,10 +2591,9 @@ object_attribute_map:
   - value: "Legado"
     referencedType: 169924
 
-#################################################################
-# ARQUIVO: ./roles/integration_assets_gcp/vars/modelo_servidor_map_gcp.yml
-#################################################################
-
+################################################################################
+# ARQUIVO: ../inventory-gcp/roles/integration_assets_gcp/vars/modelo_servidor_map_gcp.yml
+################################################################################
 # =============================================================================
 # vars/modelo_servidor_map_gcp.yml
 # =============================================================================
@@ -3082,3 +2839,4 @@ owner_ids:
 
 
   
+
