@@ -1,0 +1,22 @@
+---
+# Playbook de descoberta de APIs do AAP / Automation Controller.
+#
+# Execute em localhost (a maquina que enxerga o AAP, direto ou via proxy).
+#
+# Exemplos de execucao no final deste arquivo / no README da role.
+
+- name: API Discovery POC - AAP / Automation Controller
+  hosts: localhost
+  connection: local
+  gather_facts: true          # necessario para ansible_date_time (generated_at)
+
+  # Proxy HTTP/HTTPS aplicado a TODAS as chamadas.
+  # Se aap_proxy = "" (vazio), nenhum proxy e usado.
+  environment:
+    HTTP_PROXY: "{{ aap_proxy | default('') }}"
+    HTTPS_PROXY: "{{ aap_proxy | default('') }}"
+    http_proxy: "{{ aap_proxy | default('') }}"
+    https_proxy: "{{ aap_proxy | default('') }}"
+
+  roles:
+    - aap_api_discovery

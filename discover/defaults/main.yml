@@ -1,0 +1,18 @@
+---
+# Conexão com o AAP / Automation Controller
+url_aap: "aap.claro.com.br"            # ex: https://aap.suaempresa.com  (SEM barra no final)
+username: ""
+password: ""
+
+# Proxy HTTP/HTTPS. Deixe "" para não usar proxy.
+# ex: "http://proxy.exemplo.com:8080"
+aap_proxy: ""
+
+# Validação de certificado TLS (false em ambientes com cert self-signed)
+validate_certs: false
+
+# Quantos registros pedir por chamada (somente 1a pagina)
+api_page_size: 5
+
+# Onde os arquivos JSON serao gravados
+output_dir: "/tmp/aap_api_discovery"

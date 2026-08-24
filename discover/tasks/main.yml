@@ -1,0 +1,225 @@
+---
+# =====================================================================
+# API DISCOVERY POC - Red Hat Ansible Automation Platform / Controller
+# Objetivo: descobrir quais APIs existem e quais campos elas retornam.
+# NAO transforma dados. Apenas testa a 1a pagina e salva o JSON cru.
+# =====================================================================
+
+- name: Garantir que o diretorio de saida existe
+  ansible.builtin.file:
+    path: "{{ output_dir }}"
+    state: directory
+    mode: "0755"
+
+# ---------------------------------------------------------------------
+# 1) TOKEN - gerado UMA unica vez e reutilizado em todas as chamadas
+#    (se falhar aqui, a role para de proposito: sem token nao ha o que fazer)
+# ---------------------------------------------------------------------
+- name: Gerar token (Basic Auth -> Bearer)
+  ansible.builtin.uri:
+    url: "{{ url_aap }}/api/controller/v2/tokens/"
+    method: POST
+    user: "{{ username }}"
+    password: "{{ password }}"
+    force_basic_auth: true
+    body_format: json
+    body:
+      description: "api discovery poc"
+      scope: "read"
+    validate_certs: "{{ validate_certs }}"
+    return_content: true
+    status_code: [200, 201]
+  register: token_result
+  no_log: true          # nao imprimir usuario/senha/token nos logs
+
+- name: Guardar o token em uma variavel reutilizavel
+  ansible.builtin.set_fact:
+    aap_token: "{{ token_result.json.token }}"
+  no_log: true
+
+- name: Confirmar que o token foi obtido (sem imprimir o valor)
+  ansible.builtin.debug:
+    msg: "Token gerado com sucesso. Iniciando descoberta das APIs..."
+
+# ---------------------------------------------------------------------
+# 2) Lista das APIs GET a investigar (endpoint + nome do arquivo)
+# ---------------------------------------------------------------------
+- name: Definir lista de endpoints GET
+  ansible.builtin.set_fact:
+    get_apis:
+      # --- Controller ---
+      - { name: "jobs",                 endpoint: "/api/controller/v2/jobs/" }
+      - { name: "job_templates",        endpoint: "/api/controller/v2/job_templates/" }
+      - { name: "job_events",           endpoint: "/api/controller/v2/job_events/" }
+      - { name: "job_host_summaries",   endpoint: "/api/controller/v2/job_host_summaries/" }
+      - { name: "hosts",                endpoint: "/api/controller/v2/hosts/" }
+      - { name: "host_metric",          endpoint: "/api/controller/v2/host_metric/" }
+      - { name: "inventories",          endpoint: "/api/controller/v2/inventories/" }
+      - { name: "organizations",        endpoint: "/api/controller/v2/organizations/" }
+      - { name: "instances",            endpoint: "/api/controller/v2/instances/" }
+      - { name: "instance_groups",      endpoint: "/api/controller/v2/instance_groups/" }
+      - { name: "credentials",          endpoint: "/api/controller/v2/credentials/" }
+      - { name: "metrics",              endpoint: "/api/controller/v2/metrics/" }
+      # --- Analytics (descoberta) ---
+      - { name: "analytics_root",              endpoint: "/api/controller/v2/analytics/" }
+      - { name: "reports",                     endpoint: "/api/controller/v2/analytics/reports/" }
+      - { name: "probe_templates",             endpoint: "/api/controller/v2/analytics/probe_templates/" }
+      - { name: "probe_template_for_hosts",    endpoint: "/api/controller/v2/analytics/probe_template_for_hosts/" }
+
+# ---------------------------------------------------------------------
+# 3) Chamar cada GET (somente 1a pagina). NUNCA para por causa de erro.
+# ---------------------------------------------------------------------
+- name: Consultar endpoints GET (primeira pagina apenas)
+  ansible.builtin.uri:
+    url: "{{ url_aap }}{{ item.endpoint }}?page=1&page_size={{ api_page_size }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ aap_token }}"
+    validate_certs: "{{ validate_certs }}"
+    return_content: true
+    status_code: [200, 201, 202, 204, 301, 302, 400, 401, 403, 404, 405, 500, 502, 503]
+  register: get_results
+  failed_when: false       # nunca falha a task: registramos o erro e seguimos
+  loop: "{{ get_apis }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Salvar resposta individual de cada GET
+  ansible.builtin.copy:
+    dest: "{{ output_dir }}/{{ item.item.name }}.json"
+    content: "{{ (item.json | default(item.content | default('request failed - sem resposta'))) | to_nice_json }}"
+    mode: "0644"
+  loop: "{{ get_results.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+
+- name: Montar entradas do relatorio consolidado (GET)
+  ansible.builtin.set_fact:
+    api_report: "{{ api_report | default([]) + [entry] }}"
+  vars:
+    entry:
+      name: "{{ item.item.name }}"
+      endpoint: "{{ item.item.endpoint }}"
+      method: "GET"
+      status: "{{ item.status | default(0) }}"
+      error: "{{ (item.status | default(0) | int) == 0 or (item.status | default(0) | int) >= 400 }}"
+      count: "{{ item.json.count | default(None) }}"
+      sample: "{{ item.json | default(None) }}"
+  loop: "{{ get_results.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+
+# ---------------------------------------------------------------------
+# 4) POST job_explorer (endpoint que aparece no seu ambiente)
+#    Body minimo: se exigir parametros especificos e der 400, apenas registramos.
+# ---------------------------------------------------------------------
+- name: Consultar job_explorer (POST, primeira pagina)
+  ansible.builtin.uri:
+    url: "{{ url_aap }}/api/controller/v2/analytics/job_explorer/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ aap_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      limit: "{{ api_page_size | int }}"
+      offset: 0
+    validate_certs: "{{ validate_certs }}"
+    return_content: true
+    status_code: [200, 201, 202, 204, 301, 302, 400, 401, 403, 404, 405, 500, 502, 503]
+  register: job_explorer_result
+  failed_when: false
+
+- name: Salvar resposta do job_explorer
+  ansible.builtin.copy:
+    dest: "{{ output_dir }}/job_explorer.json"
+    content: "{{ (job_explorer_result.json | default(job_explorer_result.content | default('request failed - sem resposta'))) | to_nice_json }}"
+    mode: "0644"
+
+- name: Adicionar job_explorer ao relatorio consolidado
+  ansible.builtin.set_fact:
+    api_report: "{{ api_report | default([]) + [entry] }}"
+  vars:
+    entry:
+      name: "job_explorer"
+      endpoint: "/api/controller/v2/analytics/job_explorer/"
+      method: "POST"
+      status: "{{ job_explorer_result.status | default(0) }}"
+      error: "{{ (job_explorer_result.status | default(0) | int) == 0 or (job_explorer_result.status | default(0) | int) >= 400 }}"
+      count: "{{ job_explorer_result.json.meta.count | default(job_explorer_result.json.count | default(None)) }}"
+      sample: "{{ job_explorer_result.json | default(None) }}"
+
+# ---------------------------------------------------------------------
+# 5) POST roi_templates (chamada que ja funciona no seu ambiente)
+# ---------------------------------------------------------------------
+- name: Consultar roi_templates (POST)
+  ansible.builtin.uri:
+    url: "{{ url_aap }}/api/controller/v2/analytics/roi_templates/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ aap_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      response_type: "jobs_by_template"
+      attributes:
+        - "elapsed"
+        - "host_count"
+        - "total_count"
+        - "total_org_count"
+        - "total_cluster_count"
+        - "total_inventory_count"
+        - "successful_hosts_savings_current_page"
+        - "successful_hosts_saved_hours_current_page"
+        - "monetary_gain_current_page"
+        - "failed_hosts_costs_current_page"
+      contextual_query_params:
+        - "template_weigh_in"
+        - "manual_effort_reviewed"
+        - "parent_workflow"
+      sort_by: "template_productivity_score:desc"
+    validate_certs: "{{ validate_certs }}"
+    return_content: true
+    status_code: [200, 201, 202, 204, 301, 302, 400, 401, 403, 404, 405, 500, 502, 503]
+  register: roi_result
+  failed_when: false
+
+- name: Salvar resposta do roi_templates
+  ansible.builtin.copy:
+    dest: "{{ output_dir }}/roi_templates.json"
+    content: "{{ (roi_result.json | default(roi_result.content | default('request failed - sem resposta'))) | to_nice_json }}"
+    mode: "0644"
+
+- name: Adicionar roi_templates ao relatorio consolidado
+  ansible.builtin.set_fact:
+    api_report: "{{ api_report | default([]) + [entry] }}"
+  vars:
+    entry:
+      name: "roi_templates"
+      endpoint: "/api/controller/v2/analytics/roi_templates/"
+      method: "POST"
+      status: "{{ roi_result.status | default(0) }}"
+      error: "{{ (roi_result.status | default(0) | int) == 0 or (roi_result.status | default(0) | int) >= 400 }}"
+      count: "{{ roi_result.json.meta.count | default(None) }}"
+      sample: "{{ roi_result.json | default(None) }}"
+
+# ---------------------------------------------------------------------
+# 6) Gerar o arquivo consolidado final
+# ---------------------------------------------------------------------
+- name: Gerar arquivo consolidado aap_api_discovery.json
+  ansible.builtin.copy:
+    dest: "{{ output_dir }}/aap_api_discovery.json"
+    content: >-
+      {{
+        {
+          'generated_at': ansible_date_time.iso8601,
+          'controller': url_aap,
+          'page_size': api_page_size,
+          'apis': api_report | default([])
+        } | to_nice_json
+      }}
+    mode: "0644"
+
+- name: Fim
+  ansible.builtin.debug:
+    msg: "Descoberta concluida. Arquivos em {{ output_dir }} (consolidado: aap_api_discovery.json)"
