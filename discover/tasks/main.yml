@@ -13,24 +13,20 @@
 
 # ---------------------------------------------------------------------
 # 1) TOKEN - gerado UMA unica vez e reutilizado em todas as chamadas
-#    (se falhar aqui, a role para de proposito: sem token nao ha o que fazer)
 # ---------------------------------------------------------------------
 - name: Gerar token (Basic Auth -> Bearer)
+  # SEM "scope: read": token read NAO faz POST e daria erro de permissao.
   ansible.builtin.uri:
     url: "{{ url_aap }}/api/controller/v2/tokens/"
     method: POST
     user: "{{ username }}"
     password: "{{ password }}"
     force_basic_auth: true
-    body_format: json
-    body:
-      description: "api discovery poc"
-      scope: "read"
     validate_certs: "{{ validate_certs }}"
     return_content: true
-    status_code: [200, 201]
+    status_code: 201
   register: token_result
-  no_log: true          # nao imprimir usuario/senha/token nos logs
+  no_log: true
 
 - name: Guardar o token em uma variavel reutilizavel
   ansible.builtin.set_fact:
@@ -42,12 +38,11 @@
     msg: "Token gerado com sucesso. Iniciando descoberta das APIs..."
 
 # ---------------------------------------------------------------------
-# 2) Lista das APIs GET a investigar (endpoint + nome do arquivo)
+# 2) Lista das APIs GET a investigar
 # ---------------------------------------------------------------------
 - name: Definir lista de endpoints GET
   ansible.builtin.set_fact:
     get_apis:
-      # --- Controller ---
       - { name: "jobs",                 endpoint: "/api/controller/v2/jobs/" }
       - { name: "job_templates",        endpoint: "/api/controller/v2/job_templates/" }
       - { name: "job_events",           endpoint: "/api/controller/v2/job_events/" }
@@ -60,7 +55,9 @@
       - { name: "instance_groups",      endpoint: "/api/controller/v2/instance_groups/" }
       - { name: "credentials",          endpoint: "/api/controller/v2/credentials/" }
       - { name: "metrics",              endpoint: "/api/controller/v2/metrics/" }
-      # --- Analytics (descoberta) ---
+      - { name: "unified_jobs",         endpoint: "/api/controller/v2/unified_jobs/" }
+      - { name: "dashboard",            endpoint: "/api/controller/v2/dashboard/" }
+      - { name: "ping",                 endpoint: "/api/controller/v2/ping/" }
       - { name: "analytics_root",              endpoint: "/api/controller/v2/analytics/" }
       - { name: "reports",                     endpoint: "/api/controller/v2/analytics/reports/" }
       - { name: "probe_templates",             endpoint: "/api/controller/v2/analytics/probe_templates/" }
@@ -79,7 +76,7 @@
     return_content: true
     status_code: [200, 201, 202, 204, 301, 302, 400, 401, 403, 404, 405, 500, 502, 503]
   register: get_results
-  failed_when: false       # nunca falha a task: registramos o erro e seguimos
+  failed_when: false
   loop: "{{ get_apis }}"
   loop_control:
     label: "{{ item.name }}"
@@ -110,8 +107,7 @@
     label: "{{ item.item.name }}"
 
 # ---------------------------------------------------------------------
-# 4) POST job_explorer (endpoint que aparece no seu ambiente)
-#    Body minimo: se exigir parametros especificos e der 400, apenas registramos.
+# 4) POST job_explorer
 # ---------------------------------------------------------------------
 - name: Consultar job_explorer (POST, primeira pagina)
   ansible.builtin.uri:
@@ -148,6 +144,81 @@
       error: "{{ (job_explorer_result.status | default(0) | int) == 0 or (job_explorer_result.status | default(0) | int) >= 400 }}"
       count: "{{ job_explorer_result.json.meta.count | default(job_explorer_result.json.count | default(None)) }}"
       sample: "{{ job_explorer_result.json | default(None) }}"
+
+# ---------------------------------------------------------------------
+# 4b) POST event_explorer e host_explorer
+# ---------------------------------------------------------------------
+- name: Consultar event_explorer (POST, primeira pagina)
+  ansible.builtin.uri:
+    url: "{{ url_aap }}/api/controller/v2/analytics/event_explorer/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ aap_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      limit: "{{ api_page_size | int }}"
+      offset: 0
+    validate_certs: "{{ validate_certs }}"
+    return_content: true
+    status_code: [200, 201, 202, 204, 301, 302, 400, 401, 403, 404, 405, 500, 502, 503]
+  register: event_explorer_result
+  failed_when: false
+
+- name: Salvar resposta do event_explorer
+  ansible.builtin.copy:
+    dest: "{{ output_dir }}/event_explorer.json"
+    content: "{{ (event_explorer_result.json | default(event_explorer_result.content | default('request failed - sem resposta'))) | to_nice_json }}"
+    mode: "0644"
+
+- name: Adicionar event_explorer ao relatorio consolidado
+  ansible.builtin.set_fact:
+    api_report: "{{ api_report | default([]) + [entry] }}"
+  vars:
+    entry:
+      name: "event_explorer"
+      endpoint: "/api/controller/v2/analytics/event_explorer/"
+      method: "POST"
+      status: "{{ event_explorer_result.status | default(0) }}"
+      error: "{{ (event_explorer_result.status | default(0) | int) == 0 or (event_explorer_result.status | default(0) | int) >= 400 }}"
+      count: "{{ event_explorer_result.json.meta.count | default(event_explorer_result.json.count | default(None)) }}"
+      sample: "{{ event_explorer_result.json | default(None) }}"
+
+- name: Consultar host_explorer (POST, primeira pagina)
+  ansible.builtin.uri:
+    url: "{{ url_aap }}/api/controller/v2/analytics/host_explorer/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ aap_token }}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      limit: "{{ api_page_size | int }}"
+      offset: 0
+    validate_certs: "{{ validate_certs }}"
+    return_content: true
+    status_code: [200, 201, 202, 204, 301, 302, 400, 401, 403, 404, 405, 500, 502, 503]
+  register: host_explorer_result
+  failed_when: false
+
+- name: Salvar resposta do host_explorer
+  ansible.builtin.copy:
+    dest: "{{ output_dir }}/host_explorer.json"
+    content: "{{ (host_explorer_result.json | default(host_explorer_result.content | default('request failed - sem resposta'))) | to_nice_json }}"
+    mode: "0644"
+
+- name: Adicionar host_explorer ao relatorio consolidado
+  ansible.builtin.set_fact:
+    api_report: "{{ api_report | default([]) + [entry] }}"
+  vars:
+    entry:
+      name: "host_explorer"
+      endpoint: "/api/controller/v2/analytics/host_explorer/"
+      method: "POST"
+      status: "{{ host_explorer_result.status | default(0) }}"
+      error: "{{ (host_explorer_result.status | default(0) | int) == 0 or (host_explorer_result.status | default(0) | int) >= 400 }}"
+      count: "{{ host_explorer_result.json.meta.count | default(host_explorer_result.json.count | default(None)) }}"
+      sample: "{{ host_explorer_result.json | default(None) }}"
 
 # ---------------------------------------------------------------------
 # 5) POST roi_templates (chamada que ja funciona no seu ambiente)
@@ -219,6 +290,15 @@
         } | to_nice_json
       }}
     mode: "0644"
+
+- name: Ler o consolidado para exibir no output (facilita copiar e colar)
+  ansible.builtin.slurp:
+    src: "{{ output_dir }}/aap_api_discovery.json"
+  register: consolidated_raw
+
+- name: "==== COPIE DAQUI (conteudo de aap_api_discovery.json) ===="
+  ansible.builtin.debug:
+    msg: "{{ (consolidated_raw.content | b64decode).split('\n') }}"
 
 - name: Fim
   ansible.builtin.debug:
