@@ -29,9 +29,13 @@
 
   vars:
     # --- Conexao (produção): preferir variaveis de ambiente / Ansible Vault -----
-    url_aap: "{{ lookup('ansible.builtin.env', 'AAP_URL') }}"
-    username: "{{ lookup('ansible.builtin.env', 'AAP_USERNAME') }}"
-    password: "{{ lookup('ansible.builtin.env', 'AAP_PASSWORD') }}"
+    # url_aap: "{{ lookup('ansible.builtin.env', 'AAP_URL') }}"
+    # username: "{{ lookup('ansible.builtin.env', 'AAP_USERNAME') }}"
+    # password: "{{ lookup('ansible.builtin.env', 'AAP_PASSWORD') }}"
+
+    url_aap: aap.claro.com.br
+    username: Z601427
+    password: "Dev!lmc12"
 
     # --- Parametros gerais ------------------------------------------------------
     validate_certs_flag: false          # AAP interno costuma usar cert self-signed
@@ -94,11 +98,13 @@
         status_code: 201
       register: access_token
       when: not (test_mode | bool)
+      no_log: true
 
     - name: "2b. [PROD] Guardar token Bearer em fato"
       ansible.builtin.set_fact:
         aap_token: "{{ access_token.json.token }}"
       when: not (test_mode | bool)
+      no_log: true
 
     - name: "2c. [PROD] Montar querystring de filtro de data dos jobs"
       ansible.builtin.set_fact:
