@@ -1,0 +1,46 @@
+- name: Generate access token
+  ansible.builtin.uri:
+    url: "https://{{url_aap}}/api/controller/v2/tokens/"
+    method: POST
+    user: "{{username}}"
+    password: "{{password}}"
+    force_basic_auth: yes
+    return_content: yes
+    validate_certs: no
+    status_code: 201
+  register: access_token
+
+- name: Consulting the ROI API
+  ansible.builtin.uri:
+    url: "https://{{url_aap}}/api/controller/v2/analytics/roi_templates/"
+    method: POST
+    headers:
+      Authorization: "Bearer {{access_token.json.token}}"
+      Content-Type: "application/json"
+    body_format: json
+    body:
+      response_type: "jobs_by_template"
+      attributes:
+        - "elapsed"
+        - "host_count"
+        - "total_count"
+        - "total_org_count"
+        - "total_cluster_count"
+        - "total_inventory_count"
+        - "successful_hosts_savings_current_page"
+        - "successful_hosts_saved_hours_current_page"
+        - "monetary_gain_current_page"
+        - "failed_hosts_costs_current_page"
+      contextual_query_params:
+        - "template_weigh_in"
+        - "manual_effort_reviewed"
+        - "parent_workflow"
+      sort_by: "template_productivity_score:desc"
+    return_content: true
+    status_code: 200
+    validate_certs: no
+    timeout: 120
+  register: roi_response
+
+
+#Gera a saida abaixo
