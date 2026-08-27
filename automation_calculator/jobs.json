@@ -1,0 +1,489 @@
+PLAY [Automation Calculator - Jobs Discovery] ****************************************************************************************************************************************************************
+
+TASK [automation_calculator : Generate access token] *********************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Get latest 30 jobs] ************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Save raw jobs response] ********************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [automation_calculator : Total jobs returned] ***********************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Successful jobs] ***************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Failed jobs] *******************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Running jobs] ******************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Cancelled jobs] ****************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Average elapsed] ***************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Longest job] *******************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Extract template names] ********************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Dashboard summary] *************************************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": {
+        "avg_elapsed_seconds": "337.0080138333331",
+        "cancelled_jobs": "0",
+        "failed_jobs": "3",
+        "max_elapsed_seconds": "6060.400465",
+        "running_jobs": "4",
+        "successful_jobs": "22",
+        "total_jobs": "30"
+    }
+}
+
+TASK [automation_calculator : Select first completed job] ****************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Show selected job] *************************************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": {
+        "id": "2445389",
+        "name": "Monitoração | SPG | Monitora Processamento SPG",
+        "status": "successful"
+    }
+}
+
+TASK [automation_calculator : Get host summaries] ************************************************************************************************************************************************************
+ok: [localhost]
+
+TASK [automation_calculator : Save host summaries] ***********************************************************************************************************************************************************
+changed: [localhost]
+
+TASK [automation_calculator : Host summaries count] **********************************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": {
+        "total_hosts": "1"
+    }
+}
+
+TASK [automation_calculator : Show first host summary] *******************************************************************************************************************************************************
+ok: [localhost] => {
+    "host_summaries.json.results[0]": {
+        "changed": 0,
+        "constructed_host": null,
+        "created": "2026-08-27T22:10:41.621685Z",
+        "dark": 0,
+        "failed": false,
+        "failures": 0,
+        "host": 19779,
+        "host_name": "cbc2am66223",
+        "id": 1639391,
+        "ignored": 0,
+        "job": 2445389,
+        "modified": "2026-08-27T22:10:41.621694Z",
+        "ok": 9,
+        "processed": 1,
+        "related": {
+            "host": "/api/controller/v2/hosts/19779/",
+            "job": "/api/controller/v2/jobs/2445389/"
+        },
+        "rescued": 0,
+        "skipped": 4,
+        "summary_fields": {
+            "host": {
+                "description": "",
+                "id": 19779,
+                "name": "cbc2am66223"
+            },
+            "job": {
+                "description": "Monitora log queue_depth para verificar se aplicação parou de processar",
+                "elapsed": 9.855,
+                "failed": false,
+                "id": 2445389,
+                "job_template_id": 520,
+                "job_template_name": "Monitoração | SPG | Monitora Processamento SPG",
+                "name": "Monitoração | SPG | Monitora Processamento SPG",
+                "status": "successful",
+                "type": "job"
+            }
+        },
+        "type": "job_host_summary",
+        "url": "/api/controller/v2/job_host_summaries/1639391/"
+    }
+}
+
+TASK [automation_calculator : Example first job] *************************************************************************************************************************************************************
+ok: [localhost] => {
+    "jobs_response.json.results[0]": {
+        "allow_simultaneous": false,
+        "artifacts": {},
+        "canceled_on": null,
+        "controller_node": "",
+        "created": "2026-08-27T22:10:42.314758Z",
+        "description": "",
+        "diff_mode": false,
+        "elapsed": 0.0,
+        "execution_environment": 8,
+        "execution_node": "",
+        "extra_vars": "{}",
+        "failed": false,
+        "finished": null,
+        "force_handlers": false,
+        "forks": 0,
+        "id": 2445405,
+        "instance_group": null,
+        "inventory": 14,
+        "job_explanation": "",
+        "job_slice_count": 1,
+        "job_slice_number": 0,
+        "job_tags": "",
+        "job_template": 75,
+        "job_type": "run",
+        "launch_type": "workflow",
+        "launched_by": {
+            "id": 11,
+            "name": "MINT USSD E SMS",
+            "type": "schedule",
+            "url": "/api/controller/v2/schedules/11/"
+        },
+        "limit": "",
+        "modified": "2026-08-27T22:10:42.314767Z",
+        "name": "Escondida - CARREGAR ARVORES USSD SMS",
+        "organization": 11,
+        "passwords_needed_to_start": [],
+        "playbook": "playbook.yaml",
+        "project": 74,
+        "related": {
+            "activity_stream": "/api/controller/v2/jobs/2445405/activity_stream/",
+            "cancel": "/api/controller/v2/jobs/2445405/cancel/",
+            "create_schedule": "/api/controller/v2/jobs/2445405/create_schedule/",
+            "credentials": "/api/controller/v2/jobs/2445405/credentials/",
+            "execution_environment": "/api/controller/v2/execution_environments/8/",
+            "inventory": "/api/controller/v2/inventories/14/",
+            "job_events": "/api/controller/v2/jobs/2445405/job_events/",
+            "job_host_summaries": "/api/controller/v2/jobs/2445405/job_host_summaries/",
+            "job_template": "/api/controller/v2/job_templates/75/",
+            "labels": "/api/controller/v2/jobs/2445405/labels/",
+            "notifications": "/api/controller/v2/jobs/2445405/notifications/",
+            "organization": "/api/controller/v2/organizations/11/",
+            "project": "/api/controller/v2/projects/74/",
+            "relaunch": "/api/controller/v2/jobs/2445405/relaunch/",
+            "source_workflow_job": "/api/controller/v2/workflow_jobs/2445382/",
+            "stdout": "/api/controller/v2/jobs/2445405/stdout/",
+            "unified_job_template": "/api/controller/v2/job_templates/75/"
+        },
+        "scm_branch": "",
+        "scm_revision": "",
+        "skip_tags": "",
+        "start_at_task": "",
+        "started": null,
+        "status": "pending",
+        "summary_fields": {
+            "credentials": [
+                {
+                    "cloud": false,
+                    "description": "Vault Prodweb",
+                    "id": 52,
+                    "kind": "vault",
+                    "name": "Produção - Vault"
+                }
+            ],
+            "execution_environment": {
+                "description": "",
+                "id": 8,
+                "image": "10.29.6.55/base-image-rhel8:2.0",
+                "name": "base-image-rhel8"
+            },
+            "inventory": {
+                "description": "",
+                "has_active_failures": false,
+                "has_inventory_sources": false,
+                "hosts_with_active_failures": 0,
+                "id": 14,
+                "inventory_sources_with_failures": 0,
+                "kind": "",
+                "name": "Mint - USSD",
+                "organization_id": 11,
+                "total_groups": 1,
+                "total_hosts": 5,
+                "total_inventory_sources": 0
+            },
+            "job_template": {
+                "description": "",
+                "id": 75,
+                "name": "Escondida - CARREGAR ARVORES USSD SMS"
+            },
+            "labels": {
+                "count": 1,
+                "results": [
+                    {
+                        "id": 11,
+                        "name": "cca"
+                    }
+                ]
+            },
+            "organization": {
+                "description": "Estrutura do time CLBR-TI-OPS-PROD-WEB",
+                "id": 11,
+                "name": "ORG-CLBR-TI-OPS-PROD-WEB"
+            },
+            "project": {
+                "allow_override": true,
+                "description": "",
+                "id": 74,
+                "name": "Escondida CARREGAR ARVORES USSD SMS",
+                "scm_type": "git",
+                "status": "running"
+            },
+            "source_workflow_job": {
+                "description": "",
+                "elapsed": 0.0,
+                "failed": false,
+                "id": 2445382,
+                "name": "Escondida MINT USSD & SMS",
+                "status": "running"
+            },
+            "unified_job_template": {
+                "description": "",
+                "id": 75,
+                "name": "Escondida - CARREGAR ARVORES USSD SMS",
+                "unified_job_type": "job"
+            },
+            "user_capabilities": {
+                "delete": true,
+                "start": true
+            }
+        },
+        "timeout": 0,
+        "type": "job",
+        "unified_job_template": 75,
+        "url": "/api/controller/v2/jobs/2445405/",
+        "use_fact_cache": false,
+        "verbosity": 0,
+        "webhook_credential": null,
+        "webhook_guid": "",
+        "webhook_service": "",
+        "work_unit_id": null
+    }
+}
+
+TASK [automation_calculator : Templates found] ***************************************************************************************************************************************************************
+ok: [localhost] => {
+    "template_names": [
+        "Escondida - CARREGAR ARVORES USSD SMS",
+        "Devolve SH pro Splunk",
+        "Monitoração | SPG | Fila 0321_soaspg_to_bdr",
+        "Consulta Infos com Script",
+        "Consulta Infos Dashboard",
+        "Monitoração | SPG | Monitora Processamento SPG",
+        "Escondida - USSD 9953 AUTOMATICO",
+        "Escondida - SMS 1100 AUTOMATICO",
+        "Escondida - USSD 9653 AUTOMATICO",
+        "Escondida - USSD 9853 AUTOMATICO",
+        "Monitoração | SPG | Recovery",
+        "Monitoração | Apigee X",
+        "Escondida - SMS 1970 AUTOMATICO",
+        "Escondida - SMS 6901 AUTOMATICO",
+        "Escondida - SMS 418 AUTOMATICO",
+        "Limpeza /var- Lapa",
+        "Devolve SH pro Splunk",
+        "Limpeza /var- Lapa",
+        "Escondida - USSD 1052 AUTOMATICO",
+        "Escondida - USSD 253 AUTOMATICO",
+        "Monitoração | Apigee X",
+        "Escondida - MINHA CLARO PF",
+        "Escondida - MINHA CLARO PJ",
+        "Escondida - CARREGAR ARVORES USSD SMS",
+        "Devolve SH pro Splunk",
+        "Restart Zabbix - Lapa",
+        "Devolve SH pro Splunk",
+        "Restart Zabbix - Lapa",
+        "Coleta de Accounts para alimentar Sync de Inventario AWS",
+        "Monitoração | Valida Splat | WPP"
+    ]
+}
+
+PLAY RECAP ***************************************************************************************************************************************************************************************************
+localhost                  : ok=20   changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+[root@net002prdlnx795:~/automation-calculator]# cat roles/automation_calculator/tasks/main.yml
+---
+###############################################################################
+# TOKEN
+###############################################################################
+
+- name: Generate access token
+  ansible.builtin.uri:
+    url: "https://{{ url_aap }}/api/controller/v2/tokens/"
+    method: POST
+    user: "{{ username }}"
+    password: "{{ password }}"
+    force_basic_auth: true
+    return_content: true
+    validate_certs: false
+    status_code: 201
+  register: access_token
+
+###############################################################################
+# JOBS
+###############################################################################
+
+- name: Get latest 30 jobs
+  ansible.builtin.uri:
+    url: "https://{{ url_aap }}/api/controller/v2/jobs/?page_size=30&order_by=-finished"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ access_token.json.token }}"
+    validate_certs: false
+    return_content: true
+    status_code: 200
+    timeout: 120
+  register: jobs_response
+
+###############################################################################
+# SAVE RAW PAYLOAD
+###############################################################################
+
+- name: Save raw jobs response
+  copy:
+    content: "{{ jobs_response.json | to_nice_json }}"
+    dest: "/tmp/jobs_latest_30.json"
+
+###############################################################################
+# BASIC METRICS
+###############################################################################
+
+- name: Total jobs returned
+  set_fact:
+    total_jobs: "{{ jobs_response.json.results | length }}"
+
+- name: Successful jobs
+  set_fact:
+    successful_jobs: "{{ jobs_response.json.results | selectattr('status', 'equalto', 'successful') | list | length }}"
+
+- name: Failed jobs
+  set_fact:
+    failed_jobs: "{{ jobs_response.json.results | selectattr('status', 'equalto', 'failed') | list | length }}"
+
+- name: Running jobs
+  set_fact:
+    running_jobs: "{{ jobs_response.json.results | selectattr('status', 'equalto', 'running') | list | length }}"
+
+- name: Cancelled jobs
+  set_fact:
+    cancelled_jobs: "{{ jobs_response.json.results | selectattr('status', 'equalto', 'canceled') | list | length }}"
+
+###############################################################################
+# ELAPSED
+###############################################################################
+
+- name: Average elapsed
+  set_fact:
+    avg_elapsed: "{{ ((jobs_response.json.results | map(attribute='elapsed') | map('float') | list | sum) / (jobs_response.json.results | length)) | float }}"
+
+- name: Longest job
+  set_fact:
+    max_elapsed: "{{ jobs_response.json.results | map(attribute='elapsed') | map('float') | max }}"
+
+###############################################################################
+# TOP TEMPLATES
+###############################################################################
+
+- name: Extract template names
+  set_fact:
+    template_names: >-
+      {{
+        jobs_response.json.results
+        | map(attribute='summary_fields')
+        | map(attribute='job_template')
+        | map(attribute='name')
+        | list
+      }}
+
+###############################################################################
+# DASHBOARD PREVIEW
+###############################################################################
+
+- name: Dashboard summary
+  debug:
+    msg:
+      total_jobs: "{{ total_jobs }}"
+      successful_jobs: "{{ successful_jobs }}"
+      failed_jobs: "{{ failed_jobs }}"
+      running_jobs: "{{ running_jobs }}"
+      cancelled_jobs: "{{ cancelled_jobs }}"
+      avg_elapsed_seconds: "{{ avg_elapsed }}"
+      max_elapsed_seconds: "{{ max_elapsed }}"
+
+###############################################################################
+# FIND A FINISHED JOB
+###############################################################################
+
+- name: Select first completed job
+  set_fact:
+    completed_job: >-
+      {{
+        (
+          jobs_response.json.results
+          | selectattr('status', 'in', ['successful', 'failed', 'error', 'canceled'])
+          | list
+        )[0]
+      }}
+
+- name: Show selected job
+  debug:
+    msg:
+      id: "{{ completed_job.id }}"
+      name: "{{ completed_job.name }}"
+      status: "{{ completed_job.status }}"
+
+###############################################################################
+# JOB HOST SUMMARIES
+###############################################################################
+
+- name: Get host summaries
+  ansible.builtin.uri:
+    url: "https://{{ url_aap }}/api/controller/v2/jobs/{{ completed_job.id }}/job_host_summaries/"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ access_token.json.token }}"
+    validate_certs: false
+    return_content: true
+    status_code: 200
+    timeout: 120
+  register: host_summaries
+
+- name: Save host summaries
+  copy:
+    content: "{{ host_summaries.json | to_nice_json }}"
+    dest: "/tmp/job_host_summaries.json"
+
+- name: Host summaries count
+  debug:
+    msg:
+      total_hosts: "{{ host_summaries.json.count }}"
+
+- name: Show first host summary
+  debug:
+    var: host_summaries.json.results[0]
+
+###############################################################################
+# SHOW FIRST JOB
+###############################################################################
+
+- name: Example first job
+  debug:
+    var: jobs_response.json.results[0]
+
+###############################################################################
+# SHOW TEMPLATES
+###############################################################################
+
+- name: Templates found
+  debug:
+    var: template_names
