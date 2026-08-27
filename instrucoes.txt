@@ -1,0 +1,6 @@
+Instrucoes
+
+1 - backlog de curadoria é para conter o nome , a % de falhas, e a quantidade de falhas, de job templates do top 30 que tenham menos de 80% de sucesso
+2 - Mapa de curadoria usa esses mesmos dados, só dque de todos os top 30 templates para gerar o grafico em cruz de prioridade
+3 - saude da plataforma deve usar os dados de platform_health.json
+4 - só tenho ambiente de producao, enao os filtros de tempo, organizacao e periodos são os unicos que devem constar no grafico

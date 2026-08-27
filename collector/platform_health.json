@@ -1,0 +1,371 @@
+{
+  "instances": {
+    "count": 4,
+    "next": null,
+    "previous": null,
+    "results": [
+      {
+        "id": 1,
+        "hostname": "10.53.9.92",
+        "type": "instance",
+        "url": "/api/controller/v2/instances/1/",
+        "related": {
+          "receptor_addresses": "/api/controller/v2/instances/1/receptor_addresses/",
+          "jobs": "/api/controller/v2/instances/1/jobs/",
+          "peers": "/api/controller/v2/instances/1/peers/",
+          "instance_groups": "/api/controller/v2/instances/1/instance_groups/",
+          "health_check": "/api/controller/v2/instances/1/health_check/"
+        },
+        "summary_fields": {
+          "user_capabilities": {
+            "edit": false
+          }
+        },
+        "uuid": "194f558c-2c91-4603-9c32-107ea5ad6cb3",
+        "created": "2025-05-26T16:21:03.145011Z",
+        "modified": "2025-05-26T16:21:03.145040Z",
+        "last_seen": "2026-08-25T22:50:15.316398Z",
+        "health_check_started": null,
+        "health_check_pending": false,
+        "last_health_check": "2026-07-30T22:34:30.859983Z",
+        "errors": "",
+        "capacity_adjustment": "1.00",
+        "version": "ansible-runner-2.4.1",
+        "capacity": 297,
+        "consumed_capacity": 0,
+        "percent_capacity_remaining": 100.0,
+        "jobs_running": 0,
+        "jobs_total": 8078,
+        "cpu": "8.0",
+        "memory": 33349484544,
+        "cpu_capacity": 32,
+        "mem_capacity": 297,
+        "enabled": true,
+        "managed_by_policy": true,
+        "node_type": "execution",
+        "node_state": "ready",
+        "managed": true,
+        "ip_address": "",
+        "peers": [],
+        "reverse_peers": [
+          4
+        ],
+        "listener_port": 27199,
+        "peers_from_control_nodes": false,
+        "protocol": "tcp"
+      },
+      {
+        "id": 2,
+        "hostname": "10.29.6.54",
+        "type": "instance",
+        "url": "/api/controller/v2/instances/2/",
+        "related": {
+          "receptor_addresses": "/api/controller/v2/instances/2/receptor_addresses/",
+          "jobs": "/api/controller/v2/instances/2/jobs/",
+          "peers": "/api/controller/v2/instances/2/peers/",
+          "instance_groups": "/api/controller/v2/instances/2/instance_groups/",
+          "health_check": "/api/controller/v2/instances/2/health_check/"
+        },
+        "summary_fields": {
+          "user_capabilities": {
+            "edit": false
+          }
+        },
+        "uuid": "fd7165c5-cf78-4377-8dca-812c813146e0",
+        "created": "2025-05-26T16:21:03.619865Z",
+        "modified": "2026-02-10T12:42:04.007595Z",
+        "last_seen": "2026-08-25T22:49:36.733549Z",
+        "health_check_started": null,
+        "health_check_pending": false,
+        "last_health_check": "2026-07-30T22:35:30.811110Z",
+        "errors": "",
+        "capacity_adjustment": "1.00",
+        "version": "ansible-runner-2.4.1",
+        "capacity": 297,
+        "consumed_capacity": 0,
+        "percent_capacity_remaining": 100.0,
+        "jobs_running": 0,
+        "jobs_total": 64058,
+        "cpu": "8.0",
+        "memory": 33349451776,
+        "cpu_capacity": 32,
+        "mem_capacity": 297,
+        "enabled": true,
+        "managed_by_policy": true,
+        "node_type": "execution",
+        "node_state": "ready",
+        "managed": true,
+        "ip_address": "",
+        "peers": [],
+        "reverse_peers": [
+          4
+        ],
+        "listener_port": 27199,
+        "peers_from_control_nodes": false,
+        "protocol": "tcp"
+      },
+      {
+        "id": 3,
+        "hostname": "10.54.7.168",
+        "type": "instance",
+        "url": "/api/controller/v2/instances/3/",
+        "related": {
+          "receptor_addresses": "/api/controller/v2/instances/3/receptor_addresses/",
+          "jobs": "/api/controller/v2/instances/3/jobs/",
+          "peers": "/api/controller/v2/instances/3/peers/",
+          "instance_groups": "/api/controller/v2/instances/3/instance_groups/",
+          "health_check": "/api/controller/v2/instances/3/health_check/"
+        },
+        "summary_fields": {
+          "user_capabilities": {
+            "edit": false
+          }
+        },
+        "uuid": "cad63b47-4507-48d9-bdce-27583643fa46",
+        "created": "2025-05-26T16:21:03.623012Z",
+        "modified": "2025-05-26T16:21:03.623038Z",
+        "last_seen": "2026-08-25T22:49:50.780263Z",
+        "health_check_started": null,
+        "health_check_pending": false,
+        "last_health_check": "2026-07-30T22:34:30.837596Z",
+        "errors": "",
+        "capacity_adjustment": "1.00",
+        "version": "ansible-runner-2.4.1",
+        "capacity": 297,
+        "consumed_capacity": 6,
+        "percent_capacity_remaining": 97.98,
+        "jobs_running": 1,
+        "jobs_total": 597746,
+        "cpu": "8.0",
+        "memory": 33349451776,
+        "cpu_capacity": 32,
+        "mem_capacity": 297,
+        "enabled": true,
+        "managed_by_policy": true,
+        "node_type": "execution",
+        "node_state": "ready",
+        "managed": true,
+        "ip_address": "",
+        "peers": [],
+        "reverse_peers": [
+          4
+        ],
+        "listener_port": 27199,
+        "peers_from_control_nodes": false,
+        "protocol": "tcp"
+      },
+      {
+        "id": 4,
+        "hostname": "10.29.6.53",
+        "type": "instance",
+        "url": "/api/controller/v2/instances/4/",
+        "related": {
+          "receptor_addresses": "/api/controller/v2/instances/4/receptor_addresses/",
+          "jobs": "/api/controller/v2/instances/4/jobs/",
+          "peers": "/api/controller/v2/instances/4/peers/",
+          "instance_groups": "/api/controller/v2/instances/4/instance_groups/"
+        },
+        "summary_fields": {
+          "user_capabilities": {
+            "edit": false
+          }
+        },
+        "uuid": "23f428f6-c654-4d68-a833-a57c2da7ef99",
+        "created": "2025-05-26T16:21:03.665009Z",
+        "modified": "2026-02-10T13:50:23.149504Z",
+        "last_seen": "2026-08-25T22:50:28.210940Z",
+        "health_check_started": null,
+        "health_check_pending": false,
+        "last_health_check": "2026-08-25T22:50:28.210940Z",
+        "errors": "",
+        "capacity_adjustment": "1.00",
+        "version": "4.6.12",
+        "capacity": 297,
+        "consumed_capacity": 1,
+        "percent_capacity_remaining": 99.66,
+        "jobs_running": 0,
+        "jobs_total": 565735,
+        "cpu": "8.0",
+        "memory": 33349468160,
+        "cpu_capacity": 32,
+        "mem_capacity": 297,
+        "enabled": true,
+        "managed_by_policy": true,
+        "node_type": "hybrid",
+        "node_state": "ready",
+        "managed": true,
+        "ip_address": "",
+        "peers": [
+          1,
+          2,
+          3
+        ],
+        "reverse_peers": [],
+        "listener_port": null,
+        "peers_from_control_nodes": false,
+        "protocol": ""
+      }
+    ]
+  },
+  "ping": {
+    "ha": false,
+    "version": "4.6.12",
+    "active_node": "10.29.6.53",
+    "install_uuid": "2b334c14-9344-46a4-a08a-cb3f553e35ae",
+    "instances": [
+      {
+        "node": "10.29.6.53",
+        "node_type": "hybrid",
+        "uuid": "23f428f6-c654-4d68-a833-a57c2da7ef99",
+        "heartbeat": "2026-08-25T22:50:28.210940Z",
+        "capacity": 297,
+        "version": "4.6.12"
+      },
+      {
+        "node": "10.29.6.54",
+        "node_type": "execution",
+        "uuid": "fd7165c5-cf78-4377-8dca-812c813146e0",
+        "heartbeat": "2026-08-25T22:49:36.733549Z",
+        "capacity": 297,
+        "version": "ansible-runner-2.4.1"
+      },
+      {
+        "node": "10.53.9.92",
+        "node_type": "execution",
+        "uuid": "194f558c-2c91-4603-9c32-107ea5ad6cb3",
+        "heartbeat": "2026-08-25T22:50:15.316398Z",
+        "capacity": 297,
+        "version": "ansible-runner-2.4.1"
+      },
+      {
+        "node": "10.54.7.168",
+        "node_type": "execution",
+        "uuid": "cad63b47-4507-48d9-bdce-27583643fa46",
+        "heartbeat": "2026-08-25T22:49:50.780263Z",
+        "capacity": 297,
+        "version": "ansible-runner-2.4.1"
+      }
+    ],
+    "instance_groups": [
+      {
+        "name": "controlplane",
+        "capacity": 297,
+        "instances": [
+          "10.29.6.53"
+        ]
+      },
+      {
+        "name": "DC_Campinas",
+        "capacity": 297,
+        "instances": [
+          "10.54.7.168"
+        ]
+      },
+      {
+        "name": "DC_Lapa",
+        "capacity": 297,
+        "instances": [
+          "10.29.6.54"
+        ]
+      },
+      {
+        "name": "DC_Mackenzie",
+        "capacity": 297,
+        "instances": [
+          "10.53.9.92"
+        ]
+      },
+      {
+        "name": "default",
+        "capacity": 1188,
+        "instances": [
+          "10.29.6.53",
+          "10.29.6.54",
+          "10.53.9.92",
+          "10.54.7.168"
+        ]
+      }
+    ]
+  },
+  "dashboard": {
+    "related": {
+      "jobs_graph": "/api/controller/v2/dashboard/graphs/jobs/"
+    },
+    "inventories": {
+      "url": "/api/controller/v2/inventories/",
+      "total": 99,
+      "total_with_inventory_source": 11,
+      "job_failed": 19,
+      "inventory_failed": 1
+    },
+    "inventory_sources": {
+      "ec2": {
+        "url": "/api/controller/v2/inventory_sources/?source=ec2",
+        "failures_url": "/api/controller/v2/inventory_sources/?source=ec2&status=failed",
+        "label": "Amazon EC2",
+        "total": 87,
+        "failed": 0
+      }
+    },
+    "groups": {
+      "url": "/api/controller/v2/groups/",
+      "total": 330,
+      "inventory_failed": 18
+    },
+    "hosts": {
+      "url": "/api/controller/v2/hosts/",
+      "failures_url": "/api/controller/v2/hosts/?last_job_host_summary__failed=True",
+      "total": 5936,
+      "failed": 24
+    },
+    "projects": {
+      "url": "/api/controller/v2/projects/",
+      "failures_url": "/api/controller/v2/projects/?last_job_failed=True",
+      "total": 932,
+      "failed": 1
+    },
+    "scm_types": {
+      "git": {
+        "url": "/api/controller/v2/projects/?scm_type=git",
+        "label": "Git",
+        "failures_url": "/api/controller/v2/projects/?scm_type=git&last_job_failed=True",
+        "total": 932,
+        "failed": 1
+      },
+      "svn": {
+        "url": "/api/controller/v2/projects/?scm_type=svn",
+        "label": "Subversion",
+        "failures_url": "/api/controller/v2/projects/?scm_type=svn&last_job_failed=True",
+        "total": 0,
+        "failed": 0
+      },
+      "archive": {
+        "url": "/api/controller/v2/projects/?scm_type=archive",
+        "label": "Remote Archive",
+        "failures_url": "/api/controller/v2/projects/?scm_type=archive&last_job_failed=True",
+        "total": 0,
+        "failed": 0
+      }
+    },
+    "users": {
+      "url": "/api/controller/v2/users/",
+      "total": 144
+    },
+    "organizations": {
+      "url": "/api/controller/v2/organizations/",
+      "total": 36
+    },
+    "teams": {
+      "url": "/api/controller/v2/teams/",
+      "total": 38
+    },
+    "credentials": {
+      "url": "/api/controller/v2/credentials/",
+      "total": 155
+    },
+    "job_templates": {
+      "url": "/api/controller/v2/job_templates/",
+      "total": 1133
+    }
+  }
+}
