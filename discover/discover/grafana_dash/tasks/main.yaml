@@ -1,0 +1,40 @@
+- name: Configure grafana provisioning
+  ansible.builtin.lineinfile:
+    path: /etc/grafana/grafana.ini
+    regexp: '^;?provisioning\s*='
+    line: 'provisioning = /etc/grafana/provisioning'
+    backup: yes
+  notify:
+    - Reiniciar Grafana
+
+- name: Create directory for Grafana provisioning
+  ansible.builtin.file:
+    path: /etc/grafana/provisioning/dashboards/AAP
+    state: directory
+    owner: root
+    group: grafana
+    mode: '0755'
+
+- name: Create structure for Grafana dashboards
+  ansible.builtin.template:
+    src: aap-analytics.yaml.j2
+    dest: /etc/grafana/provisioning/dashboards/aap-analytics.yaml
+    owner: root
+    group: grafana
+    mode: '0644'
+
+- name: Create datasource for Grafana
+  ansible.builtin.template:
+    src: datasources.yaml.j2
+    dest: /etc/grafana/provisioning/datasources/datasources.yaml
+    owner: root
+    group: grafana
+    mode: '0644'
+
+- name: Create dashboards for Grafana
+  ansible.builtin.template:
+    src: dashboard_automation_calculator.json.j2
+    dest: /etc/grafana/provisioning/dashboards/AAP/dashboard_automation_calculator.json
+    owner: root
+    group: grafana
+    mode: '0644'

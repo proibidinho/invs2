@@ -1,0 +1,579 @@
+# -----------------------------------------------------------------------------
+#  Solucao 100% Ansible (executavel pelo AAP).
+#
+#  Fluxo:
+#    AAP -> Ansible -> Controller API -> Analytics/ROI -> calculos -> Top 30
+#        -> curation backlog -> merge -> JSON final (arquivo)
+#
+#  Segue o mesmo padrao do main.yml atual de ROI:
+#    - POST /api/controller/v2/tokens/  (token, force_basic_auth, status 201)
+#    - Bearer token nas chamadas seguintes
+#    - modulo ansible.builtin.uri + register + set_fact + Jinja + loops
+#
+#  Regras principais:
+#    - Top 30      = 30 Job Templates com MAIOR numero de execucoes (executions DESC)
+#    - Curation    = TODOS os Job Templates com success_rate < 80% (NAO limitado ao Top 30)
+#    - ROI         = somente money_saved (monetary_gain) e hours_saved
+#                    (successful_hosts_saved_hours), APENAS para os templates do Top 30
+#    - JSON final  = platform_health + quick_metrics + top_30(+economia)
+#                    + curation_backlog + curation_map
+#    - Failure causes -> NAO implementado nesta etapa
+#
+#  Credenciais lidas de ambiente/vault (ver bloco vars).
+#  Existe um "test_mode" que roda 100% offline usando fixtures/ para validar a logica.
+# =============================================================================
+- name: Coleta AAP Controller + ROI e montagem do JSON final do Power BI
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    # --- Conexao (produção): preferir variaveis de ambiente / Ansible Vault -----
+    url_aap: "{{ lookup('ansible.builtin.env', 'AAP_URL') }}"
+    username: "{{ lookup('ansible.builtin.env', 'AAP_USERNAME') }}"
+    password: "{{ lookup('ansible.builtin.env', 'AAP_PASSWORD') }}"
+
+    # --- Parametros gerais ------------------------------------------------------
+    validate_certs_flag: false          # AAP interno costuma usar cert self-signed
+    aap_days: 7                          # janela de tempo dos jobs (mesmo padrao do collect.py)
+    jobs_page_size: 200                  # paginacao do /jobs/
+    host_page_size: 200                  # paginacao do /job_host_summaries/
+    roi_page_size: 25                    # paginacao (offset) do /analytics/roi_templates/
+    top_n: 30                            # tamanho do ranking Top N
+    success_threshold: 80                # regra do curation backlog: success_rate < 80
+    collect_host_summaries: true         # coletar /jobs/{id}/job_host_summaries/
+
+    # --- Saida ------------------------------------------------------------------
+    output_file: "{{ playbook_dir }}/saida/final_powerbi.json"
+
+    # --- Corpo (body) da chamada ROI, identico ao main.yml atual ----------------
+    roi_body:
+      response_type: "jobs_by_template"
+      attributes:
+        - "elapsed"
+        - "host_count"
+        - "total_count"
+        - "total_org_count"
+        - "total_cluster_count"
+        - "total_inventory_count"
+        - "successful_hosts_savings_current_page"
+        - "successful_hosts_saved_hours_current_page"
+        - "monetary_gain_current_page"
+        - "failed_hosts_costs_current_page"
+      contextual_query_params:
+        - "template_weigh_in"
+        - "manual_effort_reviewed"
+        - "parent_workflow"
+      sort_by: "template_productivity_score:desc"
+
+    # --- Modo de teste offline (sem API) usando fixtures ------------------------
+    test_mode: false
+    fixtures_dir: "{{ playbook_dir }}/fixtures"
+
+  tasks:
+    # =========================================================================
+    #  SECAO 1 - Janela de tempo (comum aos dois modos)
+    # =========================================================================
+    - name: "1. Definir janela de tempo (start/end) baseada em aap_days"
+      ansible.builtin.set_fact:
+        date_lte: "{{ '%Y-%m-%d' | strftime(now(utc=true).timestamp() | int) }}"
+        date_gte: "{{ '%Y-%m-%d' | strftime((now(utc=true).timestamp() | int) - (aap_days | int * 86400)) }}"
+
+    # =========================================================================
+    #  SECAO 2 - Autenticacao + coleta de Jobs no Controller (PRODUCAO)
+    # =========================================================================
+    - name: "2a. [PROD] Gerar token de acesso no Controller (POST /tokens/)"
+      ansible.builtin.uri:
+        url: "https://{{ url_aap }}/api/controller/v2/tokens/"
+        method: POST
+        user: "{{ username }}"
+        password: "{{ password }}"
+        force_basic_auth: true
+        return_content: true
+        validate_certs: "{{ validate_certs_flag }}"
+        status_code: 201
+      register: access_token
+      when: not (test_mode | bool)
+
+    - name: "2b. [PROD] Guardar token Bearer em fato"
+      ansible.builtin.set_fact:
+        aap_token: "{{ access_token.json.token }}"
+      when: not (test_mode | bool)
+
+    - name: "2c. [PROD] Montar querystring de filtro de data dos jobs"
+      ansible.builtin.set_fact:
+        jobs_date_qs: "created__gte={{ date_gte }}T00:00:00Z&created__lte={{ date_lte }}T23:59:59Z&order_by=started"
+      when: not (test_mode | bool)
+
+    - name: "2d. [PROD] Probe /jobs/ para descobrir o total (count) na janela"
+      ansible.builtin.uri:
+        url: "https://{{ url_aap }}/api/controller/v2/jobs/?{{ jobs_date_qs }}&page=1&page_size=1"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ aap_token }}"
+          Accept: "application/json"
+        validate_certs: "{{ validate_certs_flag }}"
+        return_content: true
+      register: jobs_probe
+      when: not (test_mode | bool)
+
+    - name: "2e. [PROD] Calcular quantidade de paginas de jobs"
+      ansible.builtin.set_fact:
+        jobs_count: "{{ jobs_probe.json.count | int }}"
+        jobs_pages: "{{ ((jobs_probe.json.count | int) + (jobs_page_size | int) - 1) // (jobs_page_size | int) if (jobs_probe.json.count | int) > 0 else 0 }}"
+      when: not (test_mode | bool)
+
+    - name: "2f. [PROD] Paginar /jobs/ e coletar todas as execucoes"
+      ansible.builtin.uri:
+        url: "https://{{ url_aap }}/api/controller/v2/jobs/?{{ jobs_date_qs }}&page={{ item }}&page_size={{ jobs_page_size }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ aap_token }}"
+          Accept: "application/json"
+        validate_certs: "{{ validate_certs_flag }}"
+        return_content: true
+      register: jobs_pages_reg
+      loop: "{{ range(1, (jobs_pages | int) + 1) | list }}"
+      loop_control:
+        label: "pagina {{ item }}/{{ jobs_pages }}"
+      when: not (test_mode | bool) and (jobs_pages | int) > 0
+
+    - name: "2g. [PROD] Consolidar resultados brutos dos jobs (raw_jobs)"
+      ansible.builtin.set_fact:
+        raw_jobs: "{{ (jobs_pages_reg.results | default([])) | map(attribute='json.results') | flatten }}"
+      when: not (test_mode | bool)
+
+    # =========================================================================
+    #  SECAO 2' - TEST_MODE: carregar jobs de fixture (sem API)
+    # =========================================================================
+    - name: "2z. [TEST] Carregar jobs de fixture"
+      ansible.builtin.set_fact:
+        raw_jobs: "{{ (lookup('ansible.builtin.file', fixtures_dir ~ '/jobs_sample.json') | from_json).results }}"
+      when: test_mode | bool
+
+    # =========================================================================
+    #  SECAO 3 - Normalizar jobs e calcular estatisticas por Job Template
+    #            (comum aos dois modos, feito em uma unica passada Jinja)
+    # =========================================================================
+    - name: "3a. Compactar jobs em execucoes (consolidando templates 'Escondida*')"
+      ansible.builtin.set_fact:
+        executions: "{{ _executions_json | from_json }}"
+      vars:
+        _executions_json: >-
+          [
+          {% for j in raw_jobs %}
+          {% set tname_raw = (j.summary_fields.job_template.name | default(j.name | default('desconhecido'))) %}
+          {% set tname = 'Escondida* (consolidado)' if ((tname_raw | lower) is search('^escondida')) else tname_raw %}
+          {{ '' if loop.first else ',' }}
+          {
+            "job_id": {{ j.id | to_json }},
+            "template_id": {{ (j.summary_fields.job_template.id | default(None)) | to_json }},
+            "template_name": {{ tname | to_json }},
+            "status": {{ (j.status | default('unknown')) | to_json }},
+            "elapsed": {{ (j.elapsed | default(0) | float) | to_json }},
+            "launch_type": {{ (j.launch_type | default('manual')) | to_json }},
+            "started": {{ (j.started | default(j.created | default(''))) | to_json }}
+          }
+          {% endfor %}
+          ]
+
+    - name: "3b. Falhar cedo se nao houver execucoes na janela"
+      ansible.builtin.fail:
+        msg: "Nenhum job encontrado na janela {{ date_gte }}..{{ date_lte }}. Ajuste aap_days."
+      when: (executions | length) == 0
+
+    - name: "3c. Calcular estatisticas por template (executions/success/failures/success_rate)"
+      ansible.builtin.set_fact:
+        template_stats: "{{ _stats_json | from_json }}"
+      vars:
+        _stats_json: >-
+          [
+          {% for name, jobs in executions | groupby('template_name') %}
+          {% set ex = jobs | length %}
+          {% set su = jobs | selectattr('status','equalto','successful') | list | length %}
+          {% set fa = jobs | selectattr('status','in', ['failed','error']) | list | length %}
+          {{ '' if loop.first else ',' }}
+          {
+            "name": {{ name | to_json }},
+            "executions": {{ ex }},
+            "success": {{ su }},
+            "failures": {{ fa }},
+            "success_rate": {{ (su / ex * 100) | round(1) }},
+            "failure_rate": {{ (fa / ex * 100) | round(1) }}
+          }
+          {% endfor %}
+          ]
+
+    # =========================================================================
+    #  SECAO 4 - job_host_summaries (hosts impactados / hosts com falha)
+    # =========================================================================
+    - name: "4a. [PROD] Coletar /jobs/{id}/job_host_summaries/ de cada job"
+      ansible.builtin.uri:
+        url: "https://{{ url_aap }}/api/controller/v2/jobs/{{ item.job_id }}/job_host_summaries/?page_size={{ host_page_size }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ aap_token }}"
+          Accept: "application/json"
+        validate_certs: "{{ validate_certs_flag }}"
+        return_content: true
+      register: hs_reg
+      loop: "{{ executions }}"
+      loop_control:
+        label: "job {{ item.job_id }}"
+      when: not (test_mode | bool) and (collect_host_summaries | bool)
+
+    - name: "4b. [PROD] Normalizar host summaries (host_count/failed_host_count/hosts)"
+      ansible.builtin.set_fact:
+        host_summaries: "{{ _hs_json | from_json }}"
+      vars:
+        _hs_json: >-
+          [
+          {% for r in hs_reg.results %}
+          {{ '' if loop.first else ',' }}
+          {
+            "job_id": {{ r.item.job_id | to_json }},
+            "host_count": {{ (r.json.count | default(0)) | int }},
+            "failed_host_count": {{ (r.json.results | default([]) | selectattr('failed') | list | length) }},
+            "hosts": {{ (r.json.results | default([]) | map(attribute='host_name') | select | list) | to_json }}
+          }
+          {% endfor %}
+          ]
+      when: not (test_mode | bool) and (collect_host_summaries | bool)
+
+    - name: "4c. [PROD] Sem coleta de host summaries -> lista vazia"
+      ansible.builtin.set_fact:
+        host_summaries: []
+      when: not (test_mode | bool) and not (collect_host_summaries | bool)
+
+    - name: "4z. [TEST] Carregar host summaries de fixture"
+      ansible.builtin.set_fact:
+        host_summaries: "{{ (lookup('ansible.builtin.file', fixtures_dir ~ '/host_summaries_sample.json') | from_json).results }}"
+      when: test_mode | bool
+
+    - name: "4d. Mapear job_id -> host summary (para agregacao)"
+      ansible.builtin.set_fact:
+        hs_map: "{{ _hsmap_json | from_json }}"
+      vars:
+        _hsmap_json: >-
+          {
+          {% for h in host_summaries %}{{ '' if loop.first else ',' }}{{ (h.job_id | string) | to_json }}: {"host_count": {{ h.host_count | int }}, "failed_host_count": {{ h.failed_host_count | int }}}{% endfor %}
+          }
+
+    - name: "4e. Agregar host_count / failed_host_count por template"
+      ansible.builtin.set_fact:
+        host_agg: "{{ _hostagg_json | from_json }}"
+      vars:
+        _hostagg_json: >-
+          {
+          {% for name, jobs in executions | groupby('template_name') %}
+          {% set jids = jobs | map(attribute='job_id') | map('string') | list %}
+          {% set present = jids | select('in', hs_map) | list %}
+          {% set hc = present | map('extract', hs_map) | map(attribute='host_count') | map('int') | sum %}
+          {% set fhc = present | map('extract', hs_map) | map(attribute='failed_host_count') | map('int') | sum %}
+          {{ '' if loop.first else ',' }}{{ name | to_json }}: {"host_count": {{ hc }}, "failed_host_count": {{ fhc }}}
+          {% endfor %}
+          }
+
+    # =========================================================================
+    #  SECAO 5 - Analytics / ROI (paginado por offset)
+    # =========================================================================
+    - name: "5a. [PROD] Probe ROI (offset 0) para obter meta.count"
+      ansible.builtin.uri:
+        url: "https://{{ url_aap }}/api/controller/v2/analytics/roi_templates/?offset=0&limit={{ roi_page_size }}"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ aap_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body: "{{ roi_body }}"
+        return_content: true
+        validate_certs: "{{ validate_certs_flag }}"
+        timeout: 120
+        status_code: 200
+      register: roi_probe
+      when: not (test_mode | bool)
+
+    - name: "5b. [PROD] Calcular offsets de paginacao do ROI"
+      ansible.builtin.set_fact:
+        roi_offsets: "{{ range(0, (roi_probe.json.meta.count | int), (roi_page_size | int)) | list }}"
+      when: not (test_mode | bool)
+
+    - name: "5c. [PROD] Paginar ROI (POST por offset) e coletar legend"
+      ansible.builtin.uri:
+        url: "https://{{ url_aap }}/api/controller/v2/analytics/roi_templates/?offset={{ item }}&limit={{ roi_page_size }}"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ aap_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body: "{{ roi_body }}"
+        return_content: true
+        validate_certs: "{{ validate_certs_flag }}"
+        timeout: 120
+        status_code: 200
+      register: roi_pages
+      loop: "{{ roi_offsets }}"
+      loop_control:
+        label: "offset {{ item }}"
+      when: not (test_mode | bool)
+
+    - name: "5d. [PROD] Consolidar legend do ROI (roi_legend)"
+      ansible.builtin.set_fact:
+        roi_legend: "{{ roi_pages.results | map(attribute='json.meta.legend') | flatten }}"
+      when: not (test_mode | bool)
+
+    - name: "5z. [TEST] Carregar legend do ROI de fixture"
+      ansible.builtin.set_fact:
+        roi_legend: "{{ (lookup('ansible.builtin.file', fixtures_dir ~ '/roi_sample.json') | from_json).meta.legend }}"
+      when: test_mode | bool
+
+    - name: "5e. Mapear nome do template -> {money_saved, hours_saved} (semantica da API)"
+      ansible.builtin.set_fact:
+        roi_map: "{{ _roimap_json | from_json }}"
+      vars:
+        # money_saved  = monetary_gain
+        # hours_saved  = successful_hosts_saved_hours
+        _roimap_json: >-
+          {
+          {% for r in roi_legend %}{{ '' if loop.first else ',' }}{{ r.name | to_json }}: {"money_saved": {{ r.monetary_gain | to_json }}, "hours_saved": {{ r.successful_hosts_saved_hours | to_json }}}{% endfor %}
+          }
+
+    # =========================================================================
+    #  SECAO 6 - Saude da plataforma (instances / ping / dashboard)
+    # =========================================================================
+    - name: "6a. [PROD] Coletar /instances/"
+      ansible.builtin.uri:
+        url: "https://{{ url_aap }}/api/controller/v2/instances/?page_size=200"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ aap_token }}"
+          Accept: "application/json"
+        validate_certs: "{{ validate_certs_flag }}"
+        return_content: true
+      register: health_instances
+      when: not (test_mode | bool)
+
+    - name: "6b. [PROD] Coletar /ping/"
+      ansible.builtin.uri:
+        url: "https://{{ url_aap }}/api/controller/v2/ping/"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ aap_token }}"
+          Accept: "application/json"
+        validate_certs: "{{ validate_certs_flag }}"
+        return_content: true
+      register: health_ping
+      when: not (test_mode | bool)
+
+    - name: "6c. [PROD] Coletar /dashboard/"
+      ansible.builtin.uri:
+        url: "https://{{ url_aap }}/api/controller/v2/dashboard/"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ aap_token }}"
+          Accept: "application/json"
+        validate_certs: "{{ validate_certs_flag }}"
+        return_content: true
+      register: health_dashboard
+      when: not (test_mode | bool)
+
+    - name: "6d. [PROD] Consolidar saude da plataforma (mesma estrutura do platform_health.json)"
+      ansible.builtin.set_fact:
+        platform_health_raw:
+          instances: "{{ health_instances.json }}"
+          ping: "{{ health_ping.json }}"
+          dashboard: "{{ health_dashboard.json }}"
+      when: not (test_mode | bool)
+
+    - name: "6z. [TEST] Carregar saude da plataforma de fixture"
+      ansible.builtin.set_fact:
+        platform_health_raw: "{{ lookup('ansible.builtin.file', fixtures_dir ~ '/platform_health_sample.json') | from_json }}"
+      when: test_mode | bool
+
+    # =========================================================================
+    #  SECAO 7 - Top 30 (executions DESC) + enriquecimento economico
+    # =========================================================================
+    - name: "7a. Ordenar por execucoes (DESC) e selecionar Top N"
+      ansible.builtin.set_fact:
+        top_ranked: "{{ (template_stats | sort(attribute='executions', reverse=true) | list)[:top_n | int] }}"
+
+    - name: "7b. Enriquecer Top 30 com hosts e economia (money_saved/hours_saved)"
+      ansible.builtin.set_fact:
+        top_enriched: "{{ _top_json | from_json }}"
+      vars:
+        # Regra 16: se nao houver ROI para o template, mantem no Top 30 com null.
+        _top_json: >-
+          [
+          {% for t in top_ranked %}
+          {% set roi = roi_map.get(t.name, {}) %}
+          {% set hs = host_agg.get(t.name, {'host_count': 0, 'failed_host_count': 0}) %}
+          {{ '' if loop.first else ',' }}
+          {
+            "name": {{ t.name | to_json }},
+            "executions": {{ t.executions }},
+            "success_rate": {{ t.success_rate }},
+            "failures": {{ t.failures }},
+            "host_count": {{ hs.host_count }},
+            "failed_host_count": {{ hs.failed_host_count }},
+            "money_saved": {{ (roi.money_saved if 'money_saved' in roi else None) | to_json }},
+            "hours_saved": {{ (roi.hours_saved if 'hours_saved' in roi else None) | to_json }}
+          }
+          {% endfor %}
+          ]
+
+    - name: "7c. Calcular cobertura de ROI no Top 30 (matched/missing/coverage)"
+      ansible.builtin.set_fact:
+        roi_matched: "{{ top_enriched | rejectattr('money_saved', 'none') | list | length }}"
+        roi_missing: "{{ top_enriched | selectattr('money_saved', 'none') | list | length }}"
+        roi_coverage: "{{ ((top_enriched | rejectattr('money_saved', 'none') | list | length) / (top_enriched | length) * 100) | round(1) if (top_enriched | length) > 0 else 0 }}"
+
+    # =========================================================================
+    #  SECAO 8 - Curation Backlog (TODOS com success_rate < 80, nao so o Top 30)
+    # =========================================================================
+    - name: "8. Montar Curation Backlog (success_rate < {{ success_threshold }}%) - sem ROI"
+      ansible.builtin.set_fact:
+        curation_backlog: "{{ _backlog_json | from_json }}"
+      vars:
+        _backlog_json: >-
+          [
+          {% for t in template_stats | selectattr('success_rate', 'lt', success_threshold | int) | list %}
+          {{ '' if loop.first else ',' }}
+          {
+            "name": {{ t.name | to_json }},
+            "executions": {{ t.executions }},
+            "success_rate": {{ t.success_rate }},
+            "failures": {{ t.failures }},
+            "failure_rate": {{ t.failure_rate }}
+          }
+          {% endfor %}
+          ]
+
+    # =========================================================================
+    #  SECAO 9 - Curation Map (classificacao de TODOS os templates por saude)
+    # =========================================================================
+    - name: "9. Montar Curation Map (critical <80 / attention <95 / healthy >=95)"
+      ansible.builtin.set_fact:
+        curation_map: "{{ _map_json | from_json }}"
+      vars:
+        _map_json: >-
+          {
+          {% for t in template_stats %}
+          {% set cls = 'critical' if t.success_rate < (success_threshold | int) else ('attention' if t.success_rate < 95 else 'healthy') %}
+          {{ '' if loop.first else ',' }}{{ t.name | to_json }}: {"classification": {{ cls | to_json }}, "success_rate": {{ t.success_rate }}, "executions": {{ t.executions }}}
+          {% endfor %}
+          }
+
+    # =========================================================================
+    #  SECAO 10 - quick_metrics (agregados operacionais globais + trend)
+    # =========================================================================
+    - name: "10a. Calcular trend diario (execucoes/falhas por dia)"
+      ansible.builtin.set_fact:
+        trend: "{{ _trend_json | from_json }}"
+      vars:
+        _trend_json: >-
+          [
+          {% for d in executions | map(attribute='started') | map('regex_replace', 'T.*$', '') | unique | sort | list %}
+          {% set dj = executions | selectattr('started', 'search', '^' ~ d) | list %}
+          {{ '' if loop.first else ',' }}
+          {"date": {{ d | to_json }}, "executions": {{ dj | length }}, "failures": {{ dj | selectattr('status','in', ['failed','error']) | list | length }}}
+          {% endfor %}
+          ]
+
+    - name: "10b. Montar quick_metrics (mesmos campos do quick_metrics.json)"
+      ansible.builtin.set_fact:
+        quick_metrics:
+          executions: "{{ executions | length }}"
+          failures: "{{ executions | selectattr('status','in', ['failed','error']) | list | length }}"
+          success_rate: "{{ ((executions | selectattr('status','equalto','successful') | list | length) / (executions | length) * 100) | round(1) }}"
+          avg_duration_seconds: "{{ ((executions | map(attribute='elapsed') | map('float') | sum) / (executions | length)) | round(1) }}"
+          hosts_impacted: "{{ host_summaries | map(attribute='hosts') | flatten | unique | list | length }}"
+          failed_hosts: "{{ host_summaries | map(attribute='failed_host_count') | map('int') | sum }}"
+          autonomy: "{{ ((executions | selectattr('launch_type','in', ['scheduled','workflow']) | list | length) / (executions | length) * 100) | round(1) }}"
+          trend: "{{ trend }}"
+
+    # =========================================================================
+    #  SECAO 11 - Montagem e gravacao do JSON final (sem POST nesta etapa)
+    # =========================================================================
+    - name: "11a. Montar payload final consolidado para o Power BI"
+      ansible.builtin.set_fact:
+        final_payload:
+          generated_at: "{{ now(utc=true).isoformat() }}"
+          window:
+            start: "{{ date_gte }}"
+            end: "{{ date_lte }}"
+            days: "{{ aap_days | int }}"
+          platform_health: "{{ platform_health_raw }}"
+          quick_metrics: "{{ quick_metrics }}"
+          top_30: "{{ top_enriched }}"
+          roi_coverage:
+            roi_templates_matched: "{{ roi_matched | int }}"
+            roi_templates_missing: "{{ roi_missing | int }}"
+            roi_data_coverage: "{{ roi_coverage }}"
+          curation_backlog: "{{ curation_backlog }}"
+          curation_map: "{{ curation_map }}"
+
+    - name: "11b. Garantir que o diretorio de saida existe"
+      ansible.builtin.file:
+        path: "{{ output_file | dirname }}"
+        state: directory
+        mode: "0755"
+
+    - name: "11c. Gravar JSON final em arquivo"
+      ansible.builtin.copy:
+        dest: "{{ output_file }}"
+        content: "{{ final_payload | to_nice_json }}"
+        mode: "0644"
+
+    - name: "11d. Resumo no log"
+      ansible.builtin.debug:
+        msg:
+          - "JSON final gravado em: {{ output_file }}"
+          - "Execucoes: {{ quick_metrics.executions }} | Falhas: {{ quick_metrics.failures }} | Sucesso: {{ quick_metrics.success_rate }}%"
+          - "Top {{ top_n }}: {{ top_enriched | length }} templates | ROI cobertura: {{ roi_coverage }}% ({{ roi_matched }}/{{ top_enriched | length }})"
+          - "Curation backlog (success_rate < {{ success_threshold }}%): {{ curation_backlog | length }} templates"
+
+    # =========================================================================
+    #  SECAO 12 - Validacoes automaticas (somente em test_mode)
+    # =========================================================================
+    - name: "12. [TEST] Asserts de regras de negocio sobre os fixtures"
+      ansible.builtin.assert:
+        that:
+          # Top N (top_n=3 no teste) ordenado por execucoes DESC
+          - top_enriched | length == 3
+          - top_enriched[0].name == 'Devolve SH pro Splunk'
+          - top_enriched[0].executions == 5
+          - top_enriched[0].success_rate == 100.0
+          - top_enriched[1].name == 'Monitoração | Apigee X'
+          - top_enriched[2].name == 'Restart Zabbix - Mackenzie'
+          # ROI aplicado ao Top 30 (valores/semantica preservados da API)
+          - top_enriched[0].money_saved == 3880753.5737
+          - top_enriched[0].hours_saved == 77546.8616
+          - top_enriched[1].money_saved == 1285980.746
+          # Regra 16: template do Top 30 sem ROI -> mantido com null
+          - top_enriched[2].money_saved is none
+          - top_enriched[2].hours_saved is none
+          - roi_matched | int == 2
+          - roi_missing | int == 1
+          - roi_coverage | float == 66.7
+          # Enriquecimento de hosts no Top 30
+          - top_enriched[0].host_count == 100
+          - top_enriched[0].failed_host_count == 0
+          - top_enriched[2].host_count == 15
+          - top_enriched[2].failed_host_count == 15
+          # Curation backlog = TODOS com <80%, NAO limitado ao Top 30
+          - curation_backlog | length == 2
+          - (curation_backlog | map(attribute='name') | list) is contains('Restart Zabbix - Mackenzie')
+          - (curation_backlog | map(attribute='name') | list) is contains('Produção | MSE | Restart adapter delivery')
+          - not ((curation_backlog | map(attribute='name') | list) is contains('Devolve SH pro Splunk'))
+          # quick_metrics globais
+          - quick_metrics.executions == 15
+          - quick_metrics.failures == 4
+          # JSON final tem todas as secoes exigidas
+          - "'platform_health' in final_payload"
+          - "'quick_metrics' in final_payload"
+          - "'top_30' in final_payload"
+          - "'curation_backlog' in final_payload"
+          - "'curation_map' in final_payload"
+        success_msg: "Todas as regras de negocio validadas com sucesso."
+        fail_msg: "Falha nas validacoes de regras de negocio."
+      when: test_mode | bool
