@@ -30,7 +30,7 @@ Fontes de API usadas (Controller, ver catálogo em developers.redhat.com):
 
 Uso típico:
   python collect_metrics.py --period 30d
-  python collect_metrics.py --period 90d --org org-clbt-ti-ops-seginfo
+  python collect_metrics.py --period 90d --org org-clbr-ti-ops-seginfo
   python collect_metrics.py --start-date 2026-01-01 --end-date 2026-08-27
   python collect_metrics.py --period all --org 12 --collect-failure-causes
 """
@@ -77,9 +77,9 @@ def parse_args():
     )
 
     # Conexão
-    p.add_argument("--url", default=os.environ.get("AAP_URL", ""))
-    p.add_argument("--username", default=os.environ.get("AAP_USERNAME", ""))
-    p.add_argument("--password", default=os.environ.get("AAP_PASSWORD", ""))
+    p.add_argument("--url", default=os.environ.get("AAP_URL", "https://aap.claro.com.br"))
+    p.add_argument("--username", default=os.environ.get("AAP_USERNAME", "Z601427"))
+    p.add_argument("--password", default=os.environ.get("AAP_PASSWORD", "Dev!lmc12"))
     p.add_argument("--token", default=os.environ.get("AAP_TOKEN", ""),
                     help="Se informado, pula o POST /tokens/ e usa este token direto.")
     p.add_argument("--proxy", default=os.environ.get("AAP_PROXY", ""))
@@ -447,51 +447,57 @@ def curation_backlog(top_30):
         for item in top_30
         if item["success_rate"] < 80
     ]
-    backlog.sort(key=lambda x: x["failures"], reverse=True)
+
+    backlog.sort(key=lambda x: x["failure_rate"], reverse=True)
     return backlog
 
 
 def curation_map(top_30):
     """
-    Instrução 2: mapa de curadoria usa os mesmos dados, mas de TODOS os
-    templates do top_30, para montar o gráfico em cruz de prioridade
-    (volume x falha x impacto).
+    Instrução 2:
+
+    Todos os templates do top_30.
+
+    O coletor fornece apenas:
+
+      - volume
+      - failure_rate
+      - impact
+
+    A classificação visual da criticidade
+    fica a cargo do dashboard (Splunk).
     """
+
     if not top_30:
         return []
 
-    volumes = [i["executions"] for i in top_30]
-    failure_rates = [round(100 - i["success_rate"], 1) for i in top_30]
-
-    vol_median = median(volumes)
-    fail_median = median(failure_rates)
-
     points = []
-    for item, fail_rate in zip(top_30, failure_rates):
-        # impacto: prioriza hosts falhos reais; se não houver dado de host
-        # (job_host_summaries não coletado para esses jobs), usa a quantidade
-        # de execuções falhas como proxy de impacto.
-        impact = item["failed_host_count"] if item["host_count"] > 0 else item["failures"]
 
-        high_volume = item["executions"] >= vol_median
-        high_failure = fail_rate >= fail_median
+    for item in top_30:
 
-        if high_volume and high_failure:
-            quadrant = "critico"          # alto volume, alta falha
-        elif high_volume and not high_failure:
-            quadrant = "monitorar"        # alto volume, baixa falha
-        elif not high_volume and high_failure:
-            quadrant = "risco_pontual"    # baixo volume, alta falha
-        else:
-            quadrant = "estavel"          # baixo volume, baixa falha
+        impact = (
+            item["failed_host_count"]
+            if item["host_count"] > 0
+            else item["failures"]
+        )
 
         points.append({
             "name": item["name"],
             "volume": item["executions"],
-            "failure_rate": fail_rate,
+            "failure_rate": round(100 - item["success_rate"], 1),
             "impact": impact,
-            "quadrant": quadrant,
+            "executions": item["executions"],
+            "success_rate": item["success_rate"],
+            "failures": item["failures"],
         })
+
+    points.sort(
+        key=lambda x: (
+            x["failure_rate"],
+            x["volume"]
+        ),
+        reverse=True
+    )
 
     return points
 
@@ -633,6 +639,37 @@ def main():
     save_json(os.path.join(args.output_dir, "curation_backlog.json"), {**meta, "results": backlog})
     save_json(os.path.join(args.output_dir, "curation_map.json"), {**meta, "results": curation_map_data})
     save_json(os.path.join(args.output_dir, "failure_causes.json"), {**meta, **causes})
+    dashboard_data = {
+        "meta": meta,
+
+        "summary": {
+            "executions": metrics["executions"],
+            "failures": metrics["failures"],
+            "success_rate": metrics["success_rate"],
+            "avg_duration_seconds": metrics["avg_duration_seconds"],
+            "hosts_impacted": metrics["hosts_impacted"],
+            "failed_hosts": metrics["failed_hosts"],
+            "autonomy": metrics["autonomy"],
+            "host_data_coverage": metrics["host_data_coverage"],
+        },
+
+        "top_30": metrics["top_30"],
+
+        "trend": metrics["trend"],
+
+        "curation_backlog": backlog,
+
+        "curation_map": curation_map_data,
+
+        "failure_causes": causes,
+
+        "platform_health": health,
+    }
+
+    save_json(
+        os.path.join(args.output_dir, "dashboard_data.json"),
+        dashboard_data
+    )
 
     print("\n" + "=" * 70)
     print("RESULTADO RÁPIDO")
@@ -655,10 +692,20 @@ def main():
 
     print("\nArquivos em:", args.output_dir)
     for fname in (
-        "jobs.json", "job_host_summaries.json", "platform_health.json",
-        "quick_metrics.json", "curation_backlog.json", "curation_map.json",
+        "jobs.json",
+        "job_host_summaries.json",
+        "platform_health.json",
+        "quick_metrics.json",
+        "curation_backlog.json",
+        "curation_map.json",
         "failure_causes.json",
+        "dashboard_data.json",
     ):
+#    for fname in (
+#        "jobs.json", "job_host_summaries.json", "platform_health.json",
+#        "quick_metrics.json", "curation_backlog.json", "curation_map.json",
+#        "failure_causes.json",
+#    ):
         print(f"  {args.output_dir}/{fname}")
 
 
