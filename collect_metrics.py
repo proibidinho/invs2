@@ -35,9 +35,10 @@ Refatoração v3 (histórico + multi-organização):
       workflow_job/system_job legitimamente não têm job_host_summaries,
       então não devem ser contados como "cobertura baixa".
 
-    * curadoria = TODOS os templates com success_rate < 90% (não só top 30).
-      O Python só fornece os números; a classificação visual (faixas de
-      gravidade) fica a cargo do Grafana.
+    * curadoria = somente os templates pertencentes ao Top 30 por número de
+      execuções e com success_rate < 90%. Templates fora do Top 30 não entram
+      no backlog de curadoria, independentemente da taxa de sucesso.
+
 
     * mapa de curadoria = exatamente os templates da curadoria, eixos
       execuções (X) × falhas (Y). Sem "impact" inventado.
@@ -489,26 +490,41 @@ def save_json(path, data):
 def load_history(history_dir):
     jobs_path = os.path.join(history_dir, "jobs.json")
     hosts_path = os.path.join(history_dir, "job_host_summaries.json")
+    meta_path = os.path.join(history_dir, "meta.json")
 
     jobs_raw = load_json_file(jobs_path, {"jobs": {}})
     hosts_raw = load_json_file(hosts_path, {"summaries": {}})
+    meta_raw = load_json_file(meta_path, {"max_history_days": None})
 
     jobs = jobs_raw.get("jobs", {})
     summaries = hosts_raw.get("summaries", {})
-    return jobs, summaries
+    previous_max_history_days = meta_raw.get("max_history_days")
+    return jobs, summaries, previous_max_history_days
 
 
-def save_history(history_dir, jobs, summaries):
+def save_history(history_dir, jobs, summaries, max_history_days):
     save_json(os.path.join(history_dir, "jobs.json"), {"jobs": jobs, "count": len(jobs)})
     save_json(os.path.join(history_dir, "job_host_summaries.json"),
               {"summaries": summaries, "count": len(summaries)})
+    # Guarda o max_history_days usado nesta execução, para a próxima rodada
+    # saber se a janela foi aumentada (e precisa de backfill) ou não.
+    save_json(os.path.join(history_dir, "meta.json"), {
+        "max_history_days": max_history_days,
+        "last_run_at": datetime.now(timezone.utc).isoformat(),
+    })
 
 
-def determine_collection_window(existing_jobs, max_history_days, overlap_days):
+def determine_collection_window(existing_jobs, max_history_days, overlap_days, previous_max_history_days):
     """Decide a janela de coleta:
       - histórico vazio -> carga inicial de max_history_days dias;
-      - histórico existente -> desde a data mais recente já coletada, menos
-        um overlap de alguns dias (para pegar jobs que ficaram running/pending
+      - max_history_days foi AUMENTADO em relação à última execução (ex.:
+        7 -> 14, guardado em history/meta.json) -> backfill automático desde
+        floor_start, para preencher o buraco que nunca foi coletado. Não dá
+        para inferir isso só olhando a data mais antiga presente nos dados,
+        porque é normal um template não ter execução exatamente no dia mais
+        antigo da janela — isso não significa que falta backfill;
+      - caso normal -> desde a data mais recente já coletada, menos um
+        overlap de alguns dias (para pegar jobs que ficaram running/pending
         e jobs criados um pouco antes mas ainda não vistos).
     Nunca coleta (nem retém) além de max_history_days para trás.
     """
@@ -518,15 +534,19 @@ def determine_collection_window(existing_jobs, max_history_days, overlap_days):
     if not existing_jobs:
         return floor_start, end, "carga_inicial"
 
-    latest = None
-    for job in existing_jobs.values():
-        d = parse_date_only(job.get("started") or job.get("created"))
-        if d and (latest is None or d > latest):
-            latest = d
+    if previous_max_history_days is not None and max_history_days > previous_max_history_days:
+        return floor_start, end, "expandindo_historico"
 
-    if not latest:
+    dates = [
+        parse_date_only(job.get("started") or job.get("created"))
+        for job in existing_jobs.values()
+    ]
+    dates = [d for d in dates if d]
+
+    if not dates:
         return floor_start, end, "carga_inicial"
 
+    latest = max(dates)
     incremental_start = (datetime.fromisoformat(latest) - timedelta(days=overlap_days)).strftime("%Y-%m-%d")
     start = max(incremental_start, floor_start)
     return start, end, "incremental"
@@ -682,10 +702,12 @@ def compute_top30(executions):
     return top[:30]
 
 
-def compute_curation(templates):
-    """TODOS os templates com success_rate < 90%. Só números — sem
-    classificação de gravidade (isso fica para o Grafana)."""
-    backlog = [t for t in templates if t["success_rate"] < 90]
+def compute_curation(top_30):
+    """Somente templates do Top 30 com success_rate < 90%.
+    O Top 30 é definido por número de execuções.
+    Só números — sem classificação de gravidade (isso fica para o Grafana).
+    """
+    backlog = [t for t in top_30 if t["success_rate"] < 90]
     backlog.sort(key=lambda x: x["success_rate"])  # pior primeiro
 
     curation_map = [
@@ -749,11 +771,13 @@ def build_org_block(org_id, org_name, executions, max_history_days):
     for period_key in PERIOD_DAYS:
         subset = filter_by_period(executions, period_key, max_history_days)
         templates = compute_templates(subset)
+        top_30 = compute_top30(subset)
+
         periods[period_key] = {
             "summary": compute_summary(subset),
             "templates": templates,
-            "top_30": compute_top30(subset),
-            "curation": compute_curation(templates),
+            "top_30": top_30,
+            "curation": compute_curation(top_30),
         }
 
     return {
@@ -846,12 +870,13 @@ def main():
         return
 
     # ---------------- Modo produção: histórico multi-org ----------------
-    jobs_history, summaries_history = load_history(args.history_dir)
+    jobs_history, summaries_history, previous_max_history_days = load_history(args.history_dir)
     start, end, collection_mode = determine_collection_window(
-        jobs_history, args.max_history_days, args.overlap_days
+        jobs_history, args.max_history_days, args.overlap_days, previous_max_history_days
     )
     print(f"[histórico] modo={collection_mode} | janela de coleta={start}..{end} | "
-          f"jobs já no histórico={len(jobs_history)}")
+          f"jobs já no histórico={len(jobs_history)} | "
+          f"max_history_days anterior={previous_max_history_days} -> atual={args.max_history_days}")
 
     raw_jobs = collect_jobs(aap, start, end, args.page_size, org_id=None)
     new_compacted = [compact_job(j) for j in raw_jobs]
@@ -877,7 +902,7 @@ def main():
     summaries_history = merge_host_summaries_history(summaries_history, host_summaries)
     summaries_history = prune_host_summaries(summaries_history, set(jobs_history.keys()))
 
-    save_history(args.history_dir, jobs_history, summaries_history)
+    save_history(args.history_dir, jobs_history, summaries_history, args.max_history_days)
 
     executions = build_executions_view(jobs_history, summaries_history)
 

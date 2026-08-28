@@ -1,8 +1,0 @@
-AAP_URL=https://<meu_aap>>
-AAP_USERNAME=<matricula>>
-AAP_PASSWORD=<passd>
-AAP_INSECURE=true
-AAP_DAYS=1
-AAP_PAGE_SIZE=200 #limite de paginacao da api do controller
-AAP_MAX_HOST_SUMMARY_JOBS=25 #limite dae paginacao do analytics
-AAP_OUTPUT_DIR=./saida
