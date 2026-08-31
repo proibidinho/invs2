@@ -1515,15 +1515,981 @@ Ou seja, o dashboard deve ser o mais simples possível e consumir os campos já 
 
 ---
 
+
+# 26. Como executar o script — comandos e flags
+
+Esta é a seção para quem precisa **rodar o collector de verdade**.
+
+O arquivo do script é:
+
+```text
+collect_metrics.py
+```
+
+A forma mais simples de executar é:
+
+```bash
+python collect_metrics.py
+```
+
+Essa é a forma recomendada para a rotina normal. Sem `--org`, o collector trabalha com **todas as organizações**, mantém o histórico e gera o dataset multi-organização para o dashboard. fileciteturn5file1L106-L145
+
+---
+
+## 26.1 Antes de executar: conexão com o AAP
+
+O script precisa saber como acessar o AAP.
+
+Existem duas formas.
+
+### Opção A — usuário e senha
+
+```bash
+python collect_metrics.py \
+  --url "https://SEU-AAP" \
+  --username "USUARIO" \
+  --password "SENHA"
+```
+
+### Opção B — token
+
+Se você já possui um token:
+
+```bash
+python collect_metrics.py \
+  --url "https://SEU-AAP" \
+  --token "SEU_TOKEN"
+```
+
+Quando `--token` é informado, o script usa o token diretamente e não precisa fazer a autenticação por usuário/senha. fileciteturn5file3L296-L307
+
+### IMPORTANTE
+
+Não colocar senha ou token diretamente no código.
+
+O script também aceita essas informações por variáveis de ambiente:
+
+```text
+AAP_URL
+AAP_USERNAME
+AAP_PASSWORD
+AAP_TOKEN
+```
+
+Assim, uma configuração de ambiente pode ser usada sem deixar credenciais no comando.
+
+---
+
+# 27. Comando para a primeira carga histórica
+
+Para uma instalação nova, quando ainda não existe histórico:
+
+```bash
+python collect_metrics.py --max-history-days 730
+```
+
+Isso diz:
+
+> "Crie o histórico inicial considerando até 730 dias para trás."
+
+O script identifica que o histórico está vazio e entra automaticamente em modo:
+
+```text
+carga_inicial
+```
+
+A janela é definida pelo `--max-history-days`. fileciteturn6file4L354-L375
+
+### Exemplo completo
+
+```bash
+python collect_metrics.py \
+  --url "https://SEU-AAP" \
+  --token "SEU_TOKEN" \
+  --max-history-days 730
+```
+
+Depois dessa execução devem existir, no diretório de histórico:
+
+```text
+history/
+├── jobs.json
+├── job_host_summaries.json
+└── meta.json
+```
+
+E no diretório de saída:
+
+```text
+saida/
+└── dashboard_data.json
+```
+
+O script grava esses arquivos de histórico e o JSON final do dashboard. fileciteturn6file0L25-L53
+
+---
+
+# 28. Comando para a execução normal/recorrente
+
+Depois que a carga inicial já foi feita, a execução normal é simplesmente:
+
+```bash
+python collect_metrics.py
+```
+
+Ou, se quiser deixar explícita a janela máxima:
+
+```bash
+python collect_metrics.py --max-history-days 730
+```
+
+**Não é necessário informar uma organização.**
+
+Sem `--org`, o comportamento padrão é:
+
+```text
+todas as organizações
++
+histórico persistente
++
+atualização incremental
++
+visão ALL
+```
+
+Isso é exatamente o comportamento esperado para o dataset usado pelo dashboard. fileciteturn5file5L450-L460
+
+---
+
+# 29. O que significa "incremental"?
+
+Depois da primeira carga, o script olha o histórico que já existe.
+
+Em vez de baixar novamente todo o período de 730 dias, ele normalmente busca:
+
+```text
+dados novos
++
+alguns dias anteriores
+```
+
+O padrão do script é um **overlap de 3 dias**.
+
+Esse overlap existe para capturar situações como:
+
+```text
+Job começou há alguns dias
+↓
+estava running/pending
+↓
+ainda não tinha estado terminal
+↓
+mudou de estado depois
+```
+
+O script reconsulta essa pequena janela para não perder essa atualização. fileciteturn5file7L629-L664
+
+Portanto:
+
+```text
+Primeira execução
+→ carga histórica
+
+Próximas execuções
+→ coleta incremental
+```
+
+---
+
+# 30. Como aumentar o histórico depois
+
+Uma vantagem do collector é que você pode aumentar o histórico posteriormente.
+
+Exemplo:
+
+Primeiro:
+
+```bash
+python collect_metrics.py --max-history-days 30
+```
+
+Depois decide que quer:
+
+```text
+90 dias
+```
+
+Pode executar:
+
+```bash
+python collect_metrics.py --max-history-days 90
+```
+
+O script compara o `max_history_days` salvo no `history/meta.json` com o novo valor.
+
+Se o novo valor for maior, ele entra em:
+
+```text
+expandindo_historico
+```
+
+e faz o backfill necessário para preencher o período que não existia. fileciteturn6file4L354-L389
+
+---
+
+# 31. Como reduzir o histórico
+
+Tenha cuidado ao reduzir:
+
+```bash
+python collect_metrics.py --max-history-days 30
+```
+
+O script não mantém dados além do limite configurado. A regra interna é:
+
+> Nunca coletar nem reter dados além de `max_history_days`.
+
+fileciteturn6file4L354-L389
+
+Por isso, `max-history-days` deve ser tratado como a **janela máxima de histórico que o collector deve manter**.
+
+---
+
+# 32. Todas as flags disponíveis
+
+O script possui as seguintes opções.
+
+## Conexão
+
+### `--url`
+
+Endereço do AAP Controller.
+
+```bash
+--url "https://meu-aap"
+```
+
+Também pode vir de:
+
+```text
+AAP_URL
+```
+
+---
+
+### `--username`
+
+Usuário usado para autenticação.
+
+```bash
+--username "usuario"
+```
+
+Também pode vir de:
+
+```text
+AAP_USERNAME
+```
+
+---
+
+### `--password`
+
+Senha usada para autenticação.
+
+```bash
+--password "senha"
+```
+
+Também pode vir de:
+
+```text
+AAP_PASSWORD
+```
+
+---
+
+### `--token`
+
+Token de autenticação.
+
+```bash
+--token "TOKEN"
+```
+
+Quando usado, o script utiliza o token diretamente.
+
+Variável de ambiente:
+
+```text
+AAP_TOKEN
+```
+
+fileciteturn5file3L296-L307
+
+---
+
+### `--proxy`
+
+Proxy HTTP/HTTPS, caso o ambiente precise.
+
+```bash
+--proxy "http://proxy:8080"
+```
+
+Variável:
+
+```text
+AAP_PROXY
+```
+
+fileciteturn5file3L302-L303
+
+---
+
+### `--insecure`
+
+Desabilita a validação do certificado TLS/SSL.
+
+```bash
+--insecure
+```
+
+O comportamento padrão do script atualmente também considera `AAP_INSECURE` e, na configuração mostrada no código, o default da variável é `true`. fileciteturn5file3L303-L307
+
+> Use isso apenas quando for necessário no ambiente. Se o certificado do AAP for confiável, o ideal é trabalhar com validação TLS normal.
+
+---
+
+# 33. Flags de histórico
+
+## `--max-history-days`
+
+Define o máximo de dias de histórico mantidos.
+
+```bash
+--max-history-days 730
+```
+
+Default do script:
+
+```text
+730
+```
+
+fileciteturn5file4L393-L405
+
+Também pode ser configurado por:
+
+```text
+AAP_MAX_HISTORY_DAYS
+```
+
+### Exemplos
+
+```bash
+--max-history-days 30
+```
+
+```bash
+--max-history-days 90
+```
+
+```bash
+--max-history-days 730
+```
+
+---
+
+## `--history-dir`
+
+Define onde o histórico persistente será salvo.
+
+Default:
+
+```text
+./history
+```
+
+Exemplo:
+
+```bash
+--history-dir "./history"
+```
+
+ou:
+
+```bash
+--history-dir "/opt/aap-dashboard/history"
+```
+
+Variável de ambiente:
+
+```text
+AAP_HISTORY_DIR
+```
+
+Os principais arquivos desse diretório são:
+
+```text
+jobs.json
+job_host_summaries.json
+meta.json
+```
+
+fileciteturn6file4L327-L351
+
+---
+
+## `--overlap-days`
+
+Define quantos dias anteriores serão reconsultados durante uma coleta incremental.
+
+Default:
+
+```text
+3
+```
+
+Exemplo:
+
+```bash
+--overlap-days 3
+```
+
+Se precisar alterar:
+
+```bash
+--overlap-days 5
+```
+
+A finalidade é reconsultar uma pequena janela para capturar jobs que estavam `running`/`pending` ou que demoraram para aparecer no histórico. fileciteturn5file1L120-L127
+
+Variável:
+
+```text
+AAP_OVERLAP_DAYS
+```
+
+### Recomendação
+
+Para uso normal, **não alterar esse valor sem necessidade**.
+
+---
+
+# 34. Flags de consulta manual
+
+Essas opções existem principalmente para testes, diagnóstico ou consulta pontual.
+
+## `--org`
+
+Permite consultar apenas uma organização.
+
+Pode receber:
+
+```text
+ID
+```
+
+ou:
+
+```text
+nome
+```
+
+Exemplo:
+
+```bash
+python collect_metrics.py --org 98
+```
+
+Por padrão, porém:
+
+```text
+--org não informado
+```
+
+significa:
+
+```text
+todas as organizações
+```
+
+fileciteturn5file3L309-L316
+
+### IMPORTANTE
+
+Não usar `--org` na rotina normal de produção do dashboard.
+
+O dataset de produção é multi-organização.
+
+---
+
+## `--period`
+
+Escolhe o período para uma consulta manual.
+
+Valores aceitos:
+
+```text
+7d
+14d
+30d
+3m
+6m
+1y
+all
+```
+
+Exemplo:
+
+```bash
+python collect_metrics.py \
+  --org 98 \
+  --period 30d \
+  --no-history
+```
+
+O `--period` é destinado ao modo manual com `--org`; ele não é a forma de escolher o período do dashboard.
+
+O dashboard já recebe **todos os períodos pré-calculados** dentro do `dashboard_data.json`. fileciteturn5file3L317-L326
+
+---
+
+## `--no-history`
+
+Executa uma consulta pontual sem ler nem gravar o histórico.
+
+Exemplo:
+
+```bash
+python collect_metrics.py \
+  --org 98 \
+  --period 30d \
+  --no-history
+```
+
+Use quando quiser responder:
+
+> "Quero consultar esta organização neste período agora, mas não quero alterar o histórico persistente."
+
+fileciteturn5file1L116-L118
+
+### Não usar para a rotina normal
+
+A rotina normal deve manter o histórico.
+
+---
+
+# 35. Flags de performance/paginação
+
+Estas opções existem para controlar como a API é consultada.
+
+## `--page-size`
+
+Quantidade de itens por página nas consultas principais.
+
+Default:
+
+```text
+200
+```
+
+Exemplo:
+
+```bash
+--page-size 200
+```
+
+Variável:
+
+```text
+AAP_PAGE_SIZE
+```
+
+---
+
+## `--host-page-size`
+
+Quantidade de itens por página nas consultas relacionadas a hosts.
+
+Default:
+
+```text
+200
+```
+
+Exemplo:
+
+```bash
+--host-page-size 200
+```
+
+Variável:
+
+```text
+AAP_HOST_PAGE_SIZE
+```
+
+fileciteturn5file1L129-L134
+
+### Recomendação
+
+Para a operação normal:
+
+```text
+deixar os defaults
+```
+
+Só alterar se houver uma necessidade de performance ou limitação específica da API.
+
+---
+
+## `--skip-host-summaries`
+
+Desativa a coleta de `job_host_summaries`.
+
+```bash
+python collect_metrics.py --skip-host-summaries
+```
+
+### CUIDADO
+
+Não usar essa opção na coleta oficial do dashboard.
+
+Os dados de host são utilizados para:
+
+```text
+hosts_impacted
+host_data_coverage_pct
+```
+
+Portanto, desativar essa coleta pode prejudicar essas métricas.
+
+---
+
+## `--max-host-summary-jobs`
+
+Limita quantos jobs **novos** receberão consulta de `job_host_summaries`.
+
+Default:
+
+```text
+0
+```
+
+E:
+
+```text
+0 = todos os jobs elegíveis
+```
+
+Exemplo:
+
+```bash
+--max-host-summary-jobs 1000
+```
+
+Variável:
+
+```text
+AAP_MAX_HOST_SUMMARY_JOBS
+```
+
+fileciteturn5file1L135-L141
+
+### Recomendação
+
+Para a coleta oficial:
+
+```text
+0
+```
+
+ou seja, não limitar.
+
+---
+
+# 36. Flag de saída
+
+## `--output-dir`
+
+Define onde o JSON final será gravado.
+
+Default:
+
+```text
+./saida
+```
+
+Exemplo:
+
+```bash
+--output-dir "./saida"
+```
+
+ou:
+
+```bash
+--output-dir "/opt/aap-dashboard/saida"
+```
+
+Variável:
+
+```text
+AAP_OUTPUT_DIR
+```
+
+O arquivo gerado é:
+
+```text
+dashboard_data.json
+```
+
+fileciteturn6file0L39-L53
+
+---
+
+# 37. Comandos prontos para copiar
+
+## Primeira instalação / carga histórica
+
+```bash
+python collect_metrics.py \
+  --url "https://SEU-AAP" \
+  --token "SEU_TOKEN" \
+  --max-history-days 730
+```
+
+---
+
+## Rotina normal
+
+```bash
+python collect_metrics.py
+```
+
+Se as credenciais estiverem configuradas por variáveis de ambiente, esse é o comando que deve ser agendado.
+
+---
+
+## Rotina normal explicitando histórico
+
+```bash
+python collect_metrics.py \
+  --max-history-days 730
+```
+
+---
+
+## Consulta manual de uma organização
+
+```bash
+python collect_metrics.py \
+  --org 98 \
+  --period 30d \
+  --no-history
+```
+
+---
+
+## Consulta manual usando nome da organização
+
+```bash
+python collect_metrics.py \
+  --org "Nome da Organização" \
+  --period 7d \
+  --no-history
+```
+
+---
+
+## Aumentar o histórico existente
+
+Se o histórico atual for de 30 dias:
+
+```bash
+python collect_metrics.py --max-history-days 90
+```
+
+O collector detectará que a janela aumentou e fará o backfill necessário. fileciteturn6file4L374-L389
+
+---
+
+# 38. Como descobrir todas as flags diretamente pelo terminal
+
+O próprio Python/argparse fornece a ajuda:
+
+```bash
+python collect_metrics.py --help
+```
+
+Esse comando deve ser o primeiro recurso quando alguém esquecer a sintaxe de uma opção.
+
+---
+
+# 39. Qual comando usar em cada situação?
+
+| Situação | Comando |
+|---|---|
+| Primeira carga | `python collect_metrics.py --max-history-days 730` |
+| Rotina diária | `python collect_metrics.py` |
+| Rotina com janela explícita | `python collect_metrics.py --max-history-days 730` |
+| Consulta manual | `python collect_metrics.py --org 98 --period 30d --no-history` |
+| Aumentar histórico | `python collect_metrics.py --max-history-days 90` |
+| Ver opções | `python collect_metrics.py --help` |
+
+---
+
+# 40. O que NÃO fazer na operação
+
+### Não fazer:
+
+```bash
+python collect_metrics.py --org 98
+```
+
+como rotina diária do dashboard.
+
+Isso transforma a execução em uma consulta específica de organização.
+
+---
+
+### Não fazer:
+
+```bash
+python collect_metrics.py --org 98 --period 30d --no-history
+```
+
+esperando atualizar o dataset oficial multi-organização.
+
+`--no-history` existe justamente para **não mexer no histórico**.
+
+---
+
+### Não fazer:
+
+```bash
+python collect_metrics.py --skip-host-summaries
+```
+
+na coleta oficial se o dashboard precisar de dados de hosts.
+
+---
+
+### Não fazer:
+
+rodar continuamente:
+
+```bash
+python collect_metrics.py --max-history-days 730
+```
+
+sem necessidade.
+
+A partir da primeira carga, o collector possui mecanismo de atualização incremental e overlap. fileciteturn5file7L629-L664
+
+---
+
+# 41. Operação recomendada, do zero até produção
+
+## Passo 1 — Primeira execução
+
+```bash
+python collect_metrics.py --max-history-days 730
+```
+
+Resultado esperado:
+
+```text
+history/
+├── jobs.json
+├── job_host_summaries.json
+└── meta.json
+
+saida/
+└── dashboard_data.json
+```
+
+## Passo 2 — Entregar o JSON ao time do dashboard
+
+Entregar:
+
+```text
+dashboard_data.json
+README_dashboard_data.md
+```
+
+## Passo 3 — Desenvolver o dashboard
+
+O time usa o JSON como fonte de dados.
+
+## Passo 4 — Agendar o collector
+
+Depois da implantação:
+
+```bash
+python collect_metrics.py
+```
+
+deve ser executado periodicamente.
+
+## Passo 5 — Dashboard consome o novo arquivo
+
+Após cada execução bem-sucedida:
+
+```text
+AAP
+ ↓
+collector
+ ↓
+dashboard_data.json atualizado
+ ↓
+dashboard
+```
+
+---
+
+# 42. Em caso de dúvida, use esta regra
+
+Se você é responsável pela operação e não sabe qual comando usar:
+
+### Para atualizar o dashboard:
+
+```bash
+python collect_metrics.py
+```
+
+### Para fazer a primeira carga histórica:
+
+```bash
+python collect_metrics.py --max-history-days 730
+```
+
+### Para testar uma organização sem mexer no histórico:
+
+```bash
+python collect_metrics.py --org ID --period 30d --no-history
+```
+
+### Para descobrir as opções:
+
+```bash
+python collect_metrics.py --help
+```
+
+Essa é a "cola" operacional do collector.
+
+
 # 26. Como o collector deve ser usado no dia a dia
 
 Esta seção explica o funcionamento operacional para quem não conhece o script.
 
 ## 26.1 Quem roda o collector?
 
-O collector é o responsável por buscar os dados no AAP e gerar/atualizar o `dashboard.json`.
+O collector é o responsável por buscar os dados no AAP e gerar/atualizar o `dashboard_data.json`.
 
-O time do dashboard **não precisa executar o collector para desenvolver o front-end**. Para desenvolvimento, basta ter uma cópia válida do `dashboard.json`.
+O time do dashboard **não precisa executar o collector para desenvolver o front-end**. Para desenvolvimento, basta ter uma cópia válida do `dashboard_data.json`.
 
 Em produção, o collector deve ser executado por um processo agendado no ambiente definido para a coleta.
 
@@ -1539,7 +2505,7 @@ Exemplo:
 history_days: 730
 ```
 
-O objetivo é buscar o maior histórico desejado e gerar o primeiro `dashboard.json`.
+O objetivo é buscar o maior histórico desejado e gerar o primeiro `dashboard_data.json`.
 
 Fluxo:
 
@@ -1550,7 +2516,7 @@ collector.py
  ↓
 carga histórica inicial
  ↓
-dashboard.json
+dashboard_data.json
  ↓
 Dashboard
 ```
@@ -1603,19 +2569,19 @@ Assim o processo fica muito mais eficiente.
 
 ---
 
-# 27. O `dashboard.json` é a fonte de dados do Dashboard
+# 27. O `dashboard_data.json` é a fonte de dados do Dashboard
 
 O arquivo gerado pelo collector é o contrato entre a coleta e o dashboard.
 
 ```text
 collector
     ↓
-dashboard.json
+dashboard_data.json
     ↓
 dashboard
 ```
 
-O dashboard deve consumir o `dashboard.json` e não precisa conhecer a API interna do AAP.
+O dashboard deve consumir o `dashboard_data.json` e não precisa conhecer a API interna do AAP.
 
 Isso também significa que o dashboard pode ser desenvolvido usando um JSON real de exemplo, sem depender de uma execução do collector a cada teste.
 
@@ -1644,13 +2610,13 @@ O collector é responsável por:
 15. coletar a saúde do Controller;
 16. coletar a saúde dos Execution Nodes;
 17. calcular a saúde geral da capacidade;
-18. gerar o `dashboard.json`.
+18. gerar o `dashboard_data.json`.
 
 ## Dashboard
 
 O dashboard é responsável por:
 
-1. ler o `dashboard.json`;
+1. ler o `dashboard_data.json`;
 2. permitir selecionar organização;
 3. permitir selecionar período;
 4. exibir os cards;
@@ -1688,7 +2654,7 @@ A arquitetura esperada é:
                             │
                             ▼
                     ┌───────────────┐
-                    │ dashboard.json│
+                    │ dashboard_data.json│
                     └───────┬───────┘
                             │
                             ▼
@@ -1716,7 +2682,7 @@ consulta AAP
  ↓
 processa dados
  ↓
-gera/atualiza dashboard.json
+gera/atualiza dashboard_data.json
  ↓
 dashboard passa a exibir os dados atualizados
 ```
@@ -1732,11 +2698,11 @@ Ele apenas consome a nova versão do arquivo.
 Durante o desenvolvimento, entregar ao time:
 
 ```text
-dashboard.json
+dashboard_data.json
 README_dashboard_data.md
 ```
 
-O `dashboard.json` é uma amostra real dos dados.
+O `dashboard_data.json` é uma amostra real dos dados.
 
 O README explica:
 
@@ -1765,14 +2731,14 @@ Exemplo:
 history_days: 730
 ```
 
-Validar o `dashboard.json` gerado.
+Validar o `dashboard_data.json` gerado.
 
 ## Etapa 2 — Desenvolver o dashboard
 
 Usar:
 
 ```text
-dashboard.json
+dashboard_data.json
 +
 README_dashboard_data.md
 ```
@@ -1785,7 +2751,7 @@ Configurar o ambiente de produção para executar o collector periodicamente.
 
 A frequência deve ser definida de acordo com a necessidade de atualização do dashboard.
 
-## Etapa 4 — Publicar o `dashboard.json`
+## Etapa 4 — Publicar o `dashboard_data.json`
 
 O arquivo atualizado precisa ficar disponível para o mecanismo que alimenta o dashboard.
 
@@ -1797,7 +2763,7 @@ O dashboard passa a apresentar os dados da nova coleta.
 
 # 33. O que acontece se o script mudar?
 
-O `dashboard.json` possui um **contrato de dados**.
+O `dashboard_data.json` possui um **contrato de dados**.
 
 Se forem adicionados novos campos, normalmente isso não quebra o dashboard.
 
@@ -1819,7 +2785,7 @@ Procedimento:
         ↓
 2. Atualizar README
         ↓
-3. Gerar novo dashboard.json de exemplo
+3. Gerar novo dashboard_data.json de exemplo
         ↓
 4. Avisar o time do Dashboard
         ↓
@@ -1841,7 +2807,7 @@ O arquivo que foi usado para esta análise possui conteúdo JSON, apesar de esta
 Para produção, o nome recomendado é:
 
 ```text
-dashboard.json
+dashboard_data.json
 ```
 
 Isso deixa claro para qualquer pessoa e ferramenta que o arquivo é JSON.
@@ -1851,7 +2817,7 @@ O pacote de entrega pode ser:
 ```text
 collector.py
 config.yaml
-dashboard.json
+dashboard_data.json
 README_dashboard_data.md
 ```
 
@@ -1880,7 +2846,7 @@ Uma rotina típica fica assim:
              │
              ▼
 ┌──────────────────────────┐
-│      dashboard.json      │
+│      dashboard_data.json      │
 │                          │
 │ summary                  │
 │ templates                │
@@ -1912,7 +2878,7 @@ Se você acabou de entrar no projeto, memorize estas cinco regras:
 
 O dashboard não precisa acessar diretamente o AAP.
 
-### 2. O `dashboard.json` é a fonte de dados
+### 2. O `dashboard_data.json` é a fonte de dados
 
 É esse arquivo que o dashboard deve consumir.
 
@@ -1950,4 +2916,4 @@ Se houver dúvida sobre onde encontrar uma informação, procure primeiro neste 
 
 # 37. Fluxo resumido em uma frase
 
-> **O collector busca os dados no AAP, aplica todas as regras de negócio e gera o `dashboard.json`; o dashboard apenas lê esse JSON, permite ao usuário escolher os recortes disponíveis e apresenta os resultados.**
+> **O collector busca os dados no AAP, aplica todas as regras de negócio e gera o `dashboard_data.json`; o dashboard apenas lê esse JSON, permite ao usuário escolher os recortes disponíveis e apresenta os resultados.**
