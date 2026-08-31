@@ -1511,3 +1511,443 @@ DASHBOARD = seleciona + exibe
 ```
 
 Ou seja, o dashboard deve ser o mais simples possível e consumir os campos já preparados pelo coletor.
+
+
+---
+
+# 26. Como o collector deve ser usado no dia a dia
+
+Esta seção explica o funcionamento operacional para quem não conhece o script.
+
+## 26.1 Quem roda o collector?
+
+O collector é o responsável por buscar os dados no AAP e gerar/atualizar o `dashboard.json`.
+
+O time do dashboard **não precisa executar o collector para desenvolver o front-end**. Para desenvolvimento, basta ter uma cópia válida do `dashboard.json`.
+
+Em produção, o collector deve ser executado por um processo agendado no ambiente definido para a coleta.
+
+---
+
+## 26.2 Primeira execução: carga inicial
+
+A primeira execução serve para construir a base histórica.
+
+Exemplo:
+
+```yaml
+history_days: 730
+```
+
+O objetivo é buscar o maior histórico desejado e gerar o primeiro `dashboard.json`.
+
+Fluxo:
+
+```text
+AAP
+ ↓
+collector.py
+ ↓
+carga histórica inicial
+ ↓
+dashboard.json
+ ↓
+Dashboard
+```
+
+Depois dessa carga inicial, **não é necessário repetir 730 dias todos os dias**.
+
+---
+
+## 26.3 Execuções recorrentes
+
+Depois que a carga inicial estiver pronta, o collector deve passar a rodar periodicamente para atualizar os dados.
+
+A ideia é:
+
+```text
+Primeira execução:
+730 dias
+     ↓
+base inicial
+
+Execuções seguintes:
+janela recorrente configurada
+     ↓
+atualização
+```
+
+O valor de `history_days` usado na rotina recorrente deve seguir a configuração final do collector e sua lógica de histórico.
+
+**Não assumir que `history_days: 730` deve ser usado diariamente.** Isso aumenta desnecessariamente a quantidade de dados consultados.
+
+---
+
+## 26.4 Por que existe uma carga inicial e depois uma rotina recorrente?
+
+Imagine que hoje o sistema tenha milhares de execuções históricas.
+
+Na primeira execução precisamos buscar:
+
+```text
+histórico existente
+```
+
+Depois disso, precisamos principalmente descobrir:
+
+```text
+o que aconteceu desde a última atualização
+```
+
+Assim o processo fica muito mais eficiente.
+
+---
+
+# 27. O `dashboard.json` é a fonte de dados do Dashboard
+
+O arquivo gerado pelo collector é o contrato entre a coleta e o dashboard.
+
+```text
+collector
+    ↓
+dashboard.json
+    ↓
+dashboard
+```
+
+O dashboard deve consumir o `dashboard.json` e não precisa conhecer a API interna do AAP.
+
+Isso também significa que o dashboard pode ser desenvolvido usando um JSON real de exemplo, sem depender de uma execução do collector a cada teste.
+
+---
+
+# 28. Responsabilidades: quem faz o quê?
+
+## Collector
+
+O collector é responsável por:
+
+1. conectar ao AAP;
+2. consultar as APIs;
+3. tratar paginação;
+4. coletar execuções;
+5. coletar informações dos templates;
+6. coletar dados de hosts;
+7. aplicar os filtros definidos pelo projeto;
+8. identificar falhas;
+9. calcular taxa de sucesso;
+10. calcular duração média;
+11. calcular hosts impactados;
+12. gerar o Top 30;
+13. gerar a curadoria;
+14. gerar a tendência;
+15. coletar a saúde do Controller;
+16. coletar a saúde dos Execution Nodes;
+17. calcular a saúde geral da capacidade;
+18. gerar o `dashboard.json`.
+
+## Dashboard
+
+O dashboard é responsável por:
+
+1. ler o `dashboard.json`;
+2. permitir selecionar organização;
+3. permitir selecionar período;
+4. exibir os cards;
+5. exibir gráficos;
+6. exibir tabelas;
+7. exibir o backlog de curadoria;
+8. exibir o mapa de curadoria;
+9. exibir a tendência;
+10. exibir a saúde da plataforma.
+
+### Regra simples
+
+```text
+COLLECTOR = coleta + trata + calcula
+DASHBOARD = lê + filtra visualmente + exibe
+```
+
+---
+
+# 29. O Dashboard NÃO deve chamar o AAP diretamente
+
+A arquitetura esperada é:
+
+```text
+                    ┌───────────────┐
+                    │      AAP      │
+                    │   Controller  │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │   Collector   │
+                    │    Script     │
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ dashboard.json│
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │   Dashboard   │
+                    └───────────────┘
+```
+
+Não transformar o front-end em outro collector.
+
+Isso evita duplicar regras e garante que os números apresentados no dashboard sejam os mesmos calculados pelo processo oficial de coleta.
+
+---
+
+# 30. O que acontece quando chega uma nova execução?
+
+Exemplo:
+
+```text
+Hoje
+ ↓
+collector roda
+ ↓
+consulta AAP
+ ↓
+processa dados
+ ↓
+gera/atualiza dashboard.json
+ ↓
+dashboard passa a exibir os dados atualizados
+```
+
+O dashboard não precisa saber como aquela execução foi coletada.
+
+Ele apenas consome a nova versão do arquivo.
+
+---
+
+# 31. Como o time deve desenvolver o Dashboard
+
+Durante o desenvolvimento, entregar ao time:
+
+```text
+dashboard.json
+README_dashboard_data.md
+```
+
+O `dashboard.json` é uma amostra real dos dados.
+
+O README explica:
+
+```text
+onde está cada informação
+o que ela significa
+como deve ser apresentada
+quais regras já foram aplicadas
+```
+
+Portanto, o desenvolvedor não precisa percorrer as 55 mil linhas do JSON procurando campos.
+
+---
+
+# 32. Como colocar em produção
+
+O processo recomendado é:
+
+## Etapa 1 — Preparar a carga inicial
+
+Executar o collector com a janela histórica definida para a primeira carga.
+
+Exemplo:
+
+```yaml
+history_days: 730
+```
+
+Validar o `dashboard.json` gerado.
+
+## Etapa 2 — Desenvolver o dashboard
+
+Usar:
+
+```text
+dashboard.json
++
+README_dashboard_data.md
+```
+
+como contrato de desenvolvimento.
+
+## Etapa 3 — Automatizar o collector
+
+Configurar o ambiente de produção para executar o collector periodicamente.
+
+A frequência deve ser definida de acordo com a necessidade de atualização do dashboard.
+
+## Etapa 4 — Publicar o `dashboard.json`
+
+O arquivo atualizado precisa ficar disponível para o mecanismo que alimenta o dashboard.
+
+## Etapa 5 — Dashboard lê o arquivo atualizado
+
+O dashboard passa a apresentar os dados da nova coleta.
+
+---
+
+# 33. O que acontece se o script mudar?
+
+O `dashboard.json` possui um **contrato de dados**.
+
+Se forem adicionados novos campos, normalmente isso não quebra o dashboard.
+
+Mas se um campo existente for:
+
+```text
+renomeado
+removido
+movido para outro caminho
+ou tiver seu significado alterado
+```
+
+isso deve ser tratado como alteração do contrato.
+
+Procedimento:
+
+```text
+1. Alterar collector
+        ↓
+2. Atualizar README
+        ↓
+3. Gerar novo dashboard.json de exemplo
+        ↓
+4. Avisar o time do Dashboard
+        ↓
+5. Ajustar o Dashboard
+```
+
+### Regra
+
+O dashboard deve depender apenas dos campos documentados neste README.
+
+Campos internos ou não documentados não devem ser usados como dependência.
+
+---
+
+# 34. Sobre o `dashboard.txt` atual
+
+O arquivo que foi usado para esta análise possui conteúdo JSON, apesar de estar com extensão `.txt`.
+
+Para produção, o nome recomendado é:
+
+```text
+dashboard.json
+```
+
+Isso deixa claro para qualquer pessoa e ferramenta que o arquivo é JSON.
+
+O pacote de entrega pode ser:
+
+```text
+collector.py
+config.yaml
+dashboard.json
+README_dashboard_data.md
+```
+
+---
+
+# 35. Exemplo de rotina operacional
+
+Uma rotina típica fica assim:
+
+```text
+┌──────────────────────────┐
+│     AAP / Controller     │
+└────────────┬─────────────┘
+             │
+             │ API
+             ▼
+┌──────────────────────────┐
+│        Collector         │
+│                          │
+│ coleta                   │
+│ pagina                   │
+│ filtra                   │
+│ calcula                  │
+│ consolida                │
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│      dashboard.json      │
+│                          │
+│ summary                  │
+│ templates                │
+│ top_30                   │
+│ curation                 │
+│ trend                    │
+│ platform_health          │
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│        Dashboard         │
+│                          │
+│ cards                    │
+│ gráficos                 │
+│ tabelas                  │
+│ curadoria                │
+│ saúde                    │
+└──────────────────────────┘
+```
+
+---
+
+# 36. Resumo para quem acabou de entrar no projeto
+
+Se você acabou de entrar no projeto, memorize estas cinco regras:
+
+### 1. O collector é quem conversa com o AAP
+
+O dashboard não precisa acessar diretamente o AAP.
+
+### 2. O `dashboard.json` é a fonte de dados
+
+É esse arquivo que o dashboard deve consumir.
+
+### 3. A primeira carga é diferente da rotina normal
+
+Primeiro carregamos o histórico necessário. Depois fazemos atualizações recorrentes.
+
+### 4. O dashboard não recalcula as métricas
+
+Se o JSON possui:
+
+```text
+success_rate
+```
+
+use o valor.
+
+Não recalcule.
+
+Se possui:
+
+```text
+top_30
+```
+
+use o Top 30.
+
+Não refaça.
+
+### 5. O README é o mapa do JSON
+
+Se houver dúvida sobre onde encontrar uma informação, procure primeiro neste documento.
+
+---
+
+# 37. Fluxo resumido em uma frase
+
+> **O collector busca os dados no AAP, aplica todas as regras de negócio e gera o `dashboard.json`; o dashboard apenas lê esse JSON, permite ao usuário escolher os recortes disponíveis e apresenta os resultados.**
