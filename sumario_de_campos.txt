@@ -1,0 +1,14 @@
+Item pedido	Status	Onde está / observação
+Número de execuções	✅	organizations.<org>.periods.<period>.summary.executions
+Taxa de sucesso	✅	summary.success_rate — sempre percentual, ex.: 86.7
+Quantidade de falhas	✅	summary.failures
+Duração média	✅	summary.avg_duration_seconds
+Hosts impactados	✅	summary.hosts_impacted (únicos) — ALL bate exatamente com a soma das orgs no seu dado real
+Backlog de curadoria	✅ (com a ressalva acima)	curation.backlog_count = 13, curation.templates
+Mapa de curadoria	✅	curation.map, só template_id/name/executions/failures/success_rate — sem impact
+Top 30	✅	ordenado corretamente por execuções desc, "escondida*" consolidado
+Tendência (trend)	✅	187 dias diários, date/executions/failures
+Saúde da plataforma	✅	controller + 3 execution nodes + cluster_capacity_health_pct: 99.49 + queue_pending_global: 0
+Multi-organização + ALL	✅	18 organizações + ALL, todas com os 7 períodos
+Sem campos proibidos	✅	zero templates com successful/impact/failure_rate/severity
+Cobertura de dados de host	✅	100% (diagnostics.host_data_coverage_pct)
