@@ -159,7 +159,7 @@ def parse_args():
     p.add_argument("--url", default=os.environ.get("AAP_URL", ""))
     p.add_argument("--username", default=os.environ.get("AAP_USERNAME", ""))
     p.add_argument("--password", default=os.environ.get("AAP_PASSWORD", ""))
-    p.add_argument("--token", default=os.environ.get("AAP_TOKEN", ""),
+    p.add_argument("--token", default=os.environ.get("AAP_TOKEN", "H24SO6wHLaCieDzHySh18ou4ghQhh9"),
                     help="Se informado, pula o POST /tokens/ e usa este token direto.")
     p.add_argument("--proxy", default=os.environ.get("AAP_PROXY", ""))
     p.add_argument(
