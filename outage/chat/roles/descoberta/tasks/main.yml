@@ -1,6 +1,6 @@
 ---
 # ============================================================
-# 1. Buscar atividades de Observabilidade
+# 1. Buscar atividades que estão aguardando aprovação
 # ============================================================
 
 - name: Buscar atividades de Observabilidade
@@ -11,8 +11,8 @@
     user: "{{ jira_user }}"
     password: "{{ jira_password }}"
     headers:
-      Accept: "application/json"
-      Content-Type: "application/json"
+      Accept: application/json
+      Content-Type: application/json
     body_format: json
     body:
       jql: >-
@@ -50,7 +50,7 @@
 
 
 # ============================================================
-# 3. Identificar a GMUD pai
+# 3. Descobrir as GMUDs pai
 # ============================================================
 
 - name: Identificar as GMUDs pai
@@ -68,7 +68,7 @@
 
 
 # ============================================================
-# 4. Consultar os dados completos das GMUDs
+# 4. Buscar os dados completos de cada GMUD
 # ============================================================
 
 - name: Consultar dados completos das GMUDs
@@ -79,7 +79,7 @@
     user: "{{ jira_user }}"
     password: "{{ jira_password }}"
     headers:
-      Accept: "application/json"
+      Accept: application/json
     status_code: 200
   loop: "{{ gmuds_pai }}"
   register: gmuds_jira
@@ -90,7 +90,7 @@
 
 
 # ============================================================
-# 5. Inicializar lista final
+# 5. Inicializar resultado
 # ============================================================
 
 - name: Inicializar lista de GMUDs
@@ -99,14 +99,22 @@
 
 
 # ============================================================
-# 6. Montar informações básicas das GMUDs
+# 6. Extrair informações das GMUDs
+#
+# O campo customfield_16348 é ADF.
+#
+# Estrutura observada:
+#
+# content
+#   └── paragraph
+#         └── content
+#               ├── "Ativos Afetados:"
+#               └── " brwin0291"
+#
+# Primeiro montamos o texto de cada parágrafo.
 # ============================================================
 
-- name: Inicializar lista de GMUDs
-  ansible.builtin.set_fact:
-    gmuds: []
-
-- name: Montar informações das GMUDs
+- name: Processar cada GMUD
   ansible.builtin.set_fact:
     gmuds: >-
       {{
@@ -116,58 +124,58 @@
             'resumo': item.json.fields.summary,
             'inicio': item.json.fields[jira_inicio_field],
             'fim': item.json.fields[jira_fim_field],
-            'ativos': []
+            'ativos': ativos_extraidos
           }
         ]
       }}
   loop: "{{ gmuds_jira.results }}"
-  no_log: true
   loop_control:
     label: "{{ item.json.key }}"
+  vars:
 
-
-# ============================================================
-# 7. Extrair os ativos afetados
-#
-# O campo customfield_16348 é um documento ADF.
-#
-# Procuramos:
-#
-#   "Ativos Afetados:"
-#
-# e capturamos o texto imediatamente seguinte.
-# ============================================================
-
-- name: Extrair ativos afetados
-  ansible.builtin.set_fact:
-    gmuds: >-
+    # Junta todos os textos existentes no ADF.
+    texto_adf: >-
       {{
-        gmuds | map('combine', {
-          'ativos': (
-            item.json.fields[jira_ativos_field]
-            | default({})
-            | to_json
-            | regex_findall(
-                '"text":\s*"Ativos Afetados:"[^}]*}[^}]*"text":\s*"([^"]+)"'
-              )
-            | first
-            | default('')
-            | trim
-            | split(',')
-            | map('trim')
-            | reject('equalto', '')
-            | list
-          )
-        }) | list
+        item.json.fields[jira_ativos_field].content
+        | default([])
+        | map(attribute='content')
+        | flatten
+        | selectattr('text', 'defined')
+        | map(attribute='text')
+        | join(' ')
       }}
-  loop: "{{ gmuds_jira.results }}"
+
+    # Pega somente o que está depois de "Ativos Afetados:"
+    # e antes do próximo campo.
+    texto_ativos: >-
+      {{
+        texto_adf
+        | regex_replace(
+            '^.*Ativos Afetados:\s*',
+            ''
+          )
+        | regex_replace(
+            '\s+Haverá indisponibilidade:.*$',
+            ''
+          )
+        | trim
+      }}
+
+    # Permite múltiplos ativos separados por vírgula.
+    ativos_extraidos: >-
+      {{
+        texto_ativos
+        | split(',')
+        | map('trim')
+        | reject('equalto', '')
+        | list
+      }}
+
   no_log: true
-  loop_control:
-    label: "{{ item.json.key }}"
 
 
 # ============================================================
-# 8. Validar informações obrigatórias
+# 7. Validar resultado
 # ============================================================
 
 - name: Validar informações das GMUDs
@@ -190,43 +198,7 @@
 
 
 # ============================================================
-# 9. Mostrar resultado da descoberta
-# ============================================================
-
-- name: Mostrar resultado da descoberta
-  ansible.builtin.debug:
-    msg:
-      gmud: "{{ item.chave }}"
-      resumo: "{{ item.resumo }}"
-      inicio: "{{ item.inicio }}"
-      fim: "{{ item.fim }}"
-      ativos: "{{ item.ativos }}"
-  loop: "{{ gmuds }}"
-  loop_control:
-    label: "{{ item.chave }}"
-
-
-# ============================================================
-# 9. Validar informações obrigatórias
-# ============================================================
-
-- name: Validar informações das GMUDs
-  ansible.builtin.assert:
-    that:
-      - item.inicio is not none
-      - item.fim is not none
-      - item.ativos is defined
-      - item.ativos | length > 0
-    fail_msg: >-
-      A GMUD {{ item.chave }} não possui todos os dados necessários.
-      Verifique os campos de ativos, início e fim.
-  loop: "{{ gmuds }}"
-  loop_control:
-    label: "{{ item.chave }}"
-
-
-# ============================================================
-# 10. Mostrar resultado da descoberta
+# 8. Mostrar resultado da descoberta
 # ============================================================
 
 - name: Mostrar resultado da descoberta
