@@ -1,11 +1,7 @@
 ---
-# Esta role consulta o Jira e entrega para a role "outage" uma lista
-# chamada "gmuds", contendo:
-#   - chave
-#   - resumo
-#   - inicio
-#   - fim
-#   - ativos
+# ============================================================
+# 1. Buscar atividades de Observabilidade
+# ============================================================
 
 - name: Buscar atividades de Observabilidade
   ansible.builtin.uri:
@@ -15,8 +11,8 @@
     user: "{{ jira_user }}"
     password: "{{ jira_password }}"
     headers:
-      Accept: application/json
-      Content-Type: application/json
+      Accept: "application/json"
+      Content-Type: "application/json"
     body_format: json
     body:
       jql: >-
@@ -31,6 +27,11 @@
   register: jira_search
   environment: "{{ proxy_env }}"
   no_log: true
+
+
+# ============================================================
+# 2. Filtrar somente as atividades de Observabilidade
+# ============================================================
 
 - name: Selecionar somente atividades de Observabilidade
   ansible.builtin.set_fact:
@@ -47,6 +48,11 @@
         | list
       }}
 
+
+# ============================================================
+# 3. Identificar a GMUD pai
+# ============================================================
+
 - name: Identificar as GMUDs pai
   ansible.builtin.set_fact:
     gmuds_pai: >-
@@ -60,6 +66,11 @@
         | list
       }}
 
+
+# ============================================================
+# 4. Consultar os dados completos das GMUDs
+# ============================================================
+
 - name: Consultar dados completos das GMUDs
   ansible.builtin.uri:
     url: "{{ jira_base_url }}/rest/api/3/issue/{{ item }}?fields=*all"
@@ -68,7 +79,7 @@
     user: "{{ jira_user }}"
     password: "{{ jira_password }}"
     headers:
-      Accept: application/json
+      Accept: "application/json"
     status_code: 200
   loop: "{{ gmuds_pai }}"
   register: gmuds_jira
@@ -77,11 +88,29 @@
   loop_control:
     label: "{{ item }}"
 
+
+# ============================================================
+# 5. Inicializar lista final
+# ============================================================
+
 - name: Inicializar lista de GMUDs
   ansible.builtin.set_fact:
     gmuds: []
 
-- name: Montar informações das GMUDs
+
+# ============================================================
+# 6. Extrair os dados da GMUD
+#
+# customfield_16348 é um campo ADF.
+#
+# Procuramos especificamente o parágrafo:
+#
+#   "Ativos Afetados:"
+#
+# e pegamos o texto que está associado a ele.
+# ============================================================
+
+- name: Extrair informações das GMUDs
   ansible.builtin.set_fact:
     gmuds: >-
       {{
@@ -91,36 +120,109 @@
             'resumo': item.json.fields.summary,
             'inicio': item.json.fields[jira_inicio_field],
             'fim': item.json.fields[jira_fim_field],
-            'ativos': item.json.fields[jira_ativos_field]
+            'ativos': []
           }
         ]
       }}
   loop: "{{ gmuds_jira.results }}"
   no_log: true
+  loop_control:
+    label: "{{ item.json.key }}"
+
+
+# ============================================================
+# 7. Extrair os ativos do campo ADF
+#
+# Exemplo real:
+#
+#   "Ativos Afetados:"
+#   "brwin0291"
+#
+# Resultado:
+#
+#   ativos:
+#     - brwin0291
+# ============================================================
+
+- name: Extrair ativos afetados
+  ansible.builtin.set_fact:
+    gmuds: >-
+      {{
+        gmuds | map('combine', {
+          'ativos': (
+            item.json.fields[jira_ativos_field].content
+            | default([])
+            | selectattr('content', 'defined')
+            | map(attribute='content')
+            | flatten
+            | selectattr('text', 'defined')
+            | map(attribute='text')
+            | list
+            | join(' ')
+            | regex_search('Ativos Afetados:\\s*([^\\n]+)', '\\1')
+            | default([])
+          )
+        }) | list
+      }}
+  loop: "{{ gmuds_jira.results }}"
+  no_log: true
+  loop_control:
+    label: "{{ item.json.key }}"
+
+
+# ============================================================
+# 8. Normalizar os ativos
+# ============================================================
+
+- name: Normalizar lista de ativos
+  ansible.builtin.set_fact:
+    gmuds: >-
+      {{
+        gmuds | map('combine', {
+          'ativos': (
+            item.ativos
+            | map('trim')
+            | reject('equalto', '')
+            | list
+          )
+        }) | list
+      }}
+  loop: "{{ gmuds }}"
+  loop_control:
+    label: "{{ item.chave }}"
+
+
+# ============================================================
+# 9. Validar informações obrigatórias
+# ============================================================
 
 - name: Validar informações das GMUDs
   ansible.builtin.assert:
     that:
       - item.inicio is not none
       - item.fim is not none
-      - item.ativos is not none
+      - item.ativos is defined
       - item.ativos | length > 0
     fail_msg: >-
       A GMUD {{ item.chave }} não possui todos os dados necessários.
-      Verifique os campos de ativos, início e fim configurados em
-      roles/descoberta/defaults/main.yml.
+      Verifique os campos de ativos, início e fim.
   loop: "{{ gmuds }}"
   loop_control:
     label: "{{ item.chave }}"
 
-- name: Mostrar resumo da descoberta
+
+# ============================================================
+# 10. Mostrar resultado da descoberta
+# ============================================================
+
+- name: Mostrar resultado da descoberta
   ansible.builtin.debug:
     msg:
       gmud: "{{ item.chave }}"
       resumo: "{{ item.resumo }}"
       inicio: "{{ item.inicio }}"
       fim: "{{ item.fim }}"
-      quantidade_ativos: "{{ item.ativos | length }}"
+      ativos: "{{ item.ativos }}"
   loop: "{{ gmuds }}"
   loop_control:
     label: "{{ item.chave }}"
