@@ -21,14 +21,13 @@
     headers:
       Authorization: "Api-Token {{ dynatrace_token }}"
       Accept: application/json
-    status_code:
-      - 200
-      - 404
+    status_code: 200
   loop: "{{ gmud.ativos }}"
   register: dynatrace_busca
-  no_log: false
+  no_log: true
   loop_control:
     label: "{{ item }}"
+  failed_when: false
 
 - name: Montar lista de Entity IDs
   ansible.builtin.set_fact:
@@ -42,22 +41,17 @@
         )
       }}
   loop: "{{ dynatrace_busca.results }}"
-  no_log: false
+  no_log: true
 
-- name: Verificar se todos os ativos foram encontrados
+- name: Definir se a GMUD é válida para criação da Maintenance Window
   ansible.builtin.set_fact:
-    gmud_valida: >-
-      {{
-        dynatrace_entities | length == gmud.ativos | length
-      }}
+    gmud_valida: "{{ dynatrace_entities | length == gmud.ativos | length }}"
 
-- name: Informar GMUD ignorada
+- name: Informar GMUD ignorada por ativo não encontrado no Dynatrace
   ansible.builtin.debug:
-    msg:
-      - "GMUD {{ gmud.chave }} ignorada."
-      - "Nem todos os ativos foram encontrados no Dynatrace."
-      - "Ativos da GMUD: {{ gmud.ativos }}"
-      - "Entidades encontradas: {{ dynatrace_entities }}"
+    msg: >-
+      GMUD {{ gmud.chave }} ignorada: nem todos os ativos foram encontrados
+      no Dynatrace. Nenhuma Maintenance Window será criada para esta GMUD.
   when: not gmud_valida
 
 - name: Mostrar o que será colocado em manutenção
@@ -70,13 +64,9 @@
       dynatrace_entities: "{{ dynatrace_entities }}"
   when: gmud_valida
 
-# Abaixo usamos a Settings API oficial do Dynatrace.
-# "validateOnly" permite testar a configuração antes de criar a janela.
 - name: Criar ou validar Maintenance Window
   ansible.builtin.uri:
-    url: >-
-      {{ dynatrace_url }}/api/v2/settings/objects
-      ?validateOnly={{ dynatrace_validate_only | lower }}
+    url: "{{ dynatrace_url }}/api/v2/settings/objects?validateOnly={{ dynatrace_validate_only | lower }}"
     method: POST
     headers:
       Authorization: "Api-Token {{ dynatrace_token }}"
@@ -101,12 +91,13 @@
               timeZone: "{{ dynatrace_timezone }}"
           filters:
             - entityType: "HOST"
-              entityId: "{{ dynatrace_entities | join(',') }}"
+              entityId:
+                "{{ dynatrace_entities | join(',') }}"
     status_code:
       - 200
       - 201
   register: outage_result
-  no_log: false
+  no_log: true
   when: gmud_valida
 
 - name: Informar resultado
