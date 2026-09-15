@@ -1,0 +1,275 @@
+---
+- name: Auto Approval GML Observabilidade
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    jira_base_url: "https://clarobr.atlassian.net"
+
+    executante_alvo: "OBSERVABILIDADE(APR)"
+
+    http_proxy_url: "http://10.29.177.37:8080"
+    https_proxy_url: "http://10.29.177.37:8080"
+
+    proxy_env:
+      http_proxy: "{{ http_proxy_url }}"
+      https_proxy: "{{ https_proxy_url }}"
+      HTTP_PROXY: "{{ http_proxy_url }}"
+      HTTPS_PROXY: "{{ https_proxy_url }}"
+
+  tasks:
+
+    ###########################################################################
+    # VALIDAR LOGIN
+    ###########################################################################
+
+    - name: Validar credencial Jira
+      uri:
+        url: "{{ jira_base_url }}/rest/api/3/myself"
+        method: GET
+        force_basic_auth: true
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        headers:
+          Accept: application/json
+      register: myself
+      environment: "{{ proxy_env }}"
+
+    - name: Exibir usuário autenticado
+      debug:
+        msg:
+          usuario: "{{ myself.json.displayName }}"
+          email: "{{ myself.json.emailAddress }}"
+
+    ###########################################################################
+    # BUSCAR ATIVIDADES AGUARDANDO APROVACAO
+    ###########################################################################
+
+    - name: Buscar atividades aguardando aprovação
+      uri:
+        url: "{{ jira_base_url }}/rest/api/3/search/jql"
+        method: POST
+        force_basic_auth: true
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        headers:
+          Accept: application/json
+          Content-Type: application/json
+        body_format: json
+        body:
+          jql: >
+            project = GML
+            AND status = "Aguardando aprovação dos Executantes"
+          maxResults: 1000
+          fields:
+            - summary
+            - status
+            - customfield_14998
+            - customfield_10030
+            - issuelinks
+      register: gml_search
+      environment: "{{ proxy_env }}"
+
+    ###########################################################################
+    # FILTRAR OBSERVABILIDADE
+    ###########################################################################
+
+    - name: Inicializar lista observabilidade
+      set_fact:
+        observability_issues: []
+
+    - name: Adicionar atividades observabilidade
+      no_log: true
+      set_fact:
+        observability_issues: "{{ observability_issues + [item] }}"
+      loop: "{{ gml_search.json.issues | default([]) }}"
+      when:
+        - item.fields.customfield_14998 is defined
+        - item.fields.customfield_14998 is not none
+        - item.fields.customfield_14998.value is defined
+        - item.fields.customfield_14998.value == executante_alvo
+
+    ###########################################################################
+    # RESUMO
+    ###########################################################################
+
+    - name: Quantidade encontrada
+      debug:
+        msg:
+          observabilidade_encontradas: "{{ observability_issues | length }}"
+
+    ###########################################################################
+    # MOSTRAR GMUD PAI
+    ###########################################################################
+    - name: Mostrar atividade e GMUD pai
+      debug:
+        msg:
+          atividade: "{{ item.key }}"
+          resumo: "Aprovacao de -> {{ item.fields.summary }}"
+          executante: "{{ item.fields.customfield_14998.value }}"
+          gml_pai: >-
+            {{
+              (
+                item.fields.issuelinks
+                | selectattr('inwardIssue', 'defined')
+                | map(attribute='inwardIssue.key')
+                | list
+                | first
+              )
+              | default('NAO_ENCONTRADA')
+            }}
+          resumo_gml_pai: >-
+            {{
+              (
+                item.fields.issuelinks
+                | selectattr('inwardIssue', 'defined')
+                | map(attribute='inwardIssue.fields.summary')
+                | list
+                | first
+              )
+              | default('NAO_ENCONTRADO')
+            }}
+      loop: "{{ observability_issues }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    # ###########################################################################
+    # # APPROVALS JA APROVADOS
+    # ###########################################################################
+
+    # - name: Mostrar approvals já aprovados
+    #   debug:
+    #     msg: >-
+    #       Atividade {{ item.0.key }}
+    #       já aprovada por:
+    #       {{
+    #         item.1.approvers
+    #         | selectattr('approverDecision', 'equalto', 'approved')
+    #         | map(attribute='approver.displayName')
+    #         | join(', ')
+    #       }}
+    #   loop: >-
+    #     {{
+    #       observability_issues
+    #       | subelements('fields.customfield_10030', skip_missing=True)
+    #     }}
+    #   when:
+    #     - item.1.finalDecision == "approved"
+
+    ###########################################################################
+    # APPROVALS PENDENTES
+    ###########################################################################
+
+    - name: Mostrar approvals pendentes
+      debug:
+        msg:
+          atividade: "{{ item.0.key }}"
+          approval_id: "{{ item.1.id }}"
+          approval_name: "{{ item.1.name }}"
+          approval_url: "{{ item.1._links.self }}"
+          final_decision: "{{ item.1.finalDecision }}"
+          can_answer: "{{ item.1.canAnswerApproval }}"
+      loop: >-
+        {{
+          observability_issues
+          | subelements('fields.customfield_10030', skip_missing=True)
+        }}
+      loop_control:
+        label: "{{ item.0.key }}"
+      when:
+        - item.1.finalDecision == "pending"
+
+    # ###########################################################################
+    # # CONSULTAR DETALHE DOS APPROVALS PENDENTES
+    # ###########################################################################
+
+    # - name: Consultar approval pendente
+    #   uri:
+    #     url: "{{ item.1._links.self }}"
+    #     method: GET
+    #     force_basic_auth: true
+    #     user: "{{ jira_user }}"
+    #     password: "{{ jira_password }}"
+    #     headers:
+    #       Accept: application/json
+    #   loop: >-
+    #     {{
+    #       observability_issues
+    #       | subelements('fields.customfield_10030', skip_missing=True)
+    #     }}
+    #   when:
+    #     - item.1.finalDecision == "pending"
+    #   register: approval_details
+    #   environment: "{{ proxy_env }}"
+
+    # ###########################################################################
+    # # MOSTRAR APROVADORES
+    # ###########################################################################
+
+    # - name: Mostrar aprovadores
+    #   debug:
+    #     msg:
+    #       approval_id: "{{ item.json.id }}"
+    #       approval_name: "{{ item.json.name }}"
+    #       final_decision: "{{ item.json.finalDecision }}"
+    #       can_answer: "{{ item.json.canAnswerApproval }}"
+    #       approvers: >-
+    #         {{
+    #           item.json.approvers
+    #           | map(attribute='approver.displayName')
+    #           | list
+    #         }}
+    #   loop: "{{ approval_details.results }}"
+    #   when:
+    #     - item.json is defined
+
+    ###########################################################################
+    # FUTURA APROVACAO AUTOMATICA
+    ###########################################################################
+    #
+    # DESCOMENTE QUANDO JIRA_INT_HOT RECEBER PERMISSAO
+    #
+    ###########################################################################
+
+    - name: Aprovar automaticamente
+      uri:
+        url: "{{ item.1._links.self }}"
+        method: POST
+        force_basic_auth: true
+        user: "{{ jira_user }}"
+        password: "{{ jira_password }}"
+        headers:
+          Accept: application/json
+          Content-Type: application/json
+        body_format: json
+        body:
+          decision: approve
+        status_code:
+          - 200
+          - 204
+          - 403
+      loop: >-
+        {{
+          observability_issues
+          | subelements('fields.customfield_10030', skip_missing=True)
+        }}
+      when:
+        #- false
+        - item.1.finalDecision == "pending"
+      register: approval_result
+      environment: "{{ proxy_env }}"
+      no_log: true
+
+    - name: Falhar quando não possuir permissão
+      fail:
+        msg: |-
+          {{ item.json.errorMessage }}
+
+          Chave Jira:
+          {{ item.json.i18nErrorMessage.i18nKey }}
+      loop: "{{ approval_result.results }}"
+      when:
+        - item.json is defined
+        - item.json.errorMessage is defined
+      loop_control:
+        label: ""
