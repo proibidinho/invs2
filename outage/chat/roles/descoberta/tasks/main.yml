@@ -99,18 +99,14 @@
 
 
 # ============================================================
-# 6. Extrair os dados da GMUD
-#
-# customfield_16348 é um campo ADF.
-#
-# Procuramos especificamente o parágrafo:
-#
-#   "Ativos Afetados:"
-#
-# e pegamos o texto que está associado a ele.
+# 6. Montar informações básicas das GMUDs
 # ============================================================
 
-- name: Extrair informações das GMUDs
+- name: Inicializar lista de GMUDs
+  ansible.builtin.set_fact:
+    gmuds: []
+
+- name: Montar informações das GMUDs
   ansible.builtin.set_fact:
     gmuds: >-
       {{
@@ -131,17 +127,15 @@
 
 
 # ============================================================
-# 7. Extrair os ativos do campo ADF
+# 7. Extrair os ativos afetados
 #
-# Exemplo real:
+# O campo customfield_16348 é um documento ADF.
+#
+# Procuramos:
 #
 #   "Ativos Afetados:"
-#   "brwin0291"
 #
-# Resultado:
-#
-#   ativos:
-#     - brwin0291
+# e capturamos o texto imediatamente seguinte.
 # ============================================================
 
 - name: Extrair ativos afetados
@@ -150,17 +144,19 @@
       {{
         gmuds | map('combine', {
           'ativos': (
-            item.json.fields[jira_ativos_field].content
-            | default([])
-            | selectattr('content', 'defined')
-            | map(attribute='content')
-            | flatten
-            | selectattr('text', 'defined')
-            | map(attribute='text')
+            item.json.fields[jira_ativos_field]
+            | default({})
+            | to_json
+            | regex_findall(
+                '"text":\s*"Ativos Afetados:"[^}]*}[^}]*"text":\s*"([^"]+)"'
+              )
+            | first
+            | default('')
+            | trim
+            | split(',')
+            | map('trim')
+            | reject('equalto', '')
             | list
-            | join(' ')
-            | regex_search('Ativos Afetados:\\s*([^\\n]+)', '\\1')
-            | default([])
           )
         }) | list
       }}
@@ -171,22 +167,40 @@
 
 
 # ============================================================
-# 8. Normalizar os ativos
+# 8. Validar informações obrigatórias
 # ============================================================
 
-- name: Normalizar lista de ativos
-  ansible.builtin.set_fact:
-    gmuds: >-
-      {{
-        gmuds | map('combine', {
-          'ativos': (
-            item.ativos
-            | map('trim')
-            | reject('equalto', '')
-            | list
-          )
-        }) | list
-      }}
+- name: Validar informações das GMUDs
+  ansible.builtin.assert:
+    that:
+      - item.inicio is defined
+      - item.inicio is not none
+      - item.fim is defined
+      - item.fim is not none
+      - item.ativos is defined
+      - item.ativos | length > 0
+    fail_msg: >-
+      A GMUD {{ item.chave }} não possui todos os dados necessários.
+      Início: {{ item.inicio | default('não informado') }}
+      Fim: {{ item.fim | default('não informado') }}
+      Ativos: {{ item.ativos | default([]) }}
+  loop: "{{ gmuds }}"
+  loop_control:
+    label: "{{ item.chave }}"
+
+
+# ============================================================
+# 9. Mostrar resultado da descoberta
+# ============================================================
+
+- name: Mostrar resultado da descoberta
+  ansible.builtin.debug:
+    msg:
+      gmud: "{{ item.chave }}"
+      resumo: "{{ item.resumo }}"
+      inicio: "{{ item.inicio }}"
+      fim: "{{ item.fim }}"
+      ativos: "{{ item.ativos }}"
   loop: "{{ gmuds }}"
   loop_control:
     label: "{{ item.chave }}"
