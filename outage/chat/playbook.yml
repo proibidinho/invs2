@@ -1,0 +1,11 @@
+---
+- name: Auto Outage GML Observabilidade
+  hosts: localhost
+  gather_facts: false
+
+  roles:
+    # Descobre as GMUDs, ativos afetados e janela de manutenção no Jira.
+    - role: descoberta
+
+    # Localiza os ativos no Dynatrace e cria a Maintenance Window.
+    - role: outage

@@ -1,0 +1,126 @@
+---
+# Esta role consulta o Jira e entrega para a role "outage" uma lista
+# chamada "gmuds", contendo:
+#   - chave
+#   - resumo
+#   - inicio
+#   - fim
+#   - ativos
+
+- name: Buscar atividades de Observabilidade
+  ansible.builtin.uri:
+    url: "{{ jira_base_url }}/rest/api/3/search/jql"
+    method: POST
+    force_basic_auth: true
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    headers:
+      Accept: application/json
+      Content-Type: application/json
+    body_format: json
+    body:
+      jql: >-
+        project = {{ projeto_jira }}
+        AND status = "Aguardando aprovação dos Executantes"
+      maxResults: 1000
+      fields:
+        - summary
+        - customfield_14998
+        - issuelinks
+    status_code: 200
+  register: jira_search
+  environment: "{{ proxy_env }}"
+  no_log: true
+
+- name: Selecionar somente atividades de Observabilidade
+  ansible.builtin.set_fact:
+    atividades_observabilidade: >-
+      {{
+        jira_search.json.issues | default([])
+        | selectattr('fields.customfield_14998', 'defined')
+        | selectattr('fields.customfield_14998.value', 'defined')
+        | selectattr(
+            'fields.customfield_14998.value',
+            'equalto',
+            executante_alvo
+          )
+        | list
+      }}
+
+- name: Identificar as GMUDs pai
+  ansible.builtin.set_fact:
+    gmuds_pai: >-
+      {{
+        atividades_observabilidade
+        | map(attribute='fields.issuelinks')
+        | flatten
+        | selectattr('inwardIssue', 'defined')
+        | map(attribute='inwardIssue.key')
+        | unique
+        | list
+      }}
+
+- name: Consultar dados completos das GMUDs
+  ansible.builtin.uri:
+    url: "{{ jira_base_url }}/rest/api/3/issue/{{ item }}?fields=*all"
+    method: GET
+    force_basic_auth: true
+    user: "{{ jira_user }}"
+    password: "{{ jira_password }}"
+    headers:
+      Accept: application/json
+    status_code: 200
+  loop: "{{ gmuds_pai }}"
+  register: gmuds_jira
+  environment: "{{ proxy_env }}"
+  no_log: true
+  loop_control:
+    label: "{{ item }}"
+
+- name: Inicializar lista de GMUDs
+  ansible.builtin.set_fact:
+    gmuds: []
+
+- name: Montar informações das GMUDs
+  ansible.builtin.set_fact:
+    gmuds: >-
+      {{
+        gmuds + [
+          {
+            'chave': item.json.key,
+            'resumo': item.json.fields.summary,
+            'inicio': item.json.fields[jira_inicio_field],
+            'fim': item.json.fields[jira_fim_field],
+            'ativos': item.json.fields[jira_ativos_field]
+          }
+        ]
+      }}
+  loop: "{{ gmuds_jira.results }}"
+  no_log: true
+
+- name: Validar informações das GMUDs
+  ansible.builtin.assert:
+    that:
+      - item.inicio is not none
+      - item.fim is not none
+      - item.ativos is not none
+      - item.ativos | length > 0
+    fail_msg: >-
+      A GMUD {{ item.chave }} não possui todos os dados necessários.
+      Verifique os campos de ativos, início e fim configurados em
+      roles/descoberta/defaults/main.yml.
+  loop: "{{ gmuds }}"
+  loop_control:
+    label: "{{ item.chave }}"
+
+- name: Mostrar resumo da descoberta
+  ansible.builtin.debug:
+    msg:
+      gmud: "{{ item.chave }}"
+      resumo: "{{ item.resumo }}"
+      inicio: "{{ item.inicio }}"
+      fim: "{{ item.fim }}"
+      quantidade_ativos: "{{ item.ativos | length }}"
+  loop: "{{ gmuds }}"
+  loop_control:
+    label: "{{ item.chave }}"

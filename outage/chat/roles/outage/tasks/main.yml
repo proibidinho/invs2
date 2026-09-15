@@ -1,0 +1,18 @@
+---
+# Esta role recebe "gmuds" da role descoberta.
+# Para cada GMUD:
+#   1. Localiza os ativos no Dynatrace.
+#   2. Garante que todos foram encontrados.
+#   3. Cria/valida a Maintenance Window.
+
+- name: Verificar se há GMUDs para processar
+  ansible.builtin.debug:
+    msg: "Nenhuma GMUD de Observabilidade encontrada."
+  when: gmuds | default([]) | length == 0
+
+- name: Processar GMUDs
+  ansible.builtin.include_tasks: criar_outage.yml
+  loop: "{{ gmuds | default([]) }}"
+  loop_control:
+    loop_var: gmud
+    label: "{{ gmud.chave }}"

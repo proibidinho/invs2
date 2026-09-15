@@ -1,0 +1,15 @@
+---
+# Dynatrace
+# Informe a URL do seu ambiente, por exemplo:
+# https://xxxxx.live.dynatrace.com
+dynatrace_url: ""
+
+# Token deve ser fornecido pelo AAP.
+dynatrace_token: ""
+
+# Durante os primeiros testes deixe true.
+# Com true, a chamada é validada sem criar a janela.
+dynatrace_validate_only: true
+
+# Timezone da janela.
+dynatrace_timezone: "America/Sao_Paulo"

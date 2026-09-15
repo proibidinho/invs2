@@ -1,0 +1,108 @@
+---
+- name: Validar configuração do Dynatrace
+  ansible.builtin.assert:
+    that:
+      - dynatrace_url | length > 0
+      - dynatrace_token | length > 0
+    fail_msg: >-
+      Configure dynatrace_url e forneça dynatrace_token pelo AAP.
+
+- name: Inicializar lista de entidades Dynatrace
+  ansible.builtin.set_fact:
+    dynatrace_entities: []
+
+- name: Localizar ativos no Dynatrace
+  ansible.builtin.uri:
+    url: >-
+      {{ dynatrace_url }}/api/v2/entities
+      ?entitySelector=type(HOST),entityName.equals("{{ item }}")
+      &pageSize=100
+    method: GET
+    headers:
+      Authorization: "Api-Token {{ dynatrace_token }}"
+      Accept: application/json
+    status_code: 200
+  loop: "{{ gmud.ativos }}"
+  register: dynatrace_busca
+  no_log: true
+  loop_control:
+    label: "{{ item }}"
+
+- name: Montar lista de Entity IDs
+  ansible.builtin.set_fact:
+    dynatrace_entities: >-
+      {{
+        dynatrace_entities +
+        (
+          item.json.entities | default([])
+          | map(attribute='entityId.id')
+          | list
+        )
+      }}
+  loop: "{{ dynatrace_busca.results }}"
+  no_log: true
+
+- name: Verificar se todos os ativos foram encontrados
+  ansible.builtin.assert:
+    that:
+      - dynatrace_entities | length == gmud.ativos | length
+    fail_msg: >-
+      Nem todos os ativos da GMUD {{ gmud.chave }} foram encontrados
+      no Dynatrace. Nenhuma Maintenance Window será criada para esta GMUD.
+
+- name: Mostrar o que será colocado em manutenção
+  ansible.builtin.debug:
+    msg:
+      gmud: "{{ gmud.chave }}"
+      inicio: "{{ gmud.inicio }}"
+      fim: "{{ gmud.fim }}"
+      ativos: "{{ gmud.ativos }}"
+      dynatrace_entities: "{{ dynatrace_entities }}"
+
+# Abaixo usamos a Settings API oficial do Dynatrace.
+# "validateOnly" permite testar a configuração antes de criar a janela.
+- name: Criar ou validar Maintenance Window
+  ansible.builtin.uri:
+    url: "{{ dynatrace_url }}/api/v2/settings/objects?validateOnly={{ dynatrace_validate_only | lower }}"
+    method: POST
+    headers:
+      Authorization: "Api-Token {{ dynatrace_token }}"
+      Accept: application/json
+      Content-Type: application/json
+    body_format: json
+    body:
+      - schemaId: "builtin:alerting.maintenance-window"
+        scope: "environment"
+        value:
+          enabled: true
+          generalProperties:
+            name: "GMUD {{ gmud.chave }}"
+            description: >-
+              Outage automático para a GMUD {{ gmud.chave }} -
+              {{ gmud.resumo }}
+          schedule:
+            scheduleType: "ONCE"
+            onceRecurrence:
+              startTime: "{{ gmud.inicio }}"
+              endTime: "{{ gmud.fim }}"
+              timeZone: "{{ dynatrace_timezone }}"
+          filters:
+            - entityType: "HOST"
+              entityId:
+                "{{ dynatrace_entities | join(',') }}"
+    status_code:
+      - 200
+      - 201
+  register: outage_result
+  no_log: true
+
+- name: Informar resultado
+  ansible.builtin.debug:
+    msg:
+      gmud: "{{ gmud.chave }}"
+      resultado: >-
+        {{
+          'VALIDAÇÃO OK - nenhuma janela foi criada'
+          if dynatrace_validate_only
+          else 'Maintenance Window criada com sucesso'
+        }}

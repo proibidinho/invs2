@@ -1,0 +1,22 @@
+---
+# Jira
+jira_base_url: "https://clarobr.atlassian.net"
+projeto_jira: "GML"
+executante_alvo: "OBSERVABILIDADE(APR)"
+
+# IMPORTANTE:
+# Preencha estes três campos com os IDs reais da sua GMUD.
+# Exemplo: customfield_12345
+jira_ativos_field: "customfield_XXXX"
+jira_inicio_field: "customfield_YYYY"
+jira_fim_field: "customfield_ZZZZ"
+
+# Proxy
+http_proxy_url: "http://10.29.177.37:8080"
+https_proxy_url: "http://10.29.177.37:8080"
+
+proxy_env:
+  http_proxy: "{{ http_proxy_url }}"
+  https_proxy: "{{ https_proxy_url }}"
+  HTTP_PROXY: "{{ http_proxy_url }}"
+  HTTPS_PROXY: "{{ https_proxy_url }}"
