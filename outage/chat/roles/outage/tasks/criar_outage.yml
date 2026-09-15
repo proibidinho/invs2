@@ -21,10 +21,12 @@
     headers:
       Authorization: "Api-Token {{ dynatrace_token }}"
       Accept: application/json
-    status_code: 200
+    status_code:
+      - 200
+      - 404
   loop: "{{ gmud.ativos }}"
   register: dynatrace_busca
-  no_log: true
+  no_log: false
   loop_control:
     label: "{{ item }}"
 
@@ -40,15 +42,23 @@
         )
       }}
   loop: "{{ dynatrace_busca.results }}"
-  no_log: true
+  no_log: false
 
 - name: Verificar se todos os ativos foram encontrados
-  ansible.builtin.assert:
-    that:
-      - dynatrace_entities | length == gmud.ativos | length
-    fail_msg: >-
-      Nem todos os ativos da GMUD {{ gmud.chave }} foram encontrados
-      no Dynatrace. Nenhuma Maintenance Window será criada para esta GMUD.
+  ansible.builtin.set_fact:
+    gmud_valida: >-
+      {{
+        dynatrace_entities | length == gmud.ativos | length
+      }}
+
+- name: Informar GMUD ignorada
+  ansible.builtin.debug:
+    msg:
+      - "GMUD {{ gmud.chave }} ignorada."
+      - "Nem todos os ativos foram encontrados no Dynatrace."
+      - "Ativos da GMUD: {{ gmud.ativos }}"
+      - "Entidades encontradas: {{ dynatrace_entities }}"
+  when: not gmud_valida
 
 - name: Mostrar o que será colocado em manutenção
   ansible.builtin.debug:
@@ -58,12 +68,15 @@
       fim: "{{ gmud.fim }}"
       ativos: "{{ gmud.ativos }}"
       dynatrace_entities: "{{ dynatrace_entities }}"
+  when: gmud_valida
 
 # Abaixo usamos a Settings API oficial do Dynatrace.
 # "validateOnly" permite testar a configuração antes de criar a janela.
 - name: Criar ou validar Maintenance Window
   ansible.builtin.uri:
-    url: "{{ dynatrace_url }}/api/v2/settings/objects?validateOnly={{ dynatrace_validate_only | lower }}"
+    url: >-
+      {{ dynatrace_url }}/api/v2/settings/objects
+      ?validateOnly={{ dynatrace_validate_only | lower }}
     method: POST
     headers:
       Authorization: "Api-Token {{ dynatrace_token }}"
@@ -88,13 +101,13 @@
               timeZone: "{{ dynatrace_timezone }}"
           filters:
             - entityType: "HOST"
-              entityId:
-                "{{ dynatrace_entities | join(',') }}"
+              entityId: "{{ dynatrace_entities | join(',') }}"
     status_code:
       - 200
       - 201
   register: outage_result
-  no_log: true
+  no_log: false
+  when: gmud_valida
 
 - name: Informar resultado
   ansible.builtin.debug:
@@ -106,3 +119,4 @@
           if dynatrace_validate_only
           else 'Maintenance Window criada com sucesso'
         }}
+  when: gmud_valida
